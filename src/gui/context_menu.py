@@ -1,0 +1,304 @@
+"""Dark-glass right-click context menu for CompanionWidget."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from PyQt6.QtGui import QAction, QColor
+from PyQt6.QtWidgets import QColorDialog, QFileDialog, QInputDialog, QMenu, QMessageBox
+
+from src.core.converter import import_file_to_community
+from src.gui.settings_dialog import SettingsDialog
+
+if TYPE_CHECKING:
+    from src.gui.companion_widget import CompanionWidget
+
+
+DARK_GLASS_MENU_QSS = """
+QMenu {
+    background-color: rgba(18, 20, 29, 240);
+    color: #E2E8F0;
+    border: 1px solid rgba(148, 163, 184, 70);
+    border-radius: 10px;
+    padding: 6px 4px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 12px;
+}
+QMenu::item {
+    padding: 6px 24px 6px 14px;
+    border-radius: 6px;
+    margin: 1px 4px;
+}
+QMenu::item:selected {
+    background-color: rgba(56, 189, 248, 65);
+    color: #FFFFFF;
+}
+QMenu::separator {
+    height: 1px;
+    background: rgba(148, 163, 184, 45);
+    margin: 5px 10px;
+}
+QMenu::indicator {
+    width: 14px;
+    height: 14px;
+    margin-left: 6px;
+}
+"""
+
+
+def build_context_menu(widget: "CompanionWidget") -> QMenu:
+    """Constructs the full right-click dark glass context menu."""
+    menu = QMenu(widget)
+    menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+
+    # Header (disabled info action)
+    header = QAction(f"✨ {widget.asset.name} ({widget.asset.category})", menu)
+    header.setEnabled(False)
+    menu.addAction(header)
+    menu.addSeparator()
+
+    # Fine-tuning settings dialog
+    settings_act = QAction("🎛️  İnce Ayar Paneli (Slider'lar)...", menu)
+    settings_act.triggered.connect(lambda: SettingsDialog(widget).exec())
+    menu.addAction(settings_act)
+
+    # Opacity Submenu
+    op_menu = menu.addMenu(f"💧  Saydamlık (%{int(round(widget.state.opacity * 100))})")
+    op_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+    for pct in (15, 30, 50, 75, 90, 100):
+        act = QAction(f"%{pct}", op_menu, checkable=True)
+        act.setChecked(abs(widget.state.opacity * 100 - pct) < 4)
+        act.triggered.connect(lambda _c, p=pct: widget.set_opacity(p / 100.0))
+        op_menu.addAction(act)
+
+    # Line Spacing (HD Tightness) Submenu
+    ls_menu = menu.addMenu(f"📐  Satır Aralığı ({widget.state.line_spacing:.2f}x)")
+    ls_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+    for ls_val, ls_lbl in (
+        (0.82, "0.82x (Ultra Sıkı HD)"),
+        (0.86, "0.86x (Sıkı)"),
+        (0.88, "0.88x (Varsayılan HD)"),
+        (0.92, "0.92x (Dengeli)"),
+        (1.00, "1.00x (Klasik Terminal)"),
+    ):
+        act = QAction(ls_lbl, ls_menu, checkable=True)
+        act.setChecked(abs(widget.state.line_spacing - ls_val) < 0.015)
+        act.triggered.connect(lambda _c, v=ls_val: widget.set_line_spacing(v))
+        ls_menu.addAction(act)
+
+    # Study Timer Submenu
+    timer_label = "Süresiz" if widget.state.duration_minutes == 0 else f"{widget.state.duration_minutes} dk"
+    timer_menu = menu.addMenu(f"⏱️  Ekranda Kalma Süresi ({timer_label})")
+    timer_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+    for mins, label in (
+        (0, "∞  Süresiz (Ben kapatana kadar)"),
+        (15, "15 Dakika"),
+        (25, "25 Dakika (Pomodoro)"),
+        (45, "45 Dakika"),
+        (60, "60 Dakika"),
+    ):
+        act = QAction(label, timer_menu, checkable=True)
+        act.setChecked(widget.state.duration_minutes == mins)
+        act.triggered.connect(lambda _c, m=mins: widget.set_timer_minutes(m))
+        timer_menu.addAction(act)
+
+    custom_timer_act = QAction("⏳  Özel Dakika Gir...", timer_menu)
+    custom_timer_act.triggered.connect(lambda: _prompt_custom_timer(widget))
+    timer_menu.addAction(custom_timer_act)
+    timer_menu.addSeparator()
+    show_t_act = QAction("Kalan Süreyi Altta Göster", timer_menu, checkable=True)
+    show_t_act.setChecked(widget.state.show_timer_below)
+    show_t_act.triggered.connect(lambda checked: widget.set_show_timer_below(checked))
+    timer_menu.addAction(show_t_act)
+
+    # Speed Submenu
+    spd_menu = menu.addMenu(f"⚡  Animasyon Hızı ({widget.state.speed_multiplier:.2g}x)")
+    spd_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+    for mult, label in (
+        (0.25, "0.25x (Çok Sakin)"),
+        (0.5, "0.5x (Yavaş)"),
+        (1.0, "1x (Normal)"),
+        (2.0, "2x (Hızlı)"),
+        (3.0, "3x (Çok Hızlı)"),
+    ):
+        act = QAction(label, spd_menu, checkable=True)
+        act.setChecked(abs(widget.state.speed_multiplier - mult) < 0.05)
+        act.triggered.connect(lambda _c, m=mult: widget.set_speed_multiplier(m))
+        spd_menu.addAction(act)
+
+    # Color Themes Submenu
+    color_menu = menu.addMenu("🎨  Renk & Tema")
+    color_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+    auto_act = QAction("✨ Önerilen (Varsayılan)", color_menu, checkable=True)
+    auto_act.setChecked(widget.state.color_theme == "auto")
+    auto_act.triggered.connect(lambda: widget.set_color_theme("auto"))
+    color_menu.addAction(auto_act)
+    color_menu.addSeparator()
+
+    for key, info in widget.theme_lib.themes.items():
+        act = QAction(str(info.get("name", key)), color_menu, checkable=True)
+        act.setChecked(widget.state.color_theme == key)
+        act.triggered.connect(lambda _c, k=key: widget.set_color_theme(k))
+        color_menu.addAction(act)
+
+    color_menu.addSeparator()
+    pick_act = QAction("🖌️  Özel Renk Seç (Hex)...", color_menu)
+    pick_act.triggered.connect(lambda: _pick_custom_color(widget))
+    color_menu.addAction(pick_act)
+
+    # Particles & Scene Effects Submenu
+    scene_menu = menu.addMenu("✨  Parçacık & Sahne Ayarları")
+    scene_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+
+    if widget.asset.particles.type != "none":
+        toggle_lbl = widget.asset.particles.toggle_label or "Özel Parçacık Efekti"
+        p_act = QAction(f"🌟 {toggle_lbl}", scene_menu, checkable=True)
+        p_act.setChecked(widget.is_particles_active())
+        p_act.triggered.connect(lambda checked: widget.set_particles_enabled(checked))
+        scene_menu.addAction(p_act)
+        scene_menu.addSeparator()
+
+    for ptype, label in (
+        (None, "Varsayılan Efekt"),
+        ("none", "Efektsiz (Kapalı)"),
+        ("snow", "❄️ Kar Yağışı Modu"),
+        ("rain", "🌧️ Yağmur Modu"),
+        ("lightning", "⚡ Şimşekli Fırtına Modu"),
+        ("steam", "♨️ Buhar Modu"),
+        ("hearts", "♥ Kalpler Modu"),
+        ("sparks", "✨ Kıvılcım Modu"),
+        ("stars", "✦ Yıldız Tozu Modu"),
+    ):
+        act = QAction(label, scene_menu, checkable=True)
+        act.setChecked(widget.state.particle_override_type == ptype)
+        act.triggered.connect(lambda _c, pt=ptype: widget.set_particle_override(pt))
+        scene_menu.addAction(act)
+
+    scene_menu.addSeparator()
+    dens_menu = scene_menu.addMenu("Yoğunluk (Az / Orta / Çok)")
+    dens_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+    for dkey, dlabel in (("low", "Az"), ("medium", "Orta"), ("high", "Çok")):
+        dact = QAction(dlabel, dens_menu, checkable=True)
+        dact.setChecked(widget.state.particle_density == dkey)
+        dact.triggered.connect(lambda _c, dk=dkey: widget.set_particle_density(dk))
+        dens_menu.addAction(dact)
+
+    scene_menu.addSeparator()
+    zzz_act = QAction("💤 Uyku Zzz Baloncukları", scene_menu, checkable=True)
+    zzz_act.setChecked(widget.state.sleep_zzz_enabled)
+    zzz_act.triggered.connect(lambda checked: widget.set_sleep_zzz(checked))
+    scene_menu.addAction(zzz_act)
+
+    blink_act = QAction("👀 Göz Kırpma Efekti", scene_menu, checkable=True)
+    blink_act.setChecked(widget.state.eye_blink_enabled)
+    blink_act.triggered.connect(lambda checked: widget.set_eye_blink(checked))
+    scene_menu.addAction(blink_act)
+
+    menu.addSeparator()
+
+    # Quick Visual Toggles
+    glow_act = QAction("✨ Yumuşak Parıltı (Glow)", menu, checkable=True)
+    glow_act.setChecked(widget.state.glow_enabled)
+    glow_act.triggered.connect(lambda checked: widget.set_glow(checked))
+    menu.addAction(glow_act)
+
+    shadow_act = QAction("🌑 Okunabilirlik Gölgesi (Kontur)", menu, checkable=True)
+    shadow_act.setChecked(widget.state.shadow_enabled)
+    shadow_act.triggered.connect(lambda checked: widget.set_shadow(checked))
+    menu.addAction(shadow_act)
+
+    flip_act = QAction("🔄 Yatay Aynala (Flip)", menu, checkable=True)
+    flip_act.setChecked(widget.state.flip_horizontal)
+    flip_act.triggered.connect(lambda checked: widget.set_flip(checked))
+    menu.addAction(flip_act)
+
+    top_act = QAction("📌 Her Zaman Üstte", menu, checkable=True)
+    top_act.setChecked(widget.state.always_on_top)
+    top_act.triggered.connect(lambda checked: widget.set_always_on_top(checked))
+    menu.addAction(top_act)
+
+    ghost_act = QAction("👻 Ders / Hayalet Modu (Tıklama Geçirgen)", menu, checkable=True)
+    ghost_act.setChecked(widget.state.click_through)
+    ghost_act.triggered.connect(lambda checked: widget.set_click_through(checked))
+    menu.addAction(ghost_act)
+
+    menu.addSeparator()
+
+    # Community Import / Export / Library
+    import_act = QAction("📥 Dosya İçe Aktar (.ascii.json / .txt)...", menu)
+    import_act.triggered.connect(lambda: _import_community_file(widget))
+    menu.addAction(import_act)
+
+    export_act = QAction("📤 Dışa Aktar (.ascii.json)...", menu)
+    export_act.triggered.connect(lambda: _export_asset_file(widget))
+    menu.addAction(export_act)
+
+    if widget.manager_callbacks and "open_hub" in widget.manager_callbacks:
+        hub_act = QAction("📚 Kütüphaneden Başka Karakter Aç...", menu)
+        hub_act.triggered.connect(widget.manager_callbacks["open_hub"])
+        menu.addAction(hub_act)
+
+    menu.addSeparator()
+    close_act = QAction("❌ Bu Widget'ı Kapat", menu)
+    close_act.triggered.connect(widget.close_widget)
+    menu.addAction(close_act)
+
+    return menu
+
+
+def _prompt_custom_timer(widget: "CompanionWidget") -> None:
+    mins, ok = QInputDialog.getInt(
+        widget,
+        "Özel Çalışma Zamanlayıcısı",
+        "Kaç dakika ekranda kalsın? (0 = Süresiz):",
+        value=max(1, widget.state.duration_minutes or 30),
+        min=0,
+        max=600,
+    )
+    if ok:
+        widget.set_timer_minutes(mins)
+
+
+def _pick_custom_color(widget: "CompanionWidget") -> None:
+    color = QColorDialog.getColor(QColor("#FFFFFF"), widget, "Özel ASCII Rengi Seç")
+    if color.isValid():
+        widget.set_color_theme(color.name().upper())
+
+
+def _import_community_file(widget: "CompanionWidget") -> None:
+    file_path, _ = QFileDialog.getOpenFileName(
+        widget,
+        "ASCII Animasyon İçe Aktar",
+        "",
+        "ASCII Dosyaları (*.ascii.json *.json *.txt);;Tüm Dosyalar (*.*)",
+    )
+    if not file_path:
+        return
+    asset, msg = import_file_to_community(file_path, widget.library.community_dir)
+    if asset:
+        widget.library.reload()
+        QMessageBox.information(widget, "Başarılı", f"{msg}\n\nKarakter eklendi ve şimdi açılıyor!")
+        if widget.manager_callbacks and "spawn_asset" in widget.manager_callbacks:
+            widget.manager_callbacks["spawn_asset"](asset.id)
+    else:
+        QMessageBox.warning(widget, "İçe Aktarma Hatası", msg)
+
+
+def _export_asset_file(widget: "CompanionWidget") -> None:
+    default_name = f"{widget.asset.id}.ascii.json"
+    out_path, _ = QFileDialog.getSaveFileName(
+        widget,
+        "ASCII Animasyonu Dışa Aktar",
+        default_name,
+        "ASCII JSON (*.ascii.json)",
+    )
+    if not out_path:
+        return
+    try:
+        with Path(out_path).open("w", encoding="utf-8") as f:
+            json.dump(widget.asset.to_dict(), f, ensure_ascii=False, indent=2)
+        QMessageBox.information(widget, "Dışa Aktarıldı", f"Kaydedildi:\n{out_path}")
+    except Exception as e:
+        QMessageBox.warning(widget, "Hata", f"Kaydedilemedi: {e}")
