@@ -1,0 +1,26 @@
+# Python caches & compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build & distribution outputs
+build/
+dist/
+*.exe
+
+# Runtime caches & logs
+*.log
+assets/library_index.json
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
