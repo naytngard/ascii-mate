@@ -29,6 +29,11 @@ from src.gui.context_menu import build_context_menu
 
 RGB = Tuple[int, int, int]
 
+MIN_FONT_SIZE = 6
+MAX_FONT_SIZE = 48
+EDGE_GRAB_MARGIN = 10
+CORNER_GRAB_MARGIN = 16
+
 MIRROR_CHAR_MAP = str.maketrans({
     "/": "\\",
     "\\": "/",
@@ -84,6 +89,11 @@ class CompanionWidget(QWidget):
         self._hovered: bool = False
         self._dragging: bool = False
         self._drag_offset: QPoint = QPoint()
+        self._resize_mode: Optional[str] = None
+        self._resize_hover_mode: Optional[str] = None
+        self._resize_start_global: QPoint = QPoint()
+        self._resize_start_geom = self.geometry()
+        self._resize_start_font: int = self.state.font_size
         self._rainbow_hue: float = 0.0
         self._lightning_flash: bool = False
         self._last_tick_time: float = time.monotonic()
@@ -544,26 +554,43 @@ class CompanionWidget(QWidget):
         if not self.state.click_through:
             painter.fillRect(self.rect(), QColor(0, 0, 0, 1))
 
-        # Subtle hover frame + corner handles when mouse hovers
-        if self._hovered and not self.state.click_through:
+        # Subtle hover frame + corner handles when mouse hovers or resizes
+        if (self._hovered or self._resize_mode is not None) and not self.state.click_through:
             primary, _, _ = self._resolve_colors()
             painter.fillRect(self.rect().adjusted(2, 2, -2, -2), QColor(15, 23, 42, 48))
             pen = QPen(QColor(primary.red(), primary.green(), primary.blue(), 145), 1.3, Qt.PenStyle.DotLine)
             painter.setPen(pen)
-            painter.drawRoundedRect(self.rect().adjusted(2, 2, -3, -3), 8, 8)
-
-            handle_pen = QPen(QColor(primary.red(), primary.green(), primary.blue(), 210), 2.0)
-            painter.setPen(handle_pen)
             r = self.rect().adjusted(2, 2, -3, -3)
-            l = 7
-            painter.drawLine(r.left(), r.top(), r.left() + l, r.top())
-            painter.drawLine(r.left(), r.top(), r.left(), r.top() + l)
-            painter.drawLine(r.right(), r.top(), r.right() - l, r.top())
-            painter.drawLine(r.right(), r.top(), r.right(), r.top() + l)
-            painter.drawLine(r.left(), r.bottom(), r.left() + l, r.bottom())
-            painter.drawLine(r.left(), r.bottom(), r.left(), r.bottom() - l)
-            painter.drawLine(r.right(), r.bottom(), r.right() - l, r.bottom())
-            painter.drawLine(r.right(), r.bottom(), r.right(), r.bottom() - l)
+            painter.drawRoundedRect(r, 8, 8)
+
+            active_mode = self._resize_mode or self._resize_hover_mode
+            base_handle_col = QColor(primary.red(), primary.green(), primary.blue(), 215)
+            active_handle_col = QColor(255, 235, 130, 255)
+            l = 9
+
+            # Corner handles
+            for corner_name, pts in (
+                ("top-left", ((r.left(), r.top(), r.left() + l, r.top()), (r.left(), r.top(), r.left(), r.top() + l))),
+                ("top-right", ((r.right(), r.top(), r.right() - l, r.top()), (r.right(), r.top(), r.right(), r.top() + l))),
+                ("bottom-left", ((r.left(), r.bottom(), r.left() + l, r.bottom()), (r.left(), r.bottom(), r.left(), r.bottom() - l))),
+                ("bottom-right", ((r.right(), r.bottom(), r.right() - l, r.bottom()), (r.right(), r.bottom(), r.right(), r.bottom() - l))),
+            ):
+                is_active = active_mode == corner_name
+                painter.setPen(QPen(active_handle_col if is_active else base_handle_col, 2.8 if is_active else 2.0))
+                for x1, y1, x2, y2 in pts:
+                    painter.drawLine(x1, y1, x2, y2)
+
+            # Highlight edge line when hovering/dragging an edge
+            if active_mode in ("left", "right", "top", "bottom"):
+                painter.setPen(QPen(active_handle_col, 2.5))
+                if active_mode == "left":
+                    painter.drawLine(r.left(), r.top() + l, r.left(), r.bottom() - l)
+                elif active_mode == "right":
+                    painter.drawLine(r.right(), r.top() + l, r.right(), r.bottom() - l)
+                elif active_mode == "top":
+                    painter.drawLine(r.left() + l, r.top(), r.right() - l, r.top())
+                elif active_mode == "bottom":
+                    painter.drawLine(r.left() + l, r.bottom(), r.right() - l, r.bottom())
 
         if self._art_dirty or self._art_pixmap is None:
             self._rebuild_art_pixmap()
@@ -571,56 +598,183 @@ class CompanionWidget(QWidget):
         if self._art_pixmap is not None:
             painter.drawPixmap(0, 0, self._art_pixmap)
 
+    # --- Resize Hit-Testing & Cursor Helpers ---
+
+    def _hit_test_resize(self, pos: QPoint) -> Optional[str]:
+        if self.state.click_through:
+            return None
+        w, h = self.width(), self.height()
+        x, y = pos.x(), pos.y()
+        cm = max(4, min(CORNER_GRAB_MARGIN, w // 3, h // 3))
+        em = max(4, min(EDGE_GRAB_MARGIN, w // 4, h // 4))
+
+        left_c = x <= cm
+        right_c = x >= w - cm
+        top_c = y <= cm
+        bottom_c = y >= h - cm
+
+        if top_c and left_c:
+            return "top-left"
+        if top_c and right_c:
+            return "top-right"
+        if bottom_c and left_c:
+            return "bottom-left"
+        if bottom_c and right_c:
+            return "bottom-right"
+
+        if x <= em:
+            return "left"
+        if x >= w - em:
+            return "right"
+        if y <= em:
+            return "top"
+        if y >= h - em:
+            return "bottom"
+        return None
+
+    @staticmethod
+    def _cursor_for_mode(mode: Optional[str], dragging: bool = False) -> Qt.CursorShape:
+        if mode in ("top-left", "bottom-right"):
+            return Qt.CursorShape.SizeFDiagCursor
+        if mode in ("top-right", "bottom-left"):
+            return Qt.CursorShape.SizeBDiagCursor
+        if mode in ("left", "right"):
+            return Qt.CursorShape.SizeHorCursor
+        if mode in ("top", "bottom"):
+            return Qt.CursorShape.SizeVerCursor
+        return Qt.CursorShape.ClosedHandCursor if dragging else Qt.CursorShape.OpenHandCursor
+
     # --- Mouse & Keyboard Events ---
 
     def enterEvent(self, event) -> None:  # noqa: N802
         self._hovered = True
-        self.setCursor(Qt.CursorShape.OpenHandCursor)
+        pos = self.mapFromGlobal(event.globalPosition().toPoint()) if hasattr(event, "globalPosition") else QPoint(self.width() // 2, self.height() // 2)
+        self._resize_hover_mode = self._hit_test_resize(pos)
+        self.setCursor(self._cursor_for_mode(self._resize_hover_mode))
         self.update()
         super().enterEvent(event)
 
     def leaveEvent(self, event) -> None:  # noqa: N802
         self._hovered = False
-        self.unsetCursor()
+        if self._resize_mode is None:
+            self._resize_hover_mode = None
+            self.unsetCursor()
         self.update()
         super().leaveEvent(event)
 
     def mousePressEvent(self, event) -> None:  # noqa: N802
         if event.button() == Qt.MouseButton.LeftButton:
+            mode = self._hit_test_resize(event.position().toPoint())
+            if mode is not None:
+                self._resize_mode = mode
+                self._dragging = False
+                self._resize_start_global = event.globalPosition().toPoint()
+                self._resize_start_geom = self.geometry()
+                self._resize_start_font = self.state.font_size
+                self.setCursor(self._cursor_for_mode(mode))
+                self.update()
+                event.accept()
+                return
+
             self._dragging = True
             self._drag_offset = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
             event.accept()
 
     def mouseMoveEvent(self, event) -> None:  # noqa: N802
+        if self._resize_mode is not None and (event.buttons() & Qt.MouseButton.LeftButton):
+            mode = self._resize_mode
+            delta = event.globalPosition().toPoint() - self._resize_start_global
+            dx, dy = delta.x(), delta.y()
+            sg = self._resize_start_geom
+            sw, sh = max(1, sg.width()), max(1, sg.height())
+
+            target_w, target_h = sw, sh
+            if "right" in mode:
+                target_w = sw + dx
+            elif "left" in mode:
+                target_w = sw - dx
+            if "bottom" in mode:
+                target_h = sh + dy
+            elif "top" in mode:
+                target_h = sh - dy
+
+            has_x = ("left" in mode) or ("right" in mode)
+            has_y = ("top" in mode) or ("bottom" in mode)
+            if has_x and has_y:
+                rx = target_w / sw
+                ry = target_h / sh
+                scale = rx if abs(rx - 1.0) >= abs(ry - 1.0) else ry
+            elif has_x:
+                scale = target_w / sw
+            else:
+                scale = target_h / sh
+
+            scale = max(0.1, scale)
+            new_font = max(MIN_FONT_SIZE, min(MAX_FONT_SIZE, int(round(self._resize_start_font * scale))))
+            if new_font != self.state.font_size:
+                self.state.font_size = new_font
+                self._cached_font = None
+                self._cached_font_metrics = None
+                self._recalculate_size()
+                self._invalidate_art()
+                nx = (sg.x() + sg.width() - self.width()) if ("left" in mode) else sg.x()
+                ny = (sg.y() + sg.height() - self.height()) if ("top" in mode) else sg.y()
+                self.move(nx, ny)
+                self.update()
+            event.accept()
+            return
+
         if self._dragging and (event.buttons() & Qt.MouseButton.LeftButton):
             new_pos = event.globalPosition().toPoint() - self._drag_offset
             self.move(new_pos)
             event.accept()
+            return
+
+        hover_mode = self._hit_test_resize(event.position().toPoint())
+        if hover_mode != self._resize_hover_mode:
+            self._resize_hover_mode = hover_mode
+            self.setCursor(self._cursor_for_mode(hover_mode))
+            self.update()
 
     def mouseReleaseEvent(self, event) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.LeftButton and self._dragging:
-            self._dragging = False
-            self.setCursor(Qt.CursorShape.OpenHandCursor)
-            self.state.x = self.x()
-            self.state.y = self.y()
-            self._save_state()
-            event.accept()
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self._resize_mode is not None:
+                self._resize_mode = None
+                self.state.x = self.x()
+                self.state.y = self.y()
+                self._save_state()
+                hover_mode = self._hit_test_resize(event.position().toPoint())
+                self._resize_hover_mode = hover_mode
+                self.setCursor(self._cursor_for_mode(hover_mode))
+                self.update()
+                event.accept()
+                return
+
+            if self._dragging:
+                self._dragging = False
+                hover_mode = self._hit_test_resize(event.position().toPoint())
+                self._resize_hover_mode = hover_mode
+                self.setCursor(self._cursor_for_mode(hover_mode))
+                self.state.x = self.x()
+                self.state.y = self.y()
+                self._save_state()
+                event.accept()
 
     def wheelEvent(self, event) -> None:  # noqa: N802
         delta = event.angleDelta().y()
         if delta > 0:
-            self.set_font_size(min(42, self.state.font_size + 1))
+            self.set_font_size(min(MAX_FONT_SIZE, self.state.font_size + 1))
         elif delta < 0:
-            self.set_font_size(max(8, self.state.font_size - 1))
+            self.set_font_size(max(MIN_FONT_SIZE, self.state.font_size - 1))
         event.accept()
 
     def keyPressEvent(self, event) -> None:  # noqa: N802
         key = event.key()
         if key in (Qt.Key.Key_Plus, Qt.Key.Key_Equal):
-            self.set_font_size(min(42, self.state.font_size + 1))
+            self.set_font_size(min(MAX_FONT_SIZE, self.state.font_size + 1))
         elif key == Qt.Key.Key_Minus:
-            self.set_font_size(max(8, self.state.font_size - 1))
+            self.set_font_size(max(MIN_FONT_SIZE, self.state.font_size - 1))
         elif key == Qt.Key.Key_Space:
             self._paused = not self._paused
         elif key == Qt.Key.Key_Escape:
@@ -676,7 +830,7 @@ class CompanionWidget(QWidget):
         self.update()
 
     def set_font_size(self, size: int) -> None:
-        self.state.font_size = max(8, min(42, size))
+        self.state.font_size = max(MIN_FONT_SIZE, min(MAX_FONT_SIZE, size))
         self._cached_font = None
         self._cached_font_metrics = None
         self._recalculate_size()

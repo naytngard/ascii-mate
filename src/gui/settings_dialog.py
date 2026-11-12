@@ -127,10 +127,10 @@ class SettingsDialog(QDialog):
         opacity_row.addWidget(self.opacity_lbl)
         form.addRow("💧 Saydamlık:", opacity_row)
 
-        # Font Size Slider (8 - 42)
+        # Font Size Slider (6 - 48)
         size_row = QHBoxLayout()
         self.size_slider = QSlider(Qt.Orientation.Horizontal)
-        self.size_slider.setRange(8, 42)
+        self.size_slider.setRange(6, 48)
         self.size_slider.setValue(self.widget.state.font_size)
         self.size_lbl = QLabel(f"{self.size_slider.value()} pt")
         self.size_lbl.setMinimumWidth(38)
