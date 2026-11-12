@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "peek_cat",
+  "name": "Masadan Bakan Kedi",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "kedi",
+    "masa",
+    "meraklı"
+  ],
+  "default_fps": 2.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#E2E8F0",
+    "1": "#4ADE80",
+    "2": "#F8FAFC",
+    "3": "#FB7185",
+    "4": "#64748B",
+    "5": "#FACC15"
+  },
+  "color_frames": [
+    "    0000000    \n   0  101  0   \n  220  3  022  \n    00   00    \n444444444444444",
+    "    0000000    \n   0  404  0   \n  220  3  022  \n    00   00    \n444444444444444",
+    "    0000000    \n   0  505  0   \n  220  0  022  \n   000   000   \n444444444444444",
+    "    0000000    \n   0  303  0   \n  220  3  022  \n    00   00    \n444444444444444"
+  ],
+  "frames": [
+    "    /\\___/\\    \n   (  o.o  )   \n  ==(  ^  )==  \n    ||   ||    \n---------------",
+    "    /\\___/\\    \n   (  -.-  )   \n  ==(  ^  )==  \n    ||   ||    \n---------------",
+    "    /\\___/\\    \n   (  O.O  )   \n  ==(  w  )==  \n   \\||   ||/   \n---------------",
+    "    /\\___/\\    \n   (  ^.^  )   \n  ==(  ^  )==  \n    ||   ||    \n---------------"
+  ],
+  "supports_eye_blink": true
+}

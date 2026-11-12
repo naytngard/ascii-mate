@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "id": "dancing_stickman",
+  "name": "Neon Dansçı Çubuk Adam",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "dans",
+    "çubuk adam",
+    "eğlence",
+    "neon"
+  ],
+  "default_fps": 5.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FACC15",
+    "1": "#22D3EE",
+    "2": "#F472B6"
+  },
+  "color_frames": [
+    "    0     \n   111    \n   1 1    ",
+    "   202    \n    2     \n   2 2    ",
+    "   101    \n    11    \n   1 1    ",
+    "   202    \n   22     \n   2 2    ",
+    "  01010   \n    1     \n   111    ",
+    "   202    \n    2     \n   2 2    "
+  ],
+  "frames": [
+    "    o     \n   /|\\    \n   / \\    ",
+    "   \\o/    \n    |     \n   / \\    ",
+    "   _o/    \n    |\\    \n   / >    ",
+    "   \\o_    \n   /|     \n   < \\    ",
+    "  *\\o/*   \n    |     \n   _|_    ",
+    "   \\o/    \n    |     \n   / \\    "
+  ]
+}

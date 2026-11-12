@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "radar_dish",
+  "name": "Derin Uzay Radarı",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "radar",
+    "sinyal",
+    "uzay",
+    "bilim"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#4ADE80",
+    "1": "#22D3EE",
+    "2": "#FACC15",
+    "3": "#94A3B8",
+    "4": "#64748B",
+    "5": "#FEF08A"
+  },
+  "color_frames": [
+    "      0    0   \n   0 0     1   \n    0 00002    \n     03        \n   4443444     ",
+    "      0  0  1  \n   0 0     1 1 \n    0 00005    \n     03        \n   4443444     ",
+    "      0     11 \n   0 0    0 111\n    0 00002    \n     03        \n   4443444     ",
+    "      0   5    \n   0 0         \n    0 00002    \n     03        \n   4443444     "
+  ],
+  "frames": [
+    "      /    .   \n   ( (     )   \n    \\ \\---o    \n     \\|        \n   ___|___     ",
+    "      /  .  )  \n   ( (     ) ) \n    \\ \\---*    \n     \\|        \n   ___|___     ",
+    "      /     )) \n   ( (    . )))\n    \\ \\---o    \n     \\|        \n   ___|___     ",
+    "      /   *    \n   ( (         \n    \\ \\---o    \n     \\|        \n   ___|___     "
+  ]
+}

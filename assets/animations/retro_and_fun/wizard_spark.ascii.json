@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "id": "wizard_spark",
+  "name": "Büyücü & Asa Kıvılcımı",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "büyücü",
+    "sihir",
+    "yıldız",
+    "fantastik"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": true,
+    "type": "sparks",
+    "toggle_label": "Sihirli Kıvılcım",
+    "spawn_area": "top",
+    "density": "low",
+    "chars": [
+      "*",
+      "+",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#A855F7",
+    "1": "#F472B6",
+    "2": "#FACC15",
+    "3": "#FEF08A",
+    "4": "#38BDF8"
+  },
+  "color_frames": [
+    "     010      2  \n    00000    0   \n    030300002    \n    00 00        ",
+    "     010   2   4 \n    00000   0    \n    010100002    \n    00 00        ",
+    "     010     4 2 \n    00000        \n    030300002  0 \n    00 00        ",
+    "     010  2      \n    00000    4   \n    000000002    \n    00 00        "
+  ],
+  "frames": [
+    "     /^\\      *  \n    /___\\    /   \n    (o.o)---*    \n    /| |\\        ",
+    "     /^\\   *   + \n    /___\\   \\    \n    (^.^)---*    \n    /| |\\        ",
+    "     /^\\     + * \n    /___\\        \n    (o.o)---*  . \n    /| |\\        ",
+    "     /^\\  *      \n    /___\\    +   \n    (-.-)---*    \n    /| |\\        "
+  ],
+  "supports_eye_blink": true
+}

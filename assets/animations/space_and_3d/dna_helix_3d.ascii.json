@@ -1,0 +1,39 @@
+{
+  "schema_version": "2.0",
+  "id": "dna_helix_3d",
+  "name": "3B DNA Çift Sarmalı",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "dna",
+    "3b",
+    "biyoloji",
+    "bilim",
+    "sarmal"
+  ],
+  "default_fps": 26.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "frames": [
+    "                                            \n                                            \n                                            \n               O-A                    *     \n               O  --------C@@               \n               OOG------@@@@     .          \n                OoT--@@@-               '   \n                 oo@@--                     \n                 @@oo-=                     \n                @ ----=-                    \n          *    @-G----=--Co            *    \n               @-T----=---AOO             * \n               OO-----=---G-@           .   \n                 oA-------T-@               \n            +       ------ @                \n                     --oo@@                 \n                     -=@@oo                 \n            . .    -@@@--GoO           +    \n                @@@@------TOO          .    \n             ' @@A--------  O            .  \n                          C-O               \n             +     .                        \n                                            \n                                   +        ",
+    "                                            \n                                            \n                                            \n                        @@@@@         *     \n                  ---@@@@                   \n                o- @@@--         .          \n                 @@----                 '   \n                @@ o--=                     \n               @@-C---=-o                   \n               @-A----=----o                \n          *    O-G----=---C-O          *    \n                O---------A-@             * \n                 o-------G-@@           .   \n                    -----@@                 \n            +        C=@@                   \n                    @@@---o                 \n                 @@@--=----O                \n            . .@@---------G-O          +    \n                o------     O          .    \n             '      ------T-@            .  \n                       --   @               \n             +     .     C-@@               \n                                            \n                                   +        ",
+    "                                            \n                        @@@                 \n                     @@@@-                  \n                   @@ -C              *     \n                 @@@ A-                     \n                @@-G--=          .          \n               @@  ---=                 '   \n               @-T----=-C                   \n               @-C----=---GO                \n               OOA----=---T-@               \n          *     OoG-------C@@          *    \n                  oT-----@@@              * \n                    o--@@@              .   \n                    @@@-G                   \n            +    @@@--=--To                 \n               @@@----=----O                \n               @-G----=    OO               \n            . .  oC---=---A-@          +    \n                    ------G-@          .    \n             '       ---   @@            .  \n                      - --@@                \n             +     .  -C @@                 \n                       -@@                  \n                       @           +        ",
+    "                     @@                     \n                   @@@-                     \n                  @@  T                     \n                @@ C- -               *     \n               @@-A --=                     \n               @   ---=          .          \n               @-G----=--               '   \n               O-T----=---A-O               \n               OO  -------G@@               \n                o--------@@@                \n          *       -A---@@@             *    \n                    @@@                   * \n                 @@@@-=-oo              .   \n                @@T---=---o                 \n            +  @-C----=----OO               \n               O-A--------T-O               \n                  --------C-@               \n            . .     -----A  @          +    \n                      --  -@           .    \n             '       -=-- @              .  \n                    -T  @@                  \n             +     C-@@@                    \n                  @@@@                      \n                                   +        "
+  ],
+  "procedural": "dna_helix_3d",
+  "procedural_params": {
+    "width": 44,
+    "height": 24
+  }
+}

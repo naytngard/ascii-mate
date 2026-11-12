@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "bunny_hop",
+  "name": "Zıplayan Tavşan",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "tavşan",
+    "zıplayan",
+    "sevimli"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F1F5F9",
+    "1": "#F472B6",
+    "2": "#FDA4AF",
+    "3": "#4ADE80"
+  },
+  "color_frames": [
+    "   00000   \n   01010   \n   02 20   \n  000 000  \n33333333333",
+    "   00000   \n  0010100  \n   2   2   \n   0   0   \n33333333333",
+    "   00000   \n   01010   \n   02 20   \n           \n33333333333",
+    "   00000   \n   00000   \n   02 20   \n  000 000  \n33333333333"
+  ],
+  "frames": [
+    "   (\\_/)   \n   (o.o)   \n   (> <)   \n  (_) (_)  \n~~~~~~~~~~~",
+    "   (\\_/)   \n  /(o.o)\\  \n   >   <   \n   \"   \"   \n~~~~~~~~~~~",
+    "   (\\_/)   \n   (^.^)   \n   /> <\\   \n           \n~~~~~~~~~~~",
+    "   (\\_/)   \n   (-.-)   \n   (> <)   \n  (_) (_)  \n~~~~~~~~~~~"
+  ],
+  "supports_eye_blink": true
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "sakura_branch",
+  "name": "Sakura Çiçeği Dalı",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "sakura",
+    "çiçek",
+    "japon",
+    "bahar"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": true,
+    "type": "snow",
+    "toggle_label": "Sakura Yaprakları",
+    "spawn_area": "bottom",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      ","
+    ]
+  },
+  "palette_map": {
+    "0": "#F9A8D4",
+    "1": "#F472B6",
+    "2": "#92400E",
+    "3": "#FBCFE8"
+  },
+  "color_frames": [
+    " 0   1  0       \n  222 222 0     \n  222222222222  \n     0    3     ",
+    "   0  1   0     \n  222 222       \n  222222222222  \n  3      0      ",
+    " 0   1   0      \n  222 222   3   \n  222222222222  \n    0       3   ",
+    "   0 1  0       \n  222 222  0    \n  222222222222  \n 3     0        "
+  ],
+  "frames": [
+    " *   @  *       \n  \\_/ \\_/ *     \n  ===\\===/====  \n     *    .     ",
+    "   *  @   *     \n  \\_/ \\_/       \n  ===\\===/====  \n  .      *      ",
+    " *   @   *      \n  \\_/ \\_/   .   \n  ===\\===/====  \n    *       .   ",
+    "   * @  *       \n  \\_/ \\_/  *    \n  ===\\===/====  \n .     *        "
+  ]
+}

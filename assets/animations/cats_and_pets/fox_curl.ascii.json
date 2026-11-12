@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "fox_curl",
+  "name": "Kıvrılmış Kızıl Tilki",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "tilki",
+    "uyku",
+    "kış",
+    "kızıl"
+  ],
+  "default_fps": 2.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FB923C",
+    "1": "#FEF08A",
+    "2": "#F8FAFC",
+    "3": "#93C5FD",
+    "4": "#BFDBFE"
+  },
+  "color_frames": [
+    "    00   00     \n   000000000    \n  0  1 0 1  000 \n 0  0000000   0 \n  022222222220  ",
+    "    00   00     \n   000000000    \n  0  0 0 0  000 \n 0  0000000  20 \n  02222222220   ",
+    "    00   00   3 \n   000000000    \n  0  0 0 0  000 \n 0  0000000   0 \n  022222222220  ",
+    "    00   00  4  \n   000000000    \n  0  0 0 0  000 \n 0  0000000  20 \n  02222222220   "
+  ],
+  "frames": [
+    "    /\\   /\\     \n   //\\\\_//\\\\    \n  /  ^ . ^  \\__ \n (  \\_____/   / \n  `~~~~~~~~~~'  ",
+    "    /\\   /\\     \n   //\\\\_//\\\\    \n  /  - . -  \\__ \n (  \\_____/  ~/ \n  `~~~~~~~~~'   ",
+    "    /\\   /\\   z \n   //\\\\_//\\\\    \n  /  - . -  \\__ \n (  \\_____/   / \n  `~~~~~~~~~~'  ",
+    "    /\\   /\\  Z  \n   //\\\\_//\\\\    \n  /  - . -  \\__ \n (  \\_____/  ~/ \n  `~~~~~~~~~'   "
+  ],
+  "supports_sleep_zzz": true
+}

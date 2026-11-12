@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "wifi_signal",
+  "name": "Canlı Wi-Fi Sinyali",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "wifi",
+    "internet",
+    "sinyal",
+    "teknoloji"
+  ],
+  "default_fps": 3.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#38BDF8",
+    "1": "#4ADE80",
+    "2": "#FACC15"
+  },
+  "color_frames": [
+    "      0      \n             \n     121     \n      0      ",
+    "    00000    \n             \n     121     \n      0      ",
+    "  000000000  \n    00000    \n     121     \n      0      ",
+    "0000000000000\n  000000000  \n    00000    \n     121     "
+  ],
+  "frames": [
+    "      .      \n             \n     (o)     \n      |      ",
+    "    .---.    \n             \n     (o)     \n      |      ",
+    "  .-------.  \n    .---.    \n     (o)     \n      |      ",
+    ".-----------.\n  .-------.  \n    .---.    \n     (o)     "
+  ]
+}

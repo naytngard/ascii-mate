@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "ink_lantern",
+  "name": "Sıcak Çalışma Feneri",
+  "category": "Ders & Lo-Fi Odak",
+  "author": "ASCII Mate",
+  "tags": [
+    "fener",
+    "gece",
+    "ışık"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#94A3B8",
+    "1": "#F59E0B",
+    "2": "#FEF08A",
+    "3": "#FDE047"
+  },
+  "color_frames": [
+    "     0     \n   11111   \n  0 121 0  \n  0 101 0  \n   11111   \n    111    ",
+    "     0     \n   11111   \n  0 131 0  \n  0 101 0  \n   11111   \n    111    ",
+    "    1      \n   11111   \n  0 121 0  \n  0 101 0  \n   11111   \n    111    ",
+    "     1     \n   11111   \n  0 121 0  \n  0 101 0  \n   11111   \n    111    "
+  ],
+  "frames": [
+    "     |     \n   .---.   \n  | (*) |  \n  | /|\\ |  \n   '---'   \n    \\_/    ",
+    "     |     \n   .---.   \n  | (@) |  \n  | \\|/ |  \n   '---'   \n    \\_/    ",
+    "    /      \n   .---.   \n  | (*) |  \n  | /|\\ |  \n   '---'   \n    \\_/    ",
+    "     \\     \n   .---.   \n  | (+) |  \n  | \\|/ |  \n   '---'   \n    \\_/    "
+  ]
+}

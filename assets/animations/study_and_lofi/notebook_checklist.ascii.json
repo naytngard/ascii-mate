@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "notebook_checklist",
+  "name": "Görev Listesi Defteri",
+  "category": "Ders & Lo-Fi Odak",
+  "author": "ASCII Mate",
+  "tags": [
+    "not",
+    "görev",
+    "plan",
+    "ders"
+  ],
+  "default_fps": 2.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#94A3B8",
+    "1": "#38BDF8",
+    "2": "#4ADE80",
+    "3": "#E2E8F0",
+    "4": "#FACC15"
+  },
+  "color_frames": [
+    " 0000000000000000 \n 0 121 3333 333 0 \n 0 1 1 3333333  0 \n 0 1 1 3333 333 0 \n 0000000000000000 ",
+    " 0000000000000000 \n 0 121 3333 333 0 \n 0 121 3333333  0 \n 0 1 1 3333 333 0 \n 0000000000000000 ",
+    " 0000000000000000 \n 0 121 3333 333 0 \n 0 121 3333333  0 \n 0 121 3333 333 0 \n 0000000000000000 ",
+    " 0000000000000000 \n 0 121 3333 333 0 \n 0 121 3333333  0 \n 0 141 3333333  0 \n 0000000000000000 "
+  ],
+  "frames": [
+    " +--------------+ \n | [x] Plan yap | \n | [ ] Odaklan  | \n | [ ] Mola ver | \n +--------------+ ",
+    " +--------------+ \n | [x] Plan yap | \n | [x] Odaklan  | \n | [ ] Mola ver | \n +--------------+ ",
+    " +--------------+ \n | [x] Plan yap | \n | [x] Odaklan  | \n | [x] Mola ver | \n +--------------+ ",
+    " +--------------+ \n | [x] Plan yap | \n | [x] Odaklan  | \n | [*] Harika!  | \n +--------------+ "
+  ]
+}

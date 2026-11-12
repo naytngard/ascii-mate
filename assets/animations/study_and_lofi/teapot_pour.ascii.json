@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "teapot_pour",
+  "name": "Çay Demliği",
+  "category": "Ders & Lo-Fi Odak",
+  "author": "ASCII Mate",
+  "tags": [
+    "çay",
+    "demlik",
+    "mola"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F87171",
+    "1": "#FBBF24",
+    "2": "#F8FAFC",
+    "3": "#D97706"
+  },
+  "color_frames": [
+    "    0000       \n  00    00     \n 0  000   000  \n  00000000  1  \n          20002",
+    "    0000       \n  00    00     \n 0  000   000  \n  00000000  1  \n          23002",
+    "    0000       \n  00    00     \n 0  000   000  \n  00000000  1  \n          23302",
+    "    0000       \n  00    00     \n 0  000   000  \n  00000000  1  \n          23332"
+  ],
+  "frames": [
+    "    .--.       \n  _(    )_     \n (  tea   )_/  \n  `------'  |  \n          [___]",
+    "    .--.       \n  _(    )_     \n (  tea   )_/  \n  `------'  :  \n          [~__]",
+    "    .--.       \n  _(    )_     \n (  tea   )_/  \n  `------'  |  \n          [~~_]",
+    "    .--.       \n  _(    )_     \n (  tea   )_/  \n  `------'  :  \n          [~~~]"
+  ]
+}

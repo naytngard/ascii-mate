@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "burning_candle",
+  "name": "Yanan Çalışma Mumu",
+  "category": "Ders & Lo-Fi Odak",
+  "author": "ASCII Mate",
+  "tags": [
+    "mum",
+    "ateş",
+    "lo-fi",
+    "odak"
+  ],
+  "default_fps": 4.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": true,
+    "type": "sparks",
+    "toggle_label": "Mum Kıvılcımları",
+    "spawn_area": "top",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FACC15",
+    "1": "#FB923C",
+    "2": "#FEF3C7",
+    "3": "#FDE68A",
+    "4": "#94A3B8",
+    "5": "#FDE047"
+  },
+  "color_frames": [
+    "      0      \n     010     \n      2      \n   2222222   \n   2 333 2   \n   2     2   \n   2     2   \n  422222224  ",
+    "     0       \n     010     \n      2      \n   2222222   \n   2 333 2   \n   2     2   \n   2     2   \n  422222224  ",
+    "      1      \n     000     \n      2      \n   2222222   \n   2 333 2   \n   2     2   \n   2     2   \n  422222224  ",
+    "     010     \n      5      \n      2      \n   2222222   \n   2 333 2   \n   2     2   \n   2     2   \n  422222224  "
+  ],
+  "frames": [
+    "      )      \n     (*)     \n      |      \n   .-----.   \n   | ~~~ |   \n   |     |   \n   |     |   \n  [_______]  ",
+    "     (       \n     (*)     \n      |      \n   .-----.   \n   | ~~~ |   \n   |     |   \n   |     |   \n  [_______]  ",
+    "      \\      \n     (@)     \n      |      \n   .-----.   \n   | ~~~ |   \n   |     |   \n   |     |   \n  [_______]  ",
+    "     (*)     \n      ^      \n      |      \n   .-----.   \n   | ~~~ |   \n   |     |   \n   |     |   \n  [_______]  "
+  ]
+}

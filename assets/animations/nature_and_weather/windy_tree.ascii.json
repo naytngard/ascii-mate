@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "windy_tree",
+  "name": "Rüzgarda Salınan Ağaç",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "ağaç",
+    "rüzgar",
+    "doğa",
+    "orman"
+  ],
+  "default_fps": 2.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#22C55E",
+    "1": "#92400E",
+    "2": "#4ADE80"
+  },
+  "color_frames": [
+    "    0000000    \n  00000000000  \n  00001100000  \n      11       \n   22211222    ",
+    "     0000000   \n   00000000000 \n   00001100000 \n      11       \n   22211222    ",
+    "    0000000  0 \n  00000000000  \n  00001100000  \n      11       \n   22211222    ",
+    "   0000000     \n 00000000000   \n 00001100000   \n      11       \n   22211222    "
+  ],
+  "frames": [
+    "    .*****.    \n  .*********.  \n  '***||****'  \n      ||       \n   ___||___    ",
+    "     .*****.   \n   .*********. \n   '***||****' \n      ||       \n   ___||___    ",
+    "    .*****.  * \n  .*********.  \n  '***||****'  \n      ||       \n   ___||___    ",
+    "   .*****.     \n .*********.   \n '***||****'   \n      ||       \n   ___||___    "
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "paw_play_cat",
+  "name": "Yün Yumağı Kedisi",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "kedi",
+    "oyun",
+    "yün"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FDBA74",
+    "1": "#38BDF8",
+    "2": "#F43F5E",
+    "3": "#FB7185"
+  },
+  "color_frames": [
+    "    00000         \n   0 101 0        \n   00   00  020   \n  000   0003333   ",
+    "    00000         \n   0 303 0    020 \n   00   000000    \n  000   000333    ",
+    "    00000         \n   0 101 0  020   \n   00   0000      \n  000   0003333   ",
+    "    00000         \n   0 000 0 020    \n   00   0000      \n  000   00033333  "
+  ],
+  "frames": [
+    "    /\\_/\\         \n   ( o.o )        \n   /|   |\\  (@)   \n  (_|   |_)~~~~   ",
+    "    /\\_/\\         \n   ( ^.^ )    (@) \n   /|   |\\___/    \n  (_|   |_)~~~    ",
+    "    /\\_/\\         \n   ( o.o )  (@)   \n   /|   |\\_/      \n  (_|   |_)~~~~   ",
+    "    /\\_/\\         \n   ( -.- ) (@)    \n   /|   |\\_/      \n  (_|   |_)~~~~~  "
+  ],
+  "supports_eye_blink": true
+}

@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "skull_laugh",
+  "name": "Gülen Kurukafa",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "kurukafa",
+    "retro",
+    "komik"
+  ],
+  "default_fps": 4.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F1F5F9",
+    "1": "#38BDF8",
+    "2": "#94A3B8",
+    "3": "#FDE047"
+  },
+  "color_frames": [
+    "   0000000   \n  0 1   1 0  \n 0    2    0 \n  0 03330 0  \n   0000000   ",
+    "   0000000   \n  0 1   1 0  \n 0    2    0 \n  0 0   0 0  \n   0033300   ",
+    "   0000000   \n  0 2   2 0  \n 0    2    0 \n  0 03330 0  \n   0000000   ",
+    "   0000000   \n  0 1   1 0  \n 0    2    0 \n  0 0   0 0  \n   0033300   "
+  ],
+  "frames": [
+    "   .-----.   \n  / X   X \\  \n |    ^    | \n  \\ |===| /  \n   '-----'   ",
+    "   .-----.   \n  / X   X \\  \n |    ^    | \n  \\ |   | /  \n   '|===|'   ",
+    "   .-----.   \n  / ^   ^ \\  \n |    ^    | \n  \\ |===| /  \n   '-----'   ",
+    "   .-----.   \n  / X   X \\  \n |    ^    | \n  \\ |   | /  \n   '|===|'   "
+  ]
+}

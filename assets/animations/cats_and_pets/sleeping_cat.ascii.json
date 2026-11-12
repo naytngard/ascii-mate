@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "id": "sleeping_cat",
+  "name": "Uyuyan Kedi (Minderde)",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "kedi",
+    "uyku",
+    "rahat",
+    "ders"
+  ],
+  "default_fps": 2.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": true,
+    "type": "stars",
+    "toggle_label": "Yıldız Tozu",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FDBA74",
+    "1": "#FEF08A",
+    "2": "#818CF8",
+    "3": "#93C5FD",
+    "4": "#BFDBFE"
+  },
+  "color_frames": [
+    "      0000000   000   \n    0001 1  00   0 0  \n  0000000000000000000 \n    2222222222222222  ",
+    "      0000000   000 3 \n    0000 0  00   0 0  \n  0000000000000000000 \n    2222222222222222  ",
+    "      0000000   0004  \n    0000 0  00  0 0   \n  0000000000000000000 \n    2222222222222222  ",
+    "      0000000   000   \n    0000 0  00   0 0  \n  0000000000000000000 \n    2222222222222222  "
+  ],
+  "frames": [
+    "      |\\__/,|   (`\\   \n    _.|o o  |_   ) )  \n  -(((---(((--------- \n    ~~~~~~~~~~~~~~~~  ",
+    "      |\\__/,|   (`\\ z \n    _.|- -  |_   ) )  \n  -(((---(((--------- \n    ~~~~~~~~~~~~~~~~  ",
+    "      |\\__/,|   (`\\Z  \n    _.|- -  |_  ( (   \n  -(((---(((--------- \n    ~~~~~~~~~~~~~~~~  ",
+    "      |\\__/,|   (`\\   \n    _.|- -  |_   ) )  \n  -(((---(((--------- \n    ~~~~~~~~~~~~~~~~  "
+  ],
+  "supports_eye_blink": true,
+  "supports_sleep_zzz": true
+}

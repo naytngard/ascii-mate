@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "turtle_walk",
+  "name": "Yürüyen Kaplumbağa",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "kaplumbağa",
+    "yavaş",
+    "sabır"
+  ],
+  "default_fps": 2.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#22C55E",
+    "1": "#4ADE80",
+    "2": "#FACC15",
+    "3": "#0F172A"
+  },
+  "color_frames": [
+    "     00000     0000  \n   1   2   1  1 3 1  \n  1  2   2  101  1   \n  100000000010001    \n   101   101         ",
+    "     00000     0000  \n   1   2   1  1 3 1  \n  1  2   2  101  1   \n  100000000010001    \n    101   101        ",
+    "     00000     0000  \n   1   2   1  1 1 1  \n  1  2   2  101  1   \n  100000000010001    \n   101   101         ",
+    "     00000     0000  \n   1   2   1  1 3 1  \n  1  2   2  101  1   \n  100000000010001    \n   101   101         "
+  ],
+  "frames": [
+    "     _____     ____  \n   /   +   \\  ( o )  \n  |  +   +  |_/  /   \n  |_________|___/    \n   |_|   |_|         ",
+    "     _____     ____  \n   /   +   \\  ( o )  \n  |  +   +  |_/  /   \n  |_________|___/    \n    \\_|   \\_|        ",
+    "     _____     ____  \n   /   +   \\  ( - )  \n  |  +   +  |_/  /   \n  |_________|___/    \n   |_|   |_|         ",
+    "     _____     ____  \n   /   +   \\  ( o )  \n  |  +   +  |_/  /   \n  |_________|___/    \n   /_|   /_|         "
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "happy_dog",
+  "name": "Mutlu Golden Köpek",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "köpek",
+    "sadık",
+    "mutlu"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FBBF24",
+    "1": "#1E293B",
+    "2": "#FB7185",
+    "3": "#F472B6"
+  },
+  "color_frames": [
+    "   00 00     \n  0 1 1 0    \n  00 2 00    \n   0 0 0  0  \n  0    000   \n  00 0000    ",
+    "   00 00     \n  0 1 1 0    \n  00 2 00    \n   0 2 0   0 \n  0    0000  \n  00 0000    ",
+    "   00 00  3  \n  0 0 0 0    \n  00 2 00    \n   0 2 0  0  \n  0    000   \n  00 0000    ",
+    "   00 00     \n  0 0 0 0    \n  00 2 00    \n   0 0 0   0 \n  0    0000  \n  00 0000    "
+  ],
+  "frames": [
+    "   /^ ^\\     \n  / 0 0 \\    \n  V\\ Y /V    \n   / - \\  /  \n  |    |_/   \n  || (__|    ",
+    "   /^ ^\\     \n  / 0 0 \\    \n  V\\ Y /V    \n   / u \\   \\ \n  |    |__/  \n  || (__|    ",
+    "   /^ ^\\  *  \n  / ^ ^ \\    \n  V\\ Y /V    \n   / u \\  /  \n  |    |_/   \n  || (__|    ",
+    "   /^ ^\\     \n  / - - \\    \n  V\\ Y /V    \n   / - \\   \\ \n  |    |__/  \n  || (__|    "
+  ],
+  "supports_eye_blink": true
+}

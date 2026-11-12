@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "stretching_cat",
+  "name": "Gerinen Esnek Kedi",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "kedi",
+    "esneme",
+    "mola"
+  ],
+  "default_fps": 2.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#CBD5E1",
+    "1": "#4ADE80",
+    "2": "#94A3B8",
+    "3": "#F472B6"
+  },
+  "color_frames": [
+    "       00000         \n      0 101 0        \n   0000     0000     \n  0             02   \n  000000000000000    ",
+    "         00          \n    00000  000       \n   0 000 0    02     \n    00000000000      \n     00     00       ",
+    "     0000000         \n    0  303  0        \n   0  00000  0       \n  0000     000022    \n                     ",
+    "       00000         \n      0 101 0        \n   0000     0000     \n  0             02   \n  000000000000000    "
+  ],
+  "frames": [
+    "       /\\_/\\         \n      ( o.o )        \n   ___/     \\___     \n  /             \\~   \n  \\_/\\_______/\\_/    ",
+    "         __          \n    /\\__/  \\__       \n   ( -.- )    \\~     \n    \\___/\\____/      \n     //     \\\\       ",
+    "     /\\___/\\         \n    (  ^.^  )        \n   /  _____  \\       \n  (__/     \\__)~~    \n                     ",
+    "       /\\_/\\         \n      ( o.o )        \n   ___/     \\___     \n  /             \\~   \n  \\_/\\_______/\\_/    "
+  ],
+  "supports_eye_blink": true
+}

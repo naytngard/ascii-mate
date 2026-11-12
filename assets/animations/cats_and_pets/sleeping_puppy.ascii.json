@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "sleeping_puppy",
+  "name": "Uyuyan Yavru Köpek",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "köpek",
+    "yavru",
+    "uyku"
+  ],
+  "default_fps": 2.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FDE047",
+    "1": "#93C5FD",
+    "2": "#1E293B",
+    "3": "#BFDBFE"
+  },
+  "color_frames": [
+    "    00      0  1 \n  20000000000    \n   000      0    \n   000000000     ",
+    "    00      0  3 \n  00000000000    \n   000      0    \n   000000000     ",
+    "    00      0    \n  00000000000 1  \n   000      0    \n   000000000     ",
+    "    00      0    \n  20000000000    \n   000      0    \n   000000000     "
+  ],
+  "frames": [
+    "    __      _  z \n  o'')}____//    \n   `_/      )    \n   (_(_/-(_/     ",
+    "    __      _  Z \n  -'')}____//    \n   `_/      )    \n   (_(_/-(_/     ",
+    "    __      _    \n  -''}_____// z  \n   `_/      )    \n   (_(_/-(_/     ",
+    "    __      _    \n  o'')}____\\\\    \n   `_/      )    \n   (_(_/-(_/     "
+  ],
+  "supports_sleep_zzz": true
+}

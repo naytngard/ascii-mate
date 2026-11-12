@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "penguin_waddle",
+  "name": "Atkılı Paytak Penguen",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "penguen",
+    "kış",
+    "kutuplar"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "snow",
+    "toggle_label": "Kar Yağışı",
+    "spawn_area": "top",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#E2E8F0",
+    "1": "#38BDF8",
+    "2": "#FBBF24",
+    "3": "#F43F5E",
+    "4": "#FB923C"
+  },
+  "color_frames": [
+    "    0000    \n   0121 0   \n   0320 0   \n  00   0 0  \n 00     0 0 \n0402   2040 \n02220202220 ",
+    "    0000    \n   0121 0   \n   0320 0   \n  00   00 0 \n 0 0   0  0 \n 0402 2040  \n 022020220  ",
+    "    0000    \n   0020 0   \n   0320 0   \n  00   0 0  \n 00     0 0 \n0402   2040 \n02220202220 ",
+    "    0000    \n   0121 0   \n   0320 0   \n 0 0   000  \n 0  0   0 0 \n  0402 2040 \n  022020220 "
+  ],
+  "frames": [
+    "    .--.    \n   |o_o |   \n   |:_/ |   \n  //   \\ \\  \n (|     | ) \n/'\\_   _/`\\ \n\\___)=(___/ ",
+    "    .--.    \n   |o_o |   \n   |:_/ |   \n  /|   |\\ \\ \n ( |   |  ) \n /'\\_ _/`\\  \n \\__)=(__/  ",
+    "    .--.    \n   |-_- |   \n   |:_/ |   \n  //   \\ \\  \n (|     | ) \n/'\\_   _/`\\ \n\\___)=(___/ ",
+    "    .--.    \n   |o_o |   \n   |:_/ |   \n / /   |\\\\  \n (  |   | ) \n  /'\\_ _/`\\ \n  \\__)=(__/ "
+  ],
+  "supports_eye_blink": true
+}

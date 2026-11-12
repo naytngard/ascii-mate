@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "cactus_pot",
+  "name": "Çiçekli Masa Kaktüsü",
+  "category": "Ders & Lo-Fi Odak",
+  "author": "ASCII Mate",
+  "tags": [
+    "kaktüs",
+    "bitki",
+    "masa"
+  ],
+  "default_fps": 2.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FB923C",
+    "1": "#F472B6",
+    "2": "#4ADE80",
+    "3": "#D97706",
+    "4": "#FEF08A"
+  },
+  "color_frames": [
+    "     010     \n    22222    \n  32  4  23  \n 2 2  4  2 2 \n  023333320  \n   0333330   \n    23332    ",
+    "     212     \n    22222    \n  32  4  23  \n 2 2  4  2 2 \n  023333320  \n   0333330   \n    23332    ",
+    "     010     \n    22222    \n  32  4  23  \n 2 2  4  2 2 \n  023333320  \n   0333330   \n    23332    ",
+    "     212     \n    22222    \n  32  4  23  \n 2 2  4  2 2 \n  023333320  \n   0333330   \n    23332    "
+  ],
+  "frames": [
+    "     \\*/     \n    .---.    \n  _|  +  |_  \n | |  +  | | \n  \\|_____|/  \n   \\_____/   \n    |___|    ",
+    "     (*)     \n    .---.    \n  _|  +  |_  \n | |  +  | | \n  \\|_____|/  \n   \\_____/   \n    |___|    ",
+    "     /*\\     \n    .---.    \n  _|  +  |_  \n | |  +  | | \n  \\|_____|/  \n   \\_____/   \n    |___|    ",
+    "     (*)     \n    .---.    \n  _|  +  |_  \n | |  +  | | \n  \\|_____|/  \n   \\_____/   \n    |___|    "
+  ]
+}

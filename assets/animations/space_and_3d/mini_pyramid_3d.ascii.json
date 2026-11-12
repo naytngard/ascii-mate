@@ -1,0 +1,39 @@
+{
+  "schema_version": "2.0",
+  "id": "mini_pyramid_3d",
+  "name": "3B Altın Piramit (Shader)",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "piramit",
+    "3b",
+    "altın",
+    "geometri",
+    "shader"
+  ],
+  "default_fps": 26.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "frames": [
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                       *                      \n                      *.*                     \n                     *...*                    \n                   *.......*                  \n                  *.........*                 \n                *.............*               \n               *...............*              \n              *******************             \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              ",
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                       *                      \n                      *.*                     \n                     *...**                   \n                   **=.....*                  \n                  ***........*                \n                 *=*..........*               \n                ***.............*             \n               *******************            \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              ",
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                       *                      \n                      ***                     \n                    **=*.*                    \n                   *===*...*                  \n                 **=====*...*                 \n                *=======*.....*               \n              **========*......*              \n              *******************             \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              ",
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                       *                      \n                      *:*                     \n                    **:::*                    \n                   *::::::*                   \n                 *:::::::::*                  \n                *:::::::::::*                 \n              *::::::::::::::*                \n             ******************               \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              "
+  ],
+  "procedural": "pyramid_3d",
+  "procedural_params": {
+    "width": 46,
+    "height": 22
+  }
+}

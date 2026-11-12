@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "heartbeat_ecg",
+  "name": "EKG Kalp Ritmi",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "ekg",
+    "nabız",
+    "kalp",
+    "sağlık"
+  ],
+  "default_fps": 6.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FACC15",
+    "1": "#EF4444",
+    "2": "#4ADE80"
+  },
+  "color_frames": [
+    "       01              \n2222220  1  2222222222 \n          10           ",
+    "         01            \n222222220  1  22222222 \n            10         ",
+    "           01          \n22222222220  1  222222 \n              10       ",
+    "             01        \n2222222222220  1  2222 \n                10     ",
+    "   01              01  \n220  1  22222222220  1 \n      10               "
+  ],
+  "frames": [
+    "       /\\              \n______/  \\  __________ \n          \\/           ",
+    "         /\\            \n________/  \\  ________ \n            \\/         ",
+    "           /\\          \n__________/  \\  ______ \n              \\/       ",
+    "             /\\        \n____________/  \\  ____ \n                \\/     ",
+    "   /\\              /\\  \n__/  \\  __________/  \\ \n      \\/               "
+  ]
+}

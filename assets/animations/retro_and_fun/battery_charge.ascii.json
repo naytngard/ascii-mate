@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "battery_charge",
+  "name": "Şarj Olan Enerji Pili",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "pil",
+    "şarj",
+    "enerji",
+    "motivasyon"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FACC15",
+    "1": "#94A3B8",
+    "2": "#4ADE80",
+    "3": "#FEF08A"
+  },
+  "color_frames": [
+    "01111111110  \n1 22      11 \n1 22  0   11 \n01111111110  ",
+    "01111111110  \n1 2222    11 \n1 2222 0  11 \n01111111110  ",
+    "01111111110  \n1 222222  11 \n1 222222  11 \n01111111110  ",
+    "01111111110  \n1 2222222211 \n1 2222222211 \n01111111110  ",
+    "01111111110  \n1 2222222211 \n1 2 3333 211 \n01111111110  "
+  ],
+  "frames": [
+    "+---------+  \n| ##      |] \n| ##  +   |] \n+---------+  ",
+    "+---------+  \n| ####    |] \n| #### +  |] \n+---------+  ",
+    "+---------+  \n| ######  |] \n| ######  |] \n+---------+  ",
+    "+---------+  \n| ########|] \n| ########|] \n+---------+  ",
+    "+---------+  \n| ########|] \n| # FULL #|] \n+---------+  "
+  ]
+}

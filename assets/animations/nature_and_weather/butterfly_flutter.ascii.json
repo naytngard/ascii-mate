@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "butterfly_flutter",
+  "name": "Kanat Çırpan Kelebek",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "kelebek",
+    "bahar",
+    "doğa"
+  ],
+  "default_fps": 5.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#38BDF8",
+    "1": "#C084FC",
+    "2": "#FACC15",
+    "3": "#F472B6"
+  },
+  "color_frames": [
+    "  0110   2   0110  \n 0 33 0 222 0 33 0 \n 0 33  21112  33 0 \n  02220 222 02220  ",
+    "   010   2   010   \n  03 30 222 03 30  \n  0 3  21112  3 0  \n   0220 222 0220   ",
+    "     00  2  00     \n     03022200      \n     0 21112 0     \n      0222 0       ",
+    "   010   2   010   \n  03 30 222 03 30  \n  0 3  21112  3 0  \n   0220 222 0220   "
+  ],
+  "frames": [
+    "  .==.   _   .==.  \n / ** \\ (_) / ** \\ \n | **  )===(  ** | \n  \\___/ (_) \\___/  ",
+    "   .=.   _   .=.   \n  /* *\\ (_) /* *\\  \n  | *  )===(  * |  \n   \\__/ (_) \\__/   ",
+    "     .\\  _  /.     \n     |*\\(_)/|      \n     | )===( |     \n      \\(_) /       ",
+    "   .=.   _   .=.   \n  /* *\\ (_) /* *\\  \n  | *  )===(  * |  \n   \\__/ (_) \\__/   "
+  ]
+}

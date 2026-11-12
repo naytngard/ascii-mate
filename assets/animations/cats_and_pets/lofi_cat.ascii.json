@@ -1,0 +1,50 @@
+{
+  "schema_version": "2.0",
+  "id": "lofi_cat",
+  "name": "Lo-Fi Kulaklıklı Kedi",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "lofi",
+    "kedi",
+    "kulaklık",
+    "müzik"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "stars",
+    "toggle_label": "Müzik Notaları",
+    "spawn_area": "top",
+    "density": "low",
+    "chars": [
+      "d",
+      "b",
+      "~",
+      "*"
+    ]
+  },
+  "palette_map": {
+    "0": "#C084FC",
+    "1": "#38BDF8",
+    "2": "#A855F7",
+    "3": "#FDE68A",
+    "4": "#22D3EE",
+    "5": "#FB7185",
+    "6": "#F472B6"
+  },
+  "color_frames": [
+    "   0000000  1 \n  2 33333 2   \n  22 404 22   \n   3 353 3    \n   2333332    ",
+    "   0000000    \n  2 33333 2 1 \n  22 505 22   \n   3 333 3    \n   2333332    ",
+    "   0000000 1  \n  2 33333 2   \n  22 000 22   \n   3 353 3    \n   2333332    ",
+    "   0000000  6 \n  2 33333 2   \n  22 505 22 1 \n   3 333 3    \n   2333332    "
+  ],
+  "frames": [
+    "   .-----.  d \n  ( /\\_/\\ )   \n  |( o.o )|   \n   \\ >^< /    \n   (_____)    ",
+    "   .-----.    \n  ( /\\_/\\ ) b \n  |( ^.^ )|   \n   \\ >w< /    \n   (_____)    ",
+    "   .-----. d  \n  ( /\\_/\\ )   \n  |( -.- )|   \n   \\ >^< /    \n   (_____)    ",
+    "   .-----.  ~ \n  ( /\\_/\\ )   \n  |( ^.^ )| d \n   \\ >v< /    \n   (_____)    "
+  ],
+  "supports_eye_blink": true
+}

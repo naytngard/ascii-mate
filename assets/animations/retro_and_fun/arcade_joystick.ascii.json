@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "arcade_joystick",
+  "name": "Neon Atari Kolu",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "arcade",
+    "oyun",
+    "atari",
+    "retro"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F87171",
+    "1": "#EF4444",
+    "2": "#64748B",
+    "3": "#A855F7",
+    "4": "#22D3EE",
+    "5": "#FACC15"
+  },
+  "color_frames": [
+    "      010      \n       2       \n   222222222   \n   2   3   2   \n   2  040  2   \n   222222222   ",
+    "     010       \n      2        \n   222222222   \n   2   3   2   \n   2  050  2   \n   222222222   ",
+    "      010      \n       2       \n   222222222   \n   2   3   2   \n   2  040  2   \n   222222222   ",
+    "       010     \n      2        \n   222222222   \n   2   3   2   \n   2  050  2   \n   222222222   "
+  ],
+  "frames": [
+    "      (O)      \n       |       \n   +---+---+   \n   |   o   |   \n   |  (*)  |   \n   +-------+   ",
+    "     (O)       \n      \\        \n   +---+---+   \n   |   o   |   \n   |  (@)  |   \n   +-------+   ",
+    "      (O)      \n       |       \n   +---+---+   \n   |   o   |   \n   |  (*)  |   \n   +-------+   ",
+    "       (O)     \n      /        \n   +---+---+   \n   |   o   |   \n   |  (@)  |   \n   +-------+   "
+  ]
+}

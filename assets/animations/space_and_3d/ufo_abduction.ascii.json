@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "ufo_abduction",
+  "name": "Işınlayan UFO",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "ufo",
+    "uzaylı",
+    "ışın",
+    "bilim kurgu"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#94A3B8",
+    "1": "#4ADE80",
+    "2": "#38BDF8",
+    "3": "#FACC15",
+    "4": "#22D3EE"
+  },
+  "color_frames": [
+    "     00000     \n  001 232 100  \n 0000000000000 \n    1  1  1    \n   1   1   1   ",
+    "     00000     \n  001 323 100  \n 0000000000000 \n    1 111 1    \n   1  111  1   ",
+    "     00000     \n  001 212 100  \n 0000000000000 \n    1  4  1    \n   1 1 4 1 1   ",
+    "     00000     \n  001 232 100  \n 0000000000000 \n    1  1  1    \n   1       1   "
+  ],
+  "frames": [
+    "     .---.     \n  .-/ oOo \\-.  \n (___________) \n    /  :  \\    \n   /   :   \\   ",
+    "     .---.     \n  .-/ OoO \\-.  \n (___________) \n    / *:* \\    \n   /  *:*  \\   ",
+    "     .---.     \n  .-/ o*o \\-.  \n (___________) \n    /  |  \\    \n   / * | * \\   ",
+    "     .---.     \n  .-/ oOo \\-.  \n (___________) \n    /  :  \\    \n   /       \\   "
+  ]
+}

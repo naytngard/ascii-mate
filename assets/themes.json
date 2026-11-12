@@ -1,0 +1,89 @@
+{
+  "themes": {
+    "auto_hd": {
+      "name": "HD Çok Renkli (Orijinal)",
+      "primary": "#F8FAFC",
+      "secondary": "#38BDF8",
+      "glow": "#7DD3FC",
+      "is_rainbow": false,
+      "is_auto_hd": true
+    },
+    "white": {
+      "name": "Saf Beyaz (Tebeşir)",
+      "primary": "#FFFFFF",
+      "secondary": "#E2E8F0",
+      "glow": "#94A3B8",
+      "is_rainbow": false
+    },
+    "cream": {
+      "name": "Krem / Kağıt",
+      "primary": "#F5ECD7",
+      "secondary": "#E6D5B8",
+      "glow": "#C8AD7F",
+      "is_rainbow": false
+    },
+    "matrix": {
+      "name": "Matrix Yeşili",
+      "primary": "#00FF66",
+      "secondary": "#00B347",
+      "glow": "#00FF66",
+      "is_rainbow": false
+    },
+    "amber": {
+      "name": "Amber CRT",
+      "primary": "#FFB000",
+      "secondary": "#FF8000",
+      "glow": "#FFB000",
+      "is_rainbow": false
+    },
+    "cyberpunk": {
+      "name": "Cyberpunk Neon",
+      "primary": "#00F0FF",
+      "secondary": "#FF2E97",
+      "glow": "#FF2E97",
+      "is_rainbow": false
+    },
+    "pastel_lavender": {
+      "name": "Pastel Lavanta",
+      "primary": "#D8B4FE",
+      "secondary": "#C084FC",
+      "glow": "#A855F7",
+      "is_rainbow": false
+    },
+    "pastel_blue": {
+      "name": "Buz Mavisi",
+      "primary": "#BAE6FD",
+      "secondary": "#7DD3FC",
+      "glow": "#38BDF8",
+      "is_rainbow": false
+    },
+    "night_blue": {
+      "name": "Gece Mavisi",
+      "primary": "#60A5FA",
+      "secondary": "#3B82F6",
+      "glow": "#2563EB",
+      "is_rainbow": false
+    },
+    "sakura": {
+      "name": "Sakura Pembe",
+      "primary": "#FDA4AF",
+      "secondary": "#FB7185",
+      "glow": "#F43F5E",
+      "is_rainbow": false
+    },
+    "gold": {
+      "name": "Sıcak Altın",
+      "primary": "#FCD34D",
+      "secondary": "#F59E0B",
+      "glow": "#FBBF24",
+      "is_rainbow": false
+    },
+    "rainbow": {
+      "name": "Gökkuşağı (Dinamik)",
+      "primary": "#FF6B6B",
+      "secondary": "#4ECDC4",
+      "glow": "#FFFFFF",
+      "is_rainbow": true
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "walking_cat",
+  "name": "Yürüyen Sarman Kedi",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "kedi",
+    "yürüyüş",
+    "sarman"
+  ],
+  "default_fps": 4.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FB923C",
+    "1": "#22D3EE",
+    "2": "#FDE68A"
+  },
+  "color_frames": [
+    "  00000             \n 0 101 00000        \n  0   0     0000    \n   0 0      0  0    \n   2 2      2  2    ",
+    "  00000             \n 0 101 00000        \n  0   0     0000    \n  0  0     0  0     \n 2    2   2    2    ",
+    "  00000             \n 0 000 00000        \n  0   0     0000    \n   0 0      0 0     \n    2        2      ",
+    "  00000             \n 0 101 00000        \n  0   0     0000    \n  0  0     0  0     \n 2   2     2   2    "
+  ],
+  "frames": [
+    "  /\\_/\\             \n ( o.o )____        \n  \\   /     \\___    \n   | |      |  |    \n   \" \"      \"  \"    ",
+    "  /\\_/\\             \n ( o.o )____        \n  \\   /     \\___    \n  /  \\     /  \\     \n \"    \"   \"    \"    ",
+    "  /\\_/\\             \n ( -.- )____        \n  \\   /     \\___    \n   \\ /      \\ /     \n    \"        \"      ",
+    "  /\\_/\\             \n ( o.o )____        \n  \\   /     \\___    \n  /  |     |  \\     \n \"   \"     \"   \"    "
+  ],
+  "supports_eye_blink": true
+}

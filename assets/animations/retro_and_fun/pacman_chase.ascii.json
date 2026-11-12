@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "pacman_chase",
+  "name": "Pacman Kovalamaca",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "pacman",
+    "arcade",
+    "oyun",
+    "retro"
+  ],
+  "default_fps": 5.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FEF9C3",
+    "1": "#FACC15",
+    "2": "#EF4444",
+    "3": "#FFFFFF"
+  },
+  "color_frames": [
+    "  0110               \n 1  1   0   0   23132\n 1  1   0   0   2   2\n  1111               ",
+    "   0110              \n  1  11  0   0  23132\n  1  11  0   0  2   2\n   1111              ",
+    "     0110            \n    1  1  0  0  23132\n    1  1  0  0  2   2\n     1111            ",
+    "       0110          \n      1  11  0  23132\n      1  11  0  2   2\n       1111          "
+  ],
+  "frames": [
+    "  .--.               \n /  <   .   .   (o_o)\n \\  <   .   .   |   |\n  '--'               ",
+    "   .--.              \n  /  --  .   .  (o_o)\n  \\  --  .   .  |   |\n   '--'              ",
+    "     .--.            \n    /  <  .  .  (o_o)\n    \\  <  .  .  |   |\n     '--'            ",
+    "       .--.          \n      /  --  .  (o_o)\n      \\  --  .  |   |\n       '--'          "
+  ]
+}

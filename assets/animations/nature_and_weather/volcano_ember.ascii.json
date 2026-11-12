@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "volcano_ember",
+  "name": "Lav Püskürten Yanardağ",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "yanardağ",
+    "lav",
+    "ateş"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": true,
+    "type": "sparks",
+    "toggle_label": "Volkan Kıvılcımları",
+    "spawn_area": "top",
+    "density": "medium",
+    "chars": [
+      "*",
+      "+",
+      "."
+    ]
+  },
+  "palette_map": {
+    "0": "#FACC15",
+    "1": "#EF4444",
+    "2": "#78350F",
+    "3": "#F97316"
+  },
+  "color_frames": [
+    "     0  1  0    \n     2  3  2    \n    2221112 22  \n   2  33 33   2 \n  22223323322222",
+    "    0   1    0  \n      2 3 2     \n    2221112 22  \n   2   3 3    2 \n  22222323222222",
+    "      0 3 0     \n     2  1  2    \n    2221112 22  \n   2  33 33   2 \n  22223323322222",
+    "   0    1   0   \n      2 3 2     \n    2221112 22  \n   2   3 3    2 \n  22222323222222"
+  ],
+  "frames": [
+    "     *  ^  *    \n     \\  |  /    \n    .-\\===/ -.  \n   /  || ||   \\ \n  /___||_||____\\",
+    "    *   ^    *  \n      \\ | /     \n    .-\\===/ -.  \n   /   | |    \\ \n  /____|_|_____\\",
+    "      * | *     \n     /  ^  \\    \n    .-\\===/ -.  \n   /  || ||   \\ \n  /___||_||____\\",
+    "   *    ^   *   \n      / | \\     \n    .-\\===/ -.  \n   /   | |    \\ \n  /____|_|_____\\"
+  ]
+}

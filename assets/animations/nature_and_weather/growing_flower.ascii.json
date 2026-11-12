@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "growing_flower",
+  "name": "Açılan Bahar Çiçeği",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "çiçek",
+    "bahar",
+    "büyüme"
+  ],
+  "default_fps": 2.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F472B6",
+    "1": "#22C55E",
+    "2": "#4ADE80",
+    "3": "#92400E",
+    "4": "#FACC15"
+  },
+  "color_frames": [
+    "            \n            \n     0      \n    121     \n  3333333   ",
+    "            \n    000     \n     2      \n    121     \n  3333333   ",
+    "   0 0 0    \n  0 444 0   \n   0 0 0    \n    121     \n  3333333   ",
+    "  0 0 0 0 0 \n 0 44444 0  \n  0 0 0 0 0 \n    121     \n  3333333   "
+  ],
+  "frames": [
+    "            \n            \n     .      \n    \\|/     \n  =======   ",
+    "            \n    (^)     \n     |      \n    \\|/     \n  =======   ",
+    "   ( * )    \n  ( @@@ )   \n   ( * )    \n    \\|/     \n  =======   ",
+    "  * ( * ) * \n ( @@@@@ )  \n  * ( * ) * \n    \\|/     \n  =======   "
+  ]
+}

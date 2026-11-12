@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "id": "owl_hoot",
+  "name": "Bilge Gece Baykuşu",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "baykuş",
+    "gece",
+    "ders",
+    "bilge"
+  ],
+  "default_fps": 2.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": true,
+    "type": "stars",
+    "toggle_label": "Gece Yıldızları",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F97316",
+    "1": "#FBBF24",
+    "2": "#FEF08A",
+    "3": "#78350F",
+    "4": "#D97706",
+    "5": "#38BDF8"
+  },
+  "color_frames": [
+    "    010    \n   12021   \n   1   1   \n  3343433  ",
+    "    010    \n   11011   \n   1   1   \n  3343433  ",
+    "    010  5 \n  1120211  \n   1   1   \n  3343433  ",
+    "    010    \n   12021   \n   1   1   \n  3343433  "
+  ],
+  "frames": [
+    "    ,_,    \n   (O,O)   \n   (   )   \n  ==\"=\"==  ",
+    "    ,_,    \n   (-,-)   \n   (   )   \n  ==\"=\"==  ",
+    "    ,_,  * \n  <(O,O)>  \n   (   )   \n  ==\"=\"==  ",
+    "    ,_,    \n   (O,o)   \n   (   )   \n  ==\"=\"==  "
+  ],
+  "supports_eye_blink": true
+}

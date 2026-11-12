@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "kirby_dance",
+  "name": "Dans Eden Sevimli Top",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "dans",
+    "sevimli",
+    "retro",
+    "mutlu"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F9A8D4",
+    "1": "#1E293B",
+    "2": "#F43F5E"
+  },
+  "color_frames": [
+    "   00 121 00   ",
+    "    00 101 00  ",
+    "     0 202 0   ",
+    "    0010100    ",
+    "   0010100     "
+  ],
+  "frames": [
+    "   <( 'o' )>   ",
+    "    <( '-' )>  ",
+    "     ( ^-^ )   ",
+    "    <('-'<)    ",
+    "   (>'-')>     "
+  ]
+}

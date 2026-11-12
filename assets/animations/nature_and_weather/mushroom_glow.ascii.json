@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "mushroom_glow",
+  "name": "Işıldayan Orman Mantarı",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "mantar",
+    "orman",
+    "gece"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#34D399",
+    "1": "#F43F5E",
+    "2": "#A7F3D0",
+    "3": "#FEF2F2",
+    "4": "#4ADE80",
+    "5": "#FDE68A"
+  },
+  "color_frames": [
+    "    01110   2  \n  1 3  3 1     \n 1444444441    \n    5  5   0   \n  44544544     ",
+    " 2  01110      \n  1 3  3 1  0  \n 1444444441    \n    5  5       \n  44544544     ",
+    "    01110      \n  1 3  3 1   2 \n 1444444441    \n  0 5  5       \n  44544544     ",
+    "    01110  2   \n  1 3  3 1     \n 1444444441  0 \n    5  5       \n  44544544     "
+  ],
+  "frames": [
+    "    .---.   *  \n  / o  o \\     \n (________)    \n    |  |   .   \n  __|__|__     ",
+    " *  .---.      \n  / o  o \\  .  \n (________)    \n    |  |       \n  __|__|__     ",
+    "    .---.      \n  / o  o \\   * \n (________)    \n  . |  |       \n  __|__|__     ",
+    "    .---.  *   \n  / o  o \\     \n (________)  . \n    |  |       \n  __|__|__     "
+  ]
+}

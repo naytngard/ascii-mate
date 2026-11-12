@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "community_welcome_star",
+  "name": "Hoş Geldin Yıldızı (Örnek)",
+  "category": "Topluluk / Özel Eklenenler",
+  "author": "ASCII Mate",
+  "tags": [
+    "yıldız",
+    "topluluk",
+    "örnek"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": true,
+    "type": "stars",
+    "toggle_label": "Yıldız Parıltısı",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      "+",
+      "."
+    ]
+  },
+  "palette_map": {
+    "0": "#FEF08A",
+    "1": "#FACC15",
+    "2": "#38BDF8",
+    "3": "#F472B6",
+    "4": "#4ADE80"
+  },
+  "color_frames": [
+    "     0     \n    111    \n 111 2 111 \n    111    \n     0     ",
+    "     3     \n    111    \n 111 0 111 \n    111    \n     3     ",
+    "   0 3 0   \n    111    \n 111 2 111 \n    111    \n   0 3 0   ",
+    "     0     \n    111    \n 111 4 111 \n    111    \n     0     "
+  ],
+  "frames": [
+    "     *     \n    /|\\    \n --< @ >-- \n    \\|/    \n     *     ",
+    "     +     \n    \\|/    \n ==< * >== \n    /|\\    \n     +     ",
+    "   * + *   \n    /|\\    \n --< @ >-- \n    \\|/    \n   * + *   ",
+    "     *     \n    /|\\    \n --< o >-- \n    \\|/    \n     *     "
+  ]
+}

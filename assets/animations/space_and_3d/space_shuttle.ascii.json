@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "space_shuttle",
+  "name": "Uzay Mekiği",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "mekik",
+    "nasa",
+    "uzay",
+    "roket"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F8FAFC",
+    "1": "#38BDF8",
+    "2": "#FACC15",
+    "3": "#F97316",
+    "4": "#EF4444"
+  },
+  "color_frames": [
+    "     00     \n    0110    \n   1 11 1   \n  01 11 10  \n 0010110100 \n   22  22   ",
+    "     00     \n    0110    \n   1 11 1   \n  01 11 10  \n 0010110100 \n   33  33   ",
+    "     00     \n    0110    \n   1 11 1   \n  01 11 10  \n 0010110100 \n  42244224  ",
+    "     00     \n    0110    \n   1 11 1   \n  01 11 10  \n 0010110100 \n   34  43   "
+  ],
+  "frames": [
+    "     /\\     \n    /||\\    \n   | || |   \n  /| || |\\  \n /_|_||_|_\\ \n   vv  vv   ",
+    "     /\\     \n    /||\\    \n   | || |   \n  /| || |\\  \n /_|_||_|_\\ \n   VV  VV   ",
+    "     /\\     \n    /||\\    \n   | || |   \n  /| || |\\  \n /_|_||_|_\\ \n  *vv**vv*  ",
+    "     /\\     \n    /||\\    \n   | || |   \n  /| || |\\  \n /_|_||_|_\\ \n   V*  *V   "
+  ]
+}

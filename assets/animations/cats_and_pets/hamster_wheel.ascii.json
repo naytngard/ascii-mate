@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "hamster_wheel",
+  "name": "Çarkta Koşan Hamster",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "hamster",
+    "koşu",
+    "enerji"
+  ],
+  "default_fps": 6.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#94A3B8",
+    "1": "#38BDF8",
+    "2": "#FDE68A",
+    "3": "#0F172A",
+    "4": "#FB7185"
+  },
+  "color_frames": [
+    "   00001110000   \n  2  2222222  2  \n 0   2 303 2   0 \n  2  22   22  2  \n   20020002002   ",
+    "   00000000000   \n  2  2222222  2  \n 0   2 404 2   0 \n  2  22   22  2  \n   20020002002   ",
+    "   00001110000   \n  2  2222222  2  \n 0   2 303 2   0 \n  2  22   22  2  \n   20020002002   ",
+    "   00002220000   \n  2  2222222  2  \n 1   2 303 2   1 \n  2  22   22  2  \n   20020002002   "
+  ],
+  "frames": [
+    "   .---===---.   \n  /  (\\___/)  \\  \n |   ( o.o )   | \n  \\  />   <\\  /  \n   '--/---\\--'   ",
+    "   .---|||---.   \n  /  (\\___/)  \\  \n -   ( ^.^ )   - \n  \\  /<   >\\  /  \n   '--\\---/--'   ",
+    "   .---===---.   \n  /  (\\___/)  \\  \n |   ( o.o )   | \n  \\  />   <\\  /  \n   '--/---\\--'   ",
+    "   .---\\\\\\---.   \n  /  (\\___/)  \\  \n +   ( o.o )   + \n  \\  /<   >\\  /  \n   '--\\---/--'   "
+  ],
+  "supports_eye_blink": true
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "cozy_snow_cloud",
+  "name": "Kar Yağdıran Bulut",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "bulut",
+    "kar",
+    "kış",
+    "ders"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": true,
+    "type": "snow",
+    "toggle_label": "Buluttan Kar Dökülsün",
+    "spawn_area": "bottom",
+    "density": "medium",
+    "chars": [
+      "*",
+      ".",
+      "'",
+      "+"
+    ]
+  },
+  "palette_map": {
+    "0": "#BAE6FD",
+    "1": "#E0F2FE",
+    "2": "#7DD3FC"
+  },
+  "color_frames": [
+    "    0110     \n 011    10   \n11110111111  \n  2   0   2  \n    0   2    ",
+    "    0110     \n 011    11   \n11110111111  \n    2   0    \n  2   0   2  ",
+    "    0110     \n 011    10   \n11110111111  \n  0   2   0  \n    2   0    ",
+    "    0110     \n 011    11   \n11110111111  \n  2   0   2  \n  0   2   0  "
+  ],
+  "frames": [
+    "    .--.     \n .-(    ).   \n(___.__)__)  \n  *   .   *  \n    .   *    ",
+    "    .--.     \n .-(    )~   \n(___.__)__)  \n    *   .    \n  *   .   *  ",
+    "    .--.     \n .-(    ).   \n(___.__)__)  \n  .   *   .  \n    *   .    ",
+    "    .--.     \n .-(    )~   \n(___.__)__)  \n  *   .   *  \n  .   *   .  "
+  ]
+}

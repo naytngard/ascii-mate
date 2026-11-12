@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "id": "robot_probe",
+  "name": "Mars Kaşif Gezgini",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "mars",
+    "robot",
+    "rover",
+    "uzay"
+  ],
+  "default_fps": 3.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F8FAFC",
+    "1": "#38BDF8",
+    "2": "#FB923C",
+    "3": "#22D3EE",
+    "4": "#EA580C",
+    "5": "#FACC15"
+  },
+  "color_frames": [
+    "    01010     \n      0       \n  000000000   \n  0 2222  0   \n 030000300030 \n44444444444444",
+    "    03030 5   \n      0       \n  000000000   \n  0 2222  0   \n 010000100010 \n44444444444444",
+    "    00000     \n      0       \n  000000000   \n  0 2222  0   \n 030000300030 \n44444444444444",
+    "  5 01010     \n      0       \n  000000000   \n  0 2222  0   \n 010000100010 \n44444444444444"
+  ],
+  "frames": [
+    "    [O_O]     \n      |       \n  +-------+   \n  | MARS  |   \n (o)--(o)-(o) \n~~~~~~~~~~~~~~",
+    "    [o_o] *   \n      |       \n  +-------+   \n  | MARS  |   \n (O)--(O)-(O) \n~~~~~~~~~~~~~~",
+    "    [-_-]     \n      |       \n  +-------+   \n  | MARS  |   \n (o)--(o)-(o) \n~~~~~~~~~~~~~~",
+    "  * [O_O]     \n      |       \n  +-------+   \n  | MARS  |   \n (O)--(O)-(O) \n~~~~~~~~~~~~~~"
+  ],
+  "supports_eye_blink": true
+}

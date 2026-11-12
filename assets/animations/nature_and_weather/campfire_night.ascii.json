@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "campfire_night",
+  "name": "Gece Kamp Ateşi",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "kamp",
+    "ateş",
+    "sıcak",
+    "gece"
+  ],
+  "default_fps": 5.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": true,
+    "type": "sparks",
+    "toggle_label": "Ateş Kıvılcımları",
+    "spawn_area": "top",
+    "density": "medium",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FB923C",
+    "1": "#FACC15",
+    "2": "#FEF08A",
+    "3": "#92400E",
+    "4": "#78350F"
+  },
+  "color_frames": [
+    "      0  0      \n     0 11 0     \n    0 1221 0    \n   0333333330   \n   4334  4334   ",
+    "     0  0       \n    0 11 0      \n     0 2120     \n   0333333330   \n   4334  4334   ",
+    "    0   0   1   \n     0 11 0     \n    0 121 0     \n   0333333330   \n   4334  4334   ",
+    "      0  0      \n     01 10      \n    0 2211 0    \n   0333333330   \n   4334  4334   "
+  ],
+  "frames": [
+    "      (  )      \n     ( ** )     \n    ( *@@* )    \n   (________)   \n   /==\\  /==\\   ",
+    "     )  (       \n    ( ** )      \n     ( @*@)     \n   (________)   \n   /==\\  /==\\   ",
+    "    (   )   *   \n     ( ** )     \n    ( *@* )     \n   (________)   \n   /==\\  /==\\   ",
+    "      (  )      \n     )* *(      \n    ( @@** )    \n   (________)   \n   /==\\  /==\\   "
+  ]
+}

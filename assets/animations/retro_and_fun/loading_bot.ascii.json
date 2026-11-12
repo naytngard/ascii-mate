@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "loading_bot",
+  "name": "Yükleniyor Robotu",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "robot",
+    "yükleniyor",
+    "bilim kurgu",
+    "kod"
+  ],
+  "default_fps": 5.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#4ADE80",
+    "1": "#38BDF8",
+    "2": "#FACC15",
+    "3": "#FEF08A",
+    "4": "#F472B6"
+  },
+  "color_frames": [
+    "     0     \n  1002001  \n 0  313  0 \n 0  101  0 \n  1000001  \n   10 01   ",
+    "     0     \n  1002001  \n 0  313  0 \n 0  101  0 \n  1000001  \n   10 01   ",
+    "     0     \n  1004001  \n 0  010  0 \n 0  101  0 \n  1000001  \n   10 01   ",
+    "     0     \n  1002001  \n 0  313  0 \n 0  101  0 \n  1000001  \n   10 01   "
+  ],
+  "frames": [
+    "     |     \n  .--*--.  \n |  o_o  | \n |  [|]  | \n  '-----'  \n   _| |_   ",
+    "     |     \n  .--*--.  \n |  o_o  | \n |  [/]  | \n  '-----'  \n   _| |_   ",
+    "     |     \n  .--+--.  \n |  -_-  | \n |  [-]  | \n  '-----'  \n   _| |_   ",
+    "     |     \n  .--*--.  \n |  o_o  | \n |  [\\]  | \n  '-----'  \n   _| |_   "
+  ],
+  "supports_eye_blink": true
+}

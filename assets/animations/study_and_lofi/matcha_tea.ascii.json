@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "matcha_tea",
+  "name": "Sıcak Matcha Çayı",
+  "category": "Ders & Lo-Fi Odak",
+  "author": "ASCII Mate",
+  "tags": [
+    "matcha",
+    "çay",
+    "yeşil",
+    "rahat"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": true,
+    "type": "steam",
+    "toggle_label": "Sıcak Buhar",
+    "spawn_area": "top",
+    "density": "low",
+    "chars": [
+      "~",
+      "(",
+      ")",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#BAE6FD",
+    "1": "#4ADE80",
+    "2": "#F8FAFC"
+  },
+  "color_frames": [
+    "     0   1     \n    1   0      \n  22222222222  \n  2 1111111 2  \n   222222222   ",
+    "      0   1    \n    1   0      \n  22222222222  \n  2 1111111 2  \n   222222222   ",
+    "     1   0     \n      0   1    \n  22222222222  \n  2 1111111 2  \n   222222222   ",
+    "    0   1      \n     1   0     \n  22222222222  \n  2 1111111 2  \n   222222222   "
+  ],
+  "frames": [
+    "     (   ~     \n    ~   )      \n  .---------.  \n  | ~~~~~~~ |  \n   \\_______/   ",
+    "      )   ~    \n    ~   (      \n  .---------.  \n  | ~~~~~~~ |  \n   \\_______/   ",
+    "     ~   (     \n      )   ~    \n  .---------.  \n  | ~~~~~~~ |  \n   \\_______/   ",
+    "    (   ~      \n     ~   )     \n  .---------.  \n  | ~~~~~~~ |  \n   \\_______/   "
+  ]
+}

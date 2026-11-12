@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "bonsai_zen",
+  "name": "Zen Bonsai Ağacı",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "bonsai",
+    "zen",
+    "odak",
+    "huzur"
+  ],
+  "default_fps": 2.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#22C55E",
+    "1": "#92400E",
+    "2": "#64748B",
+    "3": "#94A3B8"
+  },
+  "color_frames": [
+    "    000000     \n  0000  0000   \n    1  1       \n     11   0    \n   233332      ",
+    "    000000     \n  0000  0000   \n    1  1       \n     11     0  \n   233332      ",
+    "    000000     \n  0000  0000   \n    1  1  0    \n     11        \n   233332      ",
+    "    000000  0  \n  0000  0000   \n    1  1       \n     11        \n   233332      "
+  ],
+  "frames": [
+    "    .****.     \n  .***  ***.   \n    \\  /       \n     ||   *    \n   [====]      ",
+    "    .****.     \n  .***  ***.   \n    \\  /       \n     ||     *  \n   [====]      ",
+    "    .****.     \n  .***  ***.   \n    \\  /  .    \n     ||        \n   [====]      ",
+    "    .****.  *  \n  .***  ***.   \n    \\  /       \n     ||        \n   [====]      "
+  ]
+}

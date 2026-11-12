@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "solar_eclipse",
+  "name": "Güneş Tutulması (Korona)",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "güneş",
+    "tutulma",
+    "korona",
+    "uzay"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F59E0B",
+    "1": "#FB923C",
+    "2": "#FEF08A",
+    "3": "#FACC15",
+    "4": "#FDE047",
+    "5": "#FFFFFF"
+  },
+  "color_frames": [
+    "    0  1  0    \n  2 3333333 2  \n 33 1     1 33 \n  2 3333333 2  \n    0  1  0    ",
+    "     0 1 0     \n   233333332   \n 44 1     1 44 \n   233333332   \n     0 1 0     ",
+    "    0  1  0    \n  5 3333333 5  \n 33 1     1 33 \n  5 3333333 5  \n    0  1  0    ",
+    "     0 1 0     \n   233333332   \n 33 1     1 33 \n   233333332   \n     0 1 0     "
+  ],
+  "frames": [
+    "    \\  |  /    \n  * .-----. *  \n -- |     | -- \n  * '-----' *  \n    /  |  \\    ",
+    "     \\ | /     \n   *.-----.*   \n == |     | == \n   *'-----'*   \n     / | \\     ",
+    "    \\  |  /    \n  + .-----. +  \n -- |     | -- \n  + '-----' +  \n    /  |  \\    ",
+    "     \\ | /     \n   *.-----.*   \n -- |     | -- \n   *'-----'*   \n     / | \\     "
+  ]
+}

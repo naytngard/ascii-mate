@@ -1,0 +1,49 @@
+{
+  "schema_version": "2.0",
+  "id": "bongo_cat",
+  "name": "Bongo Cat (Klasik)",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "bongo",
+    "kedi",
+    "ritim",
+    "müzik"
+  ],
+  "default_fps": 5.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F8FAFC",
+    "1": "#94A3B8",
+    "2": "#38BDF8",
+    "3": "#FB7185",
+    "4": "#F472B6",
+    "5": "#FACC15",
+    "6": "#34D399"
+  },
+  "color_frames": [
+    "     0011100     \n    0  202  0    \n   00  030  00   \n11010111111101011\n  0  0     0  0  ",
+    "     0011100     \n    0  202  0  4 \n   00  030   0   \n110 0111111101011\n  0500     0  0  ",
+    "     0011100     \n  4 0  202  0    \n   0   030  00   \n1101011111110 011\n  0  00     0050 ",
+    "     0011100  6  \n    0  303  0    \n   00  000  00   \n11010111111101011\n  0500     0050  "
+  ],
+  "frames": [
+    "     /\\___/\\     \n    (  o.o  )    \n   /|  >^<  |\\   \n__/_|_______|_\\__\n  (  (     )  )  ",
+    "     /\\___/\\     \n    (  o.o  )  * \n   /|  >^<   \\   \n__/ |_______|_\\__\n  (O)(     )  )  ",
+    "     /\\___/\\     \n  * (  o.o  )    \n   /   >^<  |\\   \n__/_|_______| \\__\n  (  )(     )(O) ",
+    "     /\\___/\\  d  \n    (  ^.^  )    \n   /|  >w<  |\\   \n__/_|_______|_\\__\n  (O)(     )(O)  "
+  ],
+  "supports_eye_blink": true
+}

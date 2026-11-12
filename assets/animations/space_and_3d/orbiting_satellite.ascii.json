@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "orbiting_satellite",
+  "name": "Yörünge Uydusu",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "uydu",
+    "uzay",
+    "sinyal"
+  ],
+  "default_fps": 3.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#38BDF8",
+    "1": "#0284C7",
+    "2": "#94A3B8",
+    "3": "#A7F3D0",
+    "4": "#FACC15",
+    "5": "#34D399",
+    "6": "#FDE047"
+  },
+  "color_frames": [
+    "  01110223432201110  \n          0          \n        5 0 5        ",
+    "  02220223432202220  \n          0          \n       3 5 0 5 3     ",
+    "  01110223632201110  \n          0          \n      3 3   3 3      ",
+    "  02220223432202220  \n          0          \n                     "
+  ],
+  "frames": [
+    "  [###]==(O)==[###]  \n          |          \n        . ' .        ",
+    "  [===]==(O)==[===]  \n          |          \n       ( . ' . )     ",
+    "  [###]==(@)==[###]  \n          |          \n      ( (   ) )      ",
+    "  [===]==(O)==[===]  \n          |          \n                     "
+  ]
+}

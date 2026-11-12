@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "ghost_boo",
+  "name": "Utangaç Hayalet (Boo)",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "hayalet",
+    "utangaç",
+    "sevimli"
+  ],
+  "default_fps": 2.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F8FAFC",
+    "1": "#0F172A",
+    "2": "#F472B6",
+    "3": "#FB7185",
+    "4": "#FACC15"
+  },
+  "color_frames": [
+    "    00000    \n   0 1 1 0   \n  0   2   0  \n  0       0  \n   000000    ",
+    "    00000    \n   0 3 3 0   \n  0  0 0  0  \n  0       0  \n   000000    ",
+    "    00000    \n   0 0 0 0   \n  0   0   0  \n  0       0  \n   000000    ",
+    "    00000  4 \n   0 1 1 0   \n  0   2   0  \n  0       0  \n   000000    "
+  ],
+  "frames": [
+    "    .---.    \n   / o o \\   \n  |   w   |  \n  |       |  \n   \\/\\/\\/    ",
+    "    .---.    \n   / > < \\   \n  |  / \\  |  \n  |       |  \n   \\/\\/\\/    ",
+    "    .---.    \n   / - - \\   \n  |   _   |  \n  |       |  \n   \\/\\/\\/    ",
+    "    .---.  * \n   / o o \\   \n  |   D   |  \n  |       |  \n   \\/\\/\\/    "
+  ],
+  "supports_eye_blink": true
+}

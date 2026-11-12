@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "fountain_pen",
+  "name": "Altın Uçlu Dolma Kalem",
+  "category": "Ders & Lo-Fi Odak",
+  "author": "ASCII Mate",
+  "tags": [
+    "kalem",
+    "yazı",
+    "not"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FACC15",
+    "1": "#94A3B8",
+    "2": "#38BDF8",
+    "3": "#22D3EE"
+  },
+  "color_frames": [
+    "            00    \n           0  0   \n          000000  \n         01111110 \n   222223         \n111111111111111111",
+    "          00      \n         0  0     \n        000000    \n       01111110   \n   2223           \n111111111111111111",
+    "        00        \n       0  0       \n      000000      \n     01111110     \n   23             \n111111111111111111",
+    "          00      \n         0  0     \n        000000    \n       01111110   \n   222222223      \n111111111111111111"
+  ],
+  "frames": [
+    "            /\\    \n           /  \\   \n          /====\\  \n         /______\\ \n   ~~~~~*         \n__________________",
+    "          /\\      \n         /  \\     \n        /====\\    \n       /______\\   \n   ~~~*           \n__________________",
+    "        /\\        \n       /  \\       \n      /====\\      \n     /______\\     \n   ~*             \n__________________",
+    "          /\\      \n         /  \\     \n        /====\\    \n       /______\\   \n   ~~~~~~~~*      \n__________________"
+  ]
+}

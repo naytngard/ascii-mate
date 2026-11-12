@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "mario_block",
+  "name": "Soru İşaretli Altın Blok",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "oyun",
+    "mario",
+    "altın",
+    "retro"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#F59E0B",
+    "1": "#FACC15",
+    "2": "#FFFFFF",
+    "3": "#BAE6FD",
+    "4": "#FEF08A"
+  },
+  "color_frames": [
+    "           \n  0000000  \n  1  2  1  \n  1     1  \n  0000000  ",
+    "    010    \n  0000000  \n  1  2  1  \n  1     1  \n  0000000  ",
+    "  3 010 3  \n  0000000  \n  1  4  1  \n  1     1  \n  0000000  ",
+    "    010    \n  0000000  \n  1  2  1  \n  1     1  \n  0000000  "
+  ],
+  "frames": [
+    "           \n  +-----+  \n  |  ?  |  \n  |     |  \n  +-----+  ",
+    "    (@)    \n  +-----+  \n  |  ?  |  \n  |     |  \n  +-----+  ",
+    "  * (|) *  \n  +-----+  \n  |  !  |  \n  |     |  \n  +-----+  ",
+    "    (@)    \n  +-----+  \n  |  ?  |  \n  |     |  \n  +-----+  "
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "rocket_launch",
+  "name": "Fırlatılan Uzay Roketi",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "roket",
+    "uzay",
+    "fırlatma",
+    "motivasyon"
+  ],
+  "default_fps": 5.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": true,
+    "type": "sparks",
+    "toggle_label": "Roket Alevi",
+    "spawn_area": "bottom",
+    "density": "medium",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#EF4444",
+    "1": "#F8FAFC",
+    "2": "#FEF08A",
+    "3": "#FACC15",
+    "4": "#F97316",
+    "5": "#38BDF8"
+  },
+  "color_frames": [
+    "     00     \n    0  0    \n   1 22 1   \n   1 11 1   \n  01111110  \n   344443   \n    2  2    ",
+    "     00     \n    0  0    \n   1 22 1   \n   1 11 1   \n  01111110  \n   443344   \n   2 22 2   ",
+    "     00     \n    0  0    \n   1 55 1   \n   1 11 1   \n  01111110  \n   324423   \n  2  33  2  ",
+    "     00     \n    0  0    \n   1 22 1   \n   1 11 1   \n  01111110  \n   444444   \n   2    2   "
+  ],
+  "frames": [
+    "     /\\     \n    /  \\    \n   | ** |   \n   | || |   \n  /|____|\\  \n   vVVVVv   \n    *  *    ",
+    "     /\\     \n    /  \\    \n   | ** |   \n   | || |   \n  /|____|\\  \n   VVvvVV   \n   * ** *   ",
+    "     /\\     \n    /  \\    \n   | @@ |   \n   | || |   \n  /|____|\\  \n   v*VV*v   \n  *  vv  *  ",
+    "     /\\     \n    /  \\    \n   | ** |   \n   | || |   \n  /|____|\\  \n   VVVVVV   \n   *    *   "
+  ]
+}

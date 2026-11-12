@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "windmill_breeze",
+  "name": "Dönen Yel Değirmeni",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "değirmen",
+    "rüzgar",
+    "köy"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#E2E8F0",
+    "1": "#38BDF8",
+    "2": "#FACC15",
+    "3": "#D97706"
+  },
+  "color_frames": [
+    "      0      \n   1112111   \n      0      \n     1 1     \n    03330    ",
+    "    1   1    \n      2      \n    1   1    \n     1 1     \n    03330    ",
+    "      0      \n   1112111   \n      0      \n     1 1     \n    03330    ",
+    "    1   1    \n      2      \n    1   1    \n     1 1     \n    03330    "
+  ],
+  "frames": [
+    "      |      \n   ---*---   \n      |      \n     / \\     \n    |[_]|    ",
+    "    \\   /    \n      *      \n    /   \\    \n     / \\     \n    |[_]|    ",
+    "      |      \n   ===*===   \n      |      \n     / \\     \n    |[_]|    ",
+    "    /   \\    \n      *      \n    \\   /    \n     / \\     \n    |[_]|    "
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "id": "moon_phases",
+  "name": "Ay Evreleri (Klasik)",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "ay",
+    "uzay",
+    "gece",
+    "evre"
+  ],
+  "default_fps": 1.8,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#94A3B8",
+    "1": "#FDE047",
+    "2": "#FEF08A"
+  },
+  "color_frames": [
+    "    00000    \n  0  111 0   \n 0  1111  0  \n 0  1111  0  \n  0  111 0   \n    20002    ",
+    "    00000    \n  0    110   \n 0    111 0  \n 0    111 0  \n  0    110   \n    20002    ",
+    "    00000    \n  0      10  \n 0       10  \n 0       10  \n  0      10  \n    20002    ",
+    "    00000    \n  0 1     0  \n 0 1      0  \n 0 1      0  \n  0 1     0  \n    20002    ",
+    "    00000    \n  0 11    0  \n 0 111    0  \n 0 111    0  \n  0 11    0  \n    20002    ",
+    "    00000    \n  0 11111 0  \n 0 1111111 0 \n 0 1111111 0 \n  0 11111 0  \n    20002    "
+  ],
+  "frames": [
+    "    .---.    \n  /  *** \\   \n |  ****  |  \n |  ****  |  \n  \\  *** /   \n    '---'    ",
+    "    .---.    \n  /    **\\   \n |    *** |  \n |    *** |  \n  \\    **/   \n    '---'    ",
+    "    .---.    \n  /      *\\  \n |       *|  \n |       *|  \n  \\      */  \n    '---'    ",
+    "    .---.    \n  / *     \\  \n | *      |  \n | *      |  \n  \\ *     /  \n    '---'    ",
+    "    .---.    \n  / **    \\  \n | ***    |  \n | ***    |  \n  \\ **    /  \n    '---'    ",
+    "    .---.    \n  / ***** \\  \n | ******* | \n | ******* | \n  \\ ***** /  \n    '---'    "
+  ]
+}

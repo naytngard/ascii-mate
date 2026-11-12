@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "id": "lunar_lander",
+  "name": "Apollo Ay Modülü",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "apollo",
+    "ay",
+    "uzay",
+    "roket"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#E2E8F0",
+    "1": "#94A3B8",
+    "2": "#38BDF8",
+    "3": "#FACC15",
+    "4": "#F97316",
+    "5": "#EF4444",
+    "6": "#FEF08A"
+  },
+  "color_frames": [
+    "     01110     \n    0  2  0    \n   033333330   \n    00   00    \n   0  454  0   \n001111111111100",
+    "     01110     \n    0  2  0    \n   033333330   \n    00   00    \n   0 65556 0   \n001111111111100",
+    "     01110     \n    0  2  0    \n   033333330   \n    00   00    \n   0  464  0   \n001111111111100",
+    "     01110     \n    0  2  0    \n   033333330   \n    00   00    \n   0  0 0  0   \n001111111111100"
+  ],
+  "frames": [
+    "     .---.     \n    /  o  \\    \n   [=======]   \n    /|   |\\    \n   /  vVv  \\   \n..-----------..",
+    "     .---.     \n    /  o  \\    \n   [=======]   \n    /|   |\\    \n   / *VVV* \\   \n..-----------..",
+    "     .---.     \n    /  o  \\    \n   [=======]   \n    /|   |\\    \n   /  v*v  \\   \n..-----------..",
+    "     .---.     \n    /  o  \\    \n   [=======]   \n    /|   |\\    \n   /  . .  \\   \n..-----------.."
+  ]
+}

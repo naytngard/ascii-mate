@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "pomodoro_tomato",
+  "name": "Pomodoro Odak Zamanlayıcı",
+  "category": "Ders & Lo-Fi Odak",
+  "author": "ASCII Mate",
+  "tags": [
+    "pomodoro",
+    "domates",
+    "ders",
+    "odak"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#22C55E",
+    "1": "#EF4444",
+    "2": "#FEF08A",
+    "3": "#F8FAFC",
+    "4": "#38BDF8"
+  },
+  "color_frames": [
+    "     000     \n   1111111   \n  0 2   2 0  \n 0   010   0 \n  011111110  \n   33 4 33   ",
+    "     000     \n   1111111   \n  0 2   2 0  \n 0   010   0 \n  011111110  \n   33 4 33   ",
+    "     000     \n   1111111   \n  0 1   1 0  \n 0   010   0 \n  011111110  \n   33 4 33   ",
+    "     000  1  \n   1111111   \n  0 2   2 0  \n 0   020   0 \n  011111110  \n   33 4 33   "
+  ],
+  "frames": [
+    "     \\|/     \n   .-----.   \n  / ^   ^ \\  \n |   \\_/   | \n  \\_______/  \n   25 : 00   ",
+    "     \\|/     \n   .-----.   \n  / o   o \\  \n |   \\_/   | \n  \\_______/  \n   24 : 59   ",
+    "     \\|/     \n   .-----.   \n  / -   - \\  \n |   \\_/   | \n  \\_______/  \n   24 : 58   ",
+    "     \\|/  *  \n   .-----.   \n  / ^   ^ \\  \n |   \\o/   | \n  \\_______/  \n   24 : 57   "
+  ],
+  "supports_eye_blink": true
+}

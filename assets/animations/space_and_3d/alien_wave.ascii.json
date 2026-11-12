@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "alien_wave",
+  "name": "El Sallayan Uzaylı",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "uzaylı",
+    "sevimli",
+    "uzay"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#4ADE80",
+    "1": "#FEF08A",
+    "2": "#38BDF8",
+    "3": "#F472B6"
+  },
+  "color_frames": [
+    "    0 0     \n   01010  0 \n   00 000   \n   0 0      ",
+    "    0 0     \n   010100   \n   00 00    \n   0 0      ",
+    "    0 0   2 \n   03030  0 \n   00 000   \n   0 0      ",
+    "    0 0     \n   00000 0  \n   00 00    \n   0 0      "
+  ],
+  "frames": [
+    "    \\ /     \n   (o_o)  / \n   /| |\\/   \n   / \\      ",
+    "    \\ /     \n   (o_o)/   \n   /| |/    \n   / \\      ",
+    "    \\ /   * \n   (^_^)  / \n   /| |\\/   \n   / \\      ",
+    "    \\ /     \n   (-_-) /  \n   /| |/    \n   / \\      "
+  ],
+  "supports_eye_blink": true
+}

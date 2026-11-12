@@ -1,0 +1,39 @@
+{
+  "schema_version": "2.0",
+  "id": "matrix_rain_hd",
+  "name": "Matrix Yağmuru (Klasik ASCII)",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "matrix",
+    "kod",
+    "hacker",
+    "yeşil",
+    "shader"
+  ],
+  "default_fps": 26.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "frames": [
+    "6P   I p+  r 3M s EZv   y*8  #    >F           9  \nat   m 8P  A Xq B  %E   HOc  K    Sj      W    d  \n&C   5 ct  e  9    Mi   ls+  o    w2      @    =  \nNg   Z +C  <  d&   q1   4BP  7    FW      J    Q  \nr/   % Pg  Rf  N   9V   Yft  bx   j@    A n    u  \nAT  LM t/  v>  r    z   $>   *G         e 6    D  \nex  pq    =ES  A    Ik  LS   Ok 7       < a    h  \n G  8     Qiw  e    m3  pw   s3 b       R &    0  \n k  c     u1F  <    5X  8    BX *       v N    U  \n    +     DVj  R    Z#  c     # O       E r    y  \n    P     hz   v     K  +     K s       i A   AH  \n    t     0I   E     o  P     o B       1 e   el  \n    C      m   i     7  t     7 f       V <   <4  \n    g          1     b  C     b >       z R @ RY  \n    /                *  g                 v J v   \n    T $              O  /                 E n E   \n    x L              s0 T                 i 6 i   \n    G p              BU x                 1 a 1   \n    k 8              fy                   V & V   \n    3 c              >H                     N z   \n    X +              Sl               Y       I   \n    # P               4               $       m   ",
+    "AWar   u2    9R z Jf     /G  <    5M            FX\ne@     DW    dv I n>     Tk  R    Zq             #\n<J     h@  j =E m 6S     x3  v    %9           2  \nRn   f 0J  2 Qi 5 aw9    GX  E    Md           W  \nv6   > Un  W u1 Z  Fd   ek#  i    q=           @  \nEa   S y6  @ DVv%  j=   <3K  1    9Q           J  \ni&   w Ha  J  zEM  2Q   RXo  V    du      h    n  \n1N   F l&  n   i   Wu   v#7  z    =D      0    6  \nVr   j 4N  6   1   @Db  EKb  Id   Qh      U    a  \n A  12  r  aq  V    h*  io*  m= T u0    L y    &  \n e  VW  A n&9  z    0O  17O  5Q x       p H    N  \n <  z     6Nd  I    Us  V    Zu G       8 l    r  \n R  I     ar=  m    yB  z    %D k       c 4    A  \n v  m     &AQ  5    Hf  I    Mh 3       + Y    e  \n    5     Neu  Z    l>  m     0 X       P $    <  \n    Z     r<   %    4S  5     U #       t L   LR  \n    %                w  Z     y K       C p   pv  \n    M                F  %     H         g 8   8E  \n    q D              j  M               / c   c   \n    9 h              2  q                 + V +   \n    d 0              Wr 9                 P z P   \n    = U              @A d                 t I t   ",
+    "G  x    A     X = Pl        i     CUc *         Ne\nk 1G   Ke     # Q t4     Y  1     gy+           r<\n3 Vk   o<    2K u CY     $        /HP           AR\nX z3   7R    Wo D g$     L        Tlt           ev\n#DI    bv    @7 h /L     p   p    x4C           <E\nKhm    *E  + Jb 0 Tp     8T  8    GYg           Ri\no0     Oi  P n* U x8     cx  c    k$           u  \n7U     s1  t 6Ony  c     +G  +    3L           D  \nby   r BV  C as6H  +    LPk  P    Xp           h  \n*H   A fz  g  Bal  Pq   pt3  t    #8           0  \nOl   e >I  /   &4  t9   8CX  C    Kc           U  \ns4   < Sm  T   NY  Cdy  cg#  g    o+           y  \n Y   R w5  x   r    =H  +/K  /  q 7P      D    H  \n $  tv  Z  G   A    Ql  P o  Tp 9 bt      h    l  \n L  CE  % Uk$  e    u4  t 7  x8 d  C      0    4  \n p  gi  M y3L  <    DY  C b  Gc =       $ U    Y  \n 8  /     HXp  R    h$  g *  k+ Q       L y    $  \n c  T     l#8  v    0L  /    3P u       p H    L  \n    x     4Kc       Up  T     t D       8 l    p  \n    G     Y +       y8  x     C h       c 4   28  \n    k               Hc  G     g         + Y   Wc  \n    3 a             l+  k     /         P $   @+  ",
+    "              e       H     o         /   % T #  l\nq  L          <   yB        7         T     x K  4\n9  p          R   Hf        b      P  x     G o  Y\nd  8          v   l>        *     at        k 7  $\n=  c   h      E o 4S     v  O     &C            5L\nQ  +   0M     i 7 Yw     E        Ng            Zp\nu      Uq    u1 b $F     i        r/8           %8\nD i    y9    DV * Lj     1        ATc           Mc\nh 1    Hd  I hz O p2     V   W    ex+           q+\n0PV    l=  m 0I s  W     z   @    <GP           9P\nUtz    4Q  5 Um/B  @     I   J    Rkt          bd \nyCI    Yu  Z y5Tf  J     m/  n    v3C          *  \nHg   Y $D  % HZx>  n    25T  6    EX           O  \nl/   $ Lh  M  %GS  6 q  WZx  a    i#           s  \n4T   L p0  q   kw  a 9  @%G  &    1K           B  \n x   p 8U  9   3F  &Md  JMk  N  2 Vo           f  \n G  58  y  d   X    q=  n 3  r  W z7           >  \n k  Zc  H  =   #    9Q  6 X  A  @ Ib           S  \n 3  %+  l BQ   K    du  a #  e# J  *           w  \n X  MP  4 fu3  o    =D  & K  <K n  O           F  \n #  q   Y >DX  7    Qh  N o  Ro 6       3      j  \n K  9     Sh#       u0  r 7  v7 a       X      2  "
+  ],
+  "procedural": "matrix_rain_hd",
+  "procedural_params": {
+    "width": 50,
+    "height": 22
+  }
+}

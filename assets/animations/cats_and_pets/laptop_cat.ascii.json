@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "id": "laptop_cat",
+  "name": "Kod Yazan Kedi",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "kedi",
+    "kod",
+    "laptop",
+    "yazılım"
+  ],
+  "default_fps": 4.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#E2E8F0",
+    "1": "#4ADE80",
+    "2": "#38BDF8",
+    "3": "#64748B",
+    "4": "#FACC15",
+    "5": "#FB7185"
+  },
+  "color_frames": [
+    "    0011100      \n   0 2 0 2 0     \n   031111130     \n  33333333333    \n  3 1102001 3    \n  33333333333    ",
+    "    0011100      \n   0 2 0 2 0     \n   031111130     \n  33333333333    \n  3 1100000 3    \n  33333333333    ",
+    "    0011100      \n   0 3 0 3 0     \n   031111130     \n  33333333333    \n  3 1100000 3    \n  33333333333    ",
+    "    0011100  4   \n   0 5 0 5 0     \n   031111130     \n  33333333333    \n  3 1102000 3    \n  33333333333    "
+  ],
+  "frames": [
+    "    /\\___/\\      \n   ( o . o )     \n   /|_____|\\     \n  +---------+    \n  | >_code_ |    \n  +---------+    ",
+    "    /\\___/\\      \n   ( o . o )     \n   /|_____|\\     \n  +---------+    \n  | >_print |    \n  +---------+    ",
+    "    /\\___/\\      \n   ( - . - )     \n   /|_____|\\     \n  +---------+    \n  | >_ascii |    \n  +---------+    ",
+    "    /\\___/\\  *   \n   ( ^ . ^ )     \n   /|_____|\\     \n  +---------+    \n  | >_done! |    \n  +---------+    "
+  ],
+  "supports_eye_blink": true
+}

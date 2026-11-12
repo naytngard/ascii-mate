@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "telescope_study",
+  "name": "Yıldız Teleskobu",
+  "category": "Ders & Lo-Fi Odak",
+  "author": "ASCII Mate",
+  "tags": [
+    "teleskop",
+    "yıldız",
+    "astronomi"
+  ],
+  "default_fps": 2.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FEF08A",
+    "1": "#BAE6FD",
+    "2": "#94A3B8",
+    "3": "#38BDF8",
+    "4": "#64748B",
+    "5": "#FDE047"
+  },
+  "color_frames": [
+    "        0  1   \n      2223     \n    33333      \n      44       \n     3443      \n    3 44 3     ",
+    "        5  0   \n      2223     \n    33333      \n      44       \n     3443      \n    3 44 3     ",
+    "        0  5   \n      2223     \n    33333      \n      44       \n     3443      \n    3 44 3     ",
+    "        1  0   \n      2223     \n    33333      \n      44       \n     3443      \n    3 44 3     "
+  ],
+  "frames": [
+    "        *  .   \n      ===/     \n    /___/      \n      ||       \n     /||\\      \n    / || \\     ",
+    "        +  *   \n      ===/     \n    /___/      \n      ||       \n     /||\\      \n    / || \\     ",
+    "        *  +   \n      ===/     \n    /___/      \n      ||       \n     /||\\      \n    / || \\     ",
+    "        .  *   \n      ===/     \n    /___/      \n      ||       \n     /||\\      \n    / || \\     "
+  ]
+}

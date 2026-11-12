@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "box_cat",
+  "name": "Kutu İçindeki Kedi",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "kedi",
+    "kutu",
+    "saklanma"
+  ],
+  "default_fps": 2.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FDBA74",
+    "1": "#38BDF8",
+    "2": "#D97706",
+    "3": "#B45309",
+    "4": "#FEF3C7",
+    "5": "#FB7185"
+  },
+  "color_frames": [
+    "     0000000     \n    0  101  0    \n  2222222222222  \n  3   4444    3  \n  3           3  \n  2222222222222  ",
+    "     0000000     \n    0  202  0    \n  2222222222222  \n  3   4444    3  \n  3           3  \n  2222222222222  ",
+    "                 \n     0000000     \n  220  101  022  \n  3   4444    3  \n  3           3  \n  2222222222222  ",
+    "     0000000     \n    0  505  0    \n  2222222222222  \n  3   4444    3  \n  3    000    3  \n  2222222222222  "
+  ],
+  "frames": [
+    "     /\\___/\\     \n    (  o.o  )    \n  +-----------+  \n  |   KUTU    |  \n  |           |  \n  +-----------+  ",
+    "     /\\___/\\     \n    (  -.-  )    \n  +-----------+  \n  |   KUTU    |  \n  |           |  \n  +-----------+  ",
+    "                 \n     /\\___/\\     \n  +-(  o.o  )-+  \n  |   KUTU    |  \n  |           |  \n  +-----------+  ",
+    "     /\\___/\\     \n    (  ^.^  )    \n  +-----------+  \n  |   KUTU    |  \n  |    >_<    |  \n  +-----------+  "
+  ],
+  "supports_eye_blink": true
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "id": "waterfall_cliff",
+  "name": "Çağlayan Şelale",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "şelale",
+    "su",
+    "doğa",
+    "huzur"
+  ],
+  "default_fps": 5.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#94A3B8",
+    "1": "#7DD3FC",
+    "2": "#38BDF8",
+    "3": "#0EA5E9",
+    "4": "#E0F2FE",
+    "5": "#BAE6FD",
+    "6": "#FFFFFF"
+  },
+  "color_frames": [
+    "  00000        \n  1   122220   \n  1   1 1 1 1  \n  1   1 1 1 1  \n  000003434343 ",
+    "  00000        \n  1   122220   \n  1   1 5 5 5  \n  1   1 1 1 1  \n  000004343434 ",
+    "  00000        \n  1   122220   \n  1   1 1 1 1  \n  1   1 5 5 5  \n  000003634363 ",
+    "  00000        \n  1   122220   \n  1   1 5 5 5  \n  1   1 5 5 5  \n  000004363436 "
+  ],
+  "frames": [
+    "  +---+        \n  |   |====\\   \n  |   | | | |  \n  |   | | | |  \n  +---+~.~.~.~ ",
+    "  +---+        \n  |   |====\\   \n  |   | : : :  \n  |   | | | |  \n  +---+.~.~.~. ",
+    "  +---+        \n  |   |====\\   \n  |   | | | |  \n  |   | : : :  \n  +---+~*~.~*~ ",
+    "  +---+        \n  |   |====\\   \n  |   | : : :  \n  |   | : : :  \n  +---+.~*~.~* "
+  ]
+}

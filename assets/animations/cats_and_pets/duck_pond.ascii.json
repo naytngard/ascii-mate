@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "duck_pond",
+  "name": "Gölette Yüzen Ördek",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "ördek",
+    "göl",
+    "su",
+    "sakin"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FEF08A",
+    "1": "#FB923C",
+    "2": "#0F172A",
+    "3": "#38BDF8",
+    "4": "#BAE6FD"
+  },
+  "color_frames": [
+    "     00      \n   102 0000  \n    0 001 0  \n     00000   \n 3333 333 33 ",
+    "     00      \n   102 0000  \n    0 001 0  \n     00000   \n 33 3333 333 ",
+    "     00  4   \n   100 0000  \n    0 001 0  \n     00000   \n 333 33 3333 ",
+    "     00      \n   102 0000  \n    0 001 0  \n     00000   \n 3 33 3333 3 "
+  ],
+  "frames": [
+    "     __      \n   <(o )___  \n    ( ._> /  \n     `---'   \n ~~~~ ~~~ ~~ ",
+    "     __      \n   <(o )___  \n    ( ._> /  \n     `---'   \n ~~ ~~~~ ~~~ ",
+    "     __  *   \n   <(^ )___  \n    ( ._> /  \n     `---'   \n ~~~ ~~ ~~~~ ",
+    "     __      \n   <(o )___  \n    ( ._> /  \n     `---'   \n ~ ~~ ~~~~ ~ "
+  ]
+}

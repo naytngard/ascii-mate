@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "mountain_mist",
+  "name": "Sisli Karlı Dağlar",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "dağ",
+    "sis",
+    "manzara",
+    "huzur"
+  ],
+  "default_fps": 2.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#94A3B8",
+    "1": "#F8FAFC",
+    "2": "#BAE6FD"
+  },
+  "color_frames": [
+    "      00         00     \n     0110  2    0110    \n    0    0   000    0   \n 222      000        222\n0                    0  ",
+    "      00    2    00     \n     0110      20110    \n    0    0   000    0   \n 2222     000       2222\n0                    0  ",
+    "      00         00     \n  2  0110       0110  2 \n    0    0   000    0   \n  2222    000     2222  \n0                    0  ",
+    "      00         00     \n     0110   2   0110    \n    0    0   000    0   \n 22222    000    22222  \n0                    0  "
+  ],
+  "frames": [
+    "      /\\         /\\     \n     /**\\  ~    /**\\    \n    /    \\   /\\/    \\   \n ~~~      \\_/        ~~~\n/                    \\  ",
+    "      /\\    ~    /\\     \n     /**\\      ~/**\\    \n    /    \\   /\\/    \\   \n ~~~~     \\_/       ~~~~\n/                    \\  ",
+    "      /\\         /\\     \n  ~  /**\\       /**\\  ~ \n    /    \\   /\\/    \\   \n  ~~~~    \\_/     ~~~~  \n/                    \\  ",
+    "      /\\         /\\     \n     /**\\   ~   /**\\    \n    /    \\   /\\/    \\   \n ~~~~~    \\_/    ~~~~~  \n/                    \\  "
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "shooting_star",
+  "name": "Kayan Dilek Yıldızı",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "yıldız",
+    "dilek",
+    "gece",
+    "uzay"
+  ],
+  "default_fps": 5.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FFFFFF",
+    "1": "#38BDF8",
+    "2": "#818CF8"
+  },
+  "color_frames": [
+    "              0     \n            11      \n          22        \n        2           ",
+    "           0        \n         11         \n       22           \n     2              ",
+    "        0           \n      11            \n    22              \n  2                 ",
+    "     0              \n   11               \n 22                 \n                    "
+  ],
+  "frames": [
+    "              *     \n            --      \n          ..        \n        .           ",
+    "           *        \n         --         \n       ..           \n     .              ",
+    "        *           \n      --            \n    ..              \n  .                 ",
+    "     *              \n   --               \n ..                 \n                    "
+  ]
+}

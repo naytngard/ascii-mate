@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "space_invader",
+  "name": "Klasik Space Invader",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "space invader",
+    "arcade",
+    "uzay",
+    "retro"
+  ],
+  "default_fps": 3.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#4ADE80",
+    "1": "#FFFFFF",
+    "2": "#22D3EE",
+    "3": "#FACC15"
+  },
+  "color_frames": [
+    "    0   0    \n   0010100   \n  002222200  \n  0 0   0 0  ",
+    "    0   0    \n   0010100   \n  002222200  \n    0   0    ",
+    "    0   0    \n   0030300   \n  002222200  \n  0 0   0 0  ",
+    "    0   0    \n   0010100   \n  002222200  \n    0   0    "
+  ],
+  "frames": [
+    "    \\   /    \n   .-o-o-.   \n  /|=====|\\  \n  / |   | \\  ",
+    "    /   \\    \n   .-o-o-.   \n  \\|=====|/  \n    /   \\    ",
+    "    \\   /    \n   .-O-O-.   \n  /|=====|\\  \n  / |   | \\  ",
+    "    /   \\    \n   .-o-o-.   \n  \\|=====|/  \n    /   \\    "
+  ]
+}

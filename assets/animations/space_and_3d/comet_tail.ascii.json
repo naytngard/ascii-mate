@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "comet_tail",
+  "name": "Buzul Kuyruklu Yıldız",
+  "category": "Uzay & Bilim Kurgu",
+  "author": "ASCII Mate",
+  "tags": [
+    "kuyruklu yıldız",
+    "uzay",
+    "buz"
+  ],
+  "default_fps": 5.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#BAE6FD",
+    "1": "#FFFFFF",
+    "2": "#38BDF8",
+    "3": "#818CF8",
+    "4": "#7DD3FC",
+    "5": "#A5B4FC"
+  },
+  "color_frames": [
+    "          0        \n        0112222333 \n         0  4455   ",
+    "        0          \n      011222233355 \n       0   4455    ",
+    "            0      \n          01122223 \n           0 4455  ",
+    "         0         \n       01122223355 \n        0   4455   "
+  ],
+  "frames": [
+    "          *        \n        *@@)===--- \n         *  ''..   ",
+    "        *          \n      *@@)===---.. \n       *   ''..    ",
+    "            *      \n          *@@)===- \n           * ''..  ",
+    "         *         \n       *@@)===--.. \n        *   ''..   "
+  ]
+}

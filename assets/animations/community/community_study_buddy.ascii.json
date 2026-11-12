@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "id": "community_study_buddy",
+  "name": "Çubuk Ders Arkadaşı (Örnek)",
+  "category": "Topluluk / Özel Eklenenler",
+  "author": "ASCII Mate",
+  "tags": [
+    "çubuk adam",
+    "ders",
+    "arkadaş",
+    "örnek",
+    "topluluk"
+  ],
+  "default_fps": 3.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#38BDF8",
+    "1": "#FACC15",
+    "2": "#FEF08A",
+    "3": "#FDBA74",
+    "4": "#F472B6"
+  },
+  "color_frames": [
+    "   010   2  \n    0  3333 \n   0 0      ",
+    "    10   4  \n   00  3333 \n   0 0      ",
+    "   010      \n    0  3333 \n   0 0   2  ",
+    "    1    2  \n   000 3333 \n   0 0      "
+  ],
+  "frames": [
+    "   \\o/   *  \n    |  c[_] \n   / \\      ",
+    "    o/   +  \n   /|  c[_] \n   / \\      ",
+    "   \\o/      \n    |  c[_] \n   / \\   *  ",
+    "    o    *  \n   /|\\ c[_] \n   / \\      "
+  ]
+}

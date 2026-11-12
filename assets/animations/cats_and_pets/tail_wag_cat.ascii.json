@@ -1,0 +1,44 @@
+{
+  "schema_version": "2.0",
+  "id": "tail_wag_cat",
+  "name": "Kuyruk Sallayan Kedi",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "kedi",
+    "kuyruk",
+    "sevimli"
+  ],
+  "default_fps": 3.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#FDBA74",
+    "1": "#38BDF8",
+    "2": "#FB7185"
+  },
+  "color_frames": [
+    "   00000      \n  0 101 0     \n   0 2 0  0   \n  0     00 0  \n 0000000000   ",
+    "   00000      \n  0 101 0   0 \n   0 2 0   0 0\n  0     0000  \n 000000000    ",
+    "   00000      \n  0 000 0  0  \n   0 2 0  0 0 \n  0     00 0  \n 0000000000   ",
+    "   00000      \n  0 202 0     \n   0 2 0  0   \n  0     00 0  \n 0000000000   "
+  ],
+  "frames": [
+    "   /\\_/\\      \n  ( o.o )     \n   > ^ <  _   \n  /     \\/ )  \n (_______)/   ",
+    "   /\\_/\\      \n  ( o.o )   _ \n   > ^ <   ( )\n  /     \\__/  \n (_______)    ",
+    "   /\\_/\\      \n  ( -.- )  _  \n   > ^ <  / ) \n  /     \\/ /  \n (_______)/   ",
+    "   /\\_/\\      \n  ( ^.^ )     \n   > ^ <  _   \n  /     \\/ )  \n (_______)/   "
+  ],
+  "supports_eye_blink": true
+}

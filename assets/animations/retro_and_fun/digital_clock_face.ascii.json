@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "id": "digital_clock_face",
+  "name": "LED Dijital Masa Saati",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "saat",
+    "dijital",
+    "masa",
+    "zaman"
+  ],
+  "default_fps": 2.0,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#64748B",
+    "1": "#22D3EE",
+    "2": "#FACC15",
+    "3": "#F472B6"
+  },
+  "color_frames": [
+    "000000000000000\n0  11 2 11    0\n0  3111113    0\n000000000000000",
+    "000000000000000\n0  11   11    0\n0  3111113    0\n000000000000000",
+    "000000000000000\n0  11 2 11    0\n0  3111113    0\n000000000000000",
+    "000000000000000\n0  11   11    0\n0  3111113    0\n000000000000000"
+  ],
+  "frames": [
+    "+-------------+\n|  12 : 30    |\n|  [FOCUS]    |\n+-------------+",
+    "+-------------+\n|  12   30    |\n|  [FOCUS]    |\n+-------------+",
+    "+-------------+\n|  12 : 31    |\n|  [STUDY]    |\n+-------------+",
+    "+-------------+\n|  12   31    |\n|  [STUDY]    |\n+-------------+"
+  ]
+}

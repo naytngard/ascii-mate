@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "id": "lofi_headphones",
+  "name": "Neon Lo-Fi Kulaklık",
+  "category": "Ders & Lo-Fi Odak",
+  "author": "ASCII Mate",
+  "tags": [
+    "kulaklık",
+    "müzik",
+    "lofi",
+    "neon"
+  ],
+  "default_fps": 3.5,
+  "recommended_color": "auto_hd",
+  "particles": {
+    "enabled_by_default": false,
+    "type": "none",
+    "toggle_label": "Parçacık Efekti",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "'"
+    ]
+  },
+  "palette_map": {
+    "0": "#A855F7",
+    "1": "#FACC15",
+    "2": "#22D3EE",
+    "3": "#EC4899",
+    "4": "#38BDF8"
+  },
+  "color_frames": [
+    "    000000000    \n   0         0   \n  0  1  2  1  0  \n  343       343  \n  343  222  343  ",
+    "    000000000    \n   0         0   \n  0  2  1  2  0  \n  343       343  \n  343 22222 343  ",
+    "    000000000    \n   0         0   \n  0  1  2  1  0  \n  343       343  \n  343  444  343  ",
+    "    000000000    \n   0         0   \n  0  2  1  2  0  \n  343       343  \n  343 22222 343  "
+  ],
+  "frames": [
+    "    .-------.    \n   /         \\   \n  |  d  ~  b  |  \n  [=]       [=]  \n  [=]  ~~~  [=]  ",
+    "    .-------.    \n   /         \\   \n  |  ~  d  ~  |  \n  [=]       [=]  \n  [=] ~~~~~ [=]  ",
+    "    .-------.    \n   /         \\   \n  |  b  ~  d  |  \n  [=]       [=]  \n  [=]  ===  [=]  ",
+    "    .-------.    \n   /         \\   \n  |  ~  b  ~  |  \n  [=]       [=]  \n  [=] ~~~~~ [=]  "
+  ]
+}
