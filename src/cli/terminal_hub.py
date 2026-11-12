@@ -21,6 +21,7 @@ from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 
+from src.core.config_manager import get_runtime_signature
 from src.core.converter import import_file_to_community
 from src.core.library import CATEGORY_ORDER, AnimationLibrary, ThemeLibrary
 from src.core.models import AnimationAsset
@@ -189,11 +190,28 @@ def _spawn_host_process(base_dir: Path) -> None:
         )
 
 
+def _shutdown_stale_host_if_needed(base_dir: Path) -> bool:
+    """Returns True if an up-to-date GUI Host is already running, else shuts down stale host."""
+    ping_res = send_ipc({"cmd": "ping"}, timeout=0.4)
+    if ping_res is None:
+        return False
+    expected_sig = get_runtime_signature(base_dir)
+    if ping_res.get("host_sig") == expected_sig:
+        return True
+    send_ipc({"cmd": "shutdown"}, timeout=0.6)
+    deadline = time.monotonic() + 1.5
+    while time.monotonic() < deadline:
+        if not is_ipc_available():
+            break
+        time.sleep(0.08)
+    return False
+
+
 def prewarm_gui_host(base_dir: Path) -> None:
-    """Silently starts the background GUI Host if not running so Enter spawns instantly."""
-    if is_ipc_available():
-        return
+    """Silently starts the background GUI Host if not running (or refreshes stale host)."""
     try:
+        if is_ipc_available() and _shutdown_stale_host_if_needed(base_dir):
+            return
         _spawn_host_process(base_dir)
     except Exception:
         pass
@@ -201,7 +219,7 @@ def prewarm_gui_host(base_dir: Path) -> None:
 
 def ensure_gui_host_running(base_dir: Path) -> bool:
     """Starts the PyQt6 Tray/Widget Host daemon in the background if not already running."""
-    if send_ipc({"cmd": "ping"}, timeout=0.4) is not None:
+    if _shutdown_stale_host_if_needed(base_dir):
         return True
 
     _spawn_host_process(base_dir)

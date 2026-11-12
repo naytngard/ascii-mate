@@ -27,7 +27,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.core.config_manager import ConfigManager
+from src.core.config_manager import ConfigManager, get_runtime_signature
 from src.core.library import AnimationLibrary, ThemeLibrary
 from src.gui.companion_widget import CompanionWidget
 from src.gui.context_menu import DARK_GLASS_MENU_QSS
@@ -192,6 +192,7 @@ class WidgetHostManager(QObject):
         self.library = library
         self.theme_lib = theme_lib
         self.config_mgr = config_mgr
+        self._runtime_sig = get_runtime_signature(self.base_dir)
         self.widgets: Dict[str, CompanionWidget] = {}
         self._picker: Optional[QuickPickerDialog] = None
 
@@ -355,6 +356,7 @@ class WidgetHostManager(QObject):
         reply = {"ok": True}
         if cmd == "ping":
             reply["active_count"] = len(self.widgets)
+            reply["host_sig"] = self._runtime_sig
         elif cmd == "spawn":
             asset_id = str(msg.get("asset_id", ""))
             w = self.spawn_widget(asset_id)

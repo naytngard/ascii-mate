@@ -3,10 +3,31 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
 from src.core.models import WidgetState
+
+
+def get_runtime_signature(base_dir: Path) -> str:
+    """Computes a lightweight mtime signature for source/frozen executable freshness."""
+    if getattr(sys, "frozen", False):
+        try:
+            st = Path(sys.executable).stat()
+            return f"frozen:{st.st_mtime_ns}:{st.st_size}"
+        except OSError:
+            return "frozen"
+    latest = 0
+    for sub in ("src/gui", "src/core", "src/cli"):
+        folder = base_dir / sub
+        if folder.exists():
+            for py_file in folder.glob("*.py"):
+                try:
+                    latest = max(latest, py_file.stat().st_mtime_ns)
+                except OSError:
+                    pass
+    return f"src:{latest}"
 
 
 class ConfigManager:
