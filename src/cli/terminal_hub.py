@@ -21,7 +21,7 @@ from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 
-from src.core.config_manager import get_runtime_signature
+from src.core.config_manager import ConfigManager, get_runtime_signature
 from src.core.converter import import_file_to_community
 from src.core.library import CATEGORY_ORDER, AnimationLibrary, ThemeLibrary
 from src.core.models import AnimationAsset
@@ -35,6 +35,8 @@ except ImportError:
     WINDOWS = False
 
 
+FAV_CATEGORY = "⭐ Favoriler"
+
 CATEGORY_SHORT = {
     "Kediler & Evcil Hayvanlar": "Kediler",
     "Ders & Lo-Fi Odak": "Ders & Lo-Fi",
@@ -42,6 +44,7 @@ CATEGORY_SHORT = {
     "Uzay & Bilim Kurgu": "Uzay & 3B",
     "Retro & Geek": "Retro",
     "Topluluk / Özel Eklenenler": "Topluluk",
+    FAV_CATEGORY: "Favoriler",
 }
 
 BANNER_WIDE_SEGMENTS: List[List[Tuple[str, str]]] = [
@@ -86,6 +89,8 @@ NAV_SHORTCUTS: List[Tuple[str, str]] = [
     ("[↑/↓]", "Seç"),
     ("[←/→]", "Kategori"),
     ("[Enter]", "Masaüstüne Koy"),
+    ("[F]", "Favori"),
+    ("[C]", "Renk"),
     ("[/]", "Ara"),
     ("[W]", "Aktifler"),
     ("[I]", "İçe Aktar"),
@@ -232,10 +237,13 @@ def ensure_gui_host_running(base_dir: Path) -> bool:
     return False
 
 
-def spawn_asset_via_host(base_dir: Path, asset_id: str) -> tuple[bool, str]:
+def spawn_asset_via_host(base_dir: Path, asset_id: str, color_theme: Optional[str] = None) -> tuple[bool, str]:
     if not ensure_gui_host_running(base_dir):
         return False, "GUI Host başlatılamadı!"
-    res = send_ipc({"cmd": "spawn", "asset_id": asset_id})
+    payload: Dict[str, object] = {"cmd": "spawn", "asset_id": asset_id}
+    if color_theme and color_theme != "auto":
+        payload["color_theme"] = color_theme
+    res = send_ipc(payload)
     if res and res.get("ok"):
         return True, f"Masaüstüne bırakıldı: {res.get('name', asset_id)}"
     return False, (res or {}).get("error", "Bilinmeyen hata")
@@ -288,10 +296,11 @@ class TerminalHub:
         self.base_dir = base_dir
         self.library = library
         self.theme_lib = theme_lib
+        self.config_mgr = ConfigManager(self.base_dir / "config.json")
         self.prewarm = prewarm
         self.console = Console()
 
-        self.categories = list(CATEGORY_ORDER)
+        self.categories = list(CATEGORY_ORDER) + [FAV_CATEGORY]
         self.cat_idx: int = 0
         self.item_idx: int = 0
         self.search_query: str = ""
@@ -300,6 +309,9 @@ class TerminalHub:
         self._last_anim_time: float = time.monotonic()
         self._active_widgets_cache: List[dict] = []
         self._last_ipc_poll: float = 0.0
+
+        self.theme_keys: List[str] = ["auto"] + [k for k in self.theme_lib.themes if k != "auto_hd"]
+        self.theme_idx: int = 0
 
         self._proc_asset_id: Optional[str] = None
         self._proc_size: Optional[Tuple[int, int]] = None
@@ -311,16 +323,24 @@ class TerminalHub:
         self._cached_header_node: Optional[Group] = None
         self._cached_cats_key: Optional[Tuple[int, str, int]] = None
         self._cached_cats_node: Optional[Align] = None
-        self._cached_list_key: Optional[Tuple[int, int, str, int, int]] = None
+        self._cached_list_key: Optional[Tuple[int, int, str, int, int, int]] = None
         self._cached_list_panel: Optional[Panel] = None
         self._cached_footer_key: Optional[Tuple[int, str, int]] = None
         self._cached_footer_panel: Optional[Panel] = None
         self._cached_footer_h: int = 4
 
+    def _current_theme_key(self) -> str:
+        if not self.theme_keys:
+            return "auto"
+        return self.theme_keys[self.theme_idx % len(self.theme_keys)]
+
     def _current_items(self) -> List[AnimationAsset]:
         if self.search_query:
             return self.library.search(self.search_query)
         cat = self.categories[self.cat_idx]
+        if cat == FAV_CATEGORY:
+            fav_ids = set(self.config_mgr.get_favorites())
+            return sorted([a for a in self.library.all_assets() if a.id in fav_ids], key=lambda a: a.name.lower())
         return self.library.by_category(cat)
 
     def _poll_active_widgets(self, force: bool = False) -> bool:
@@ -460,7 +480,8 @@ class TerminalHub:
             layout["cats"].update(self._cached_cats_node)
 
         # Clean Left Selection List (menu.py spirit: clean numbered items, no table borders)
-        list_key = (self.cat_idx, self.item_idx, self.search_query, body_h, len(items))
+        fav_set = set(self.config_mgr.get_favorites())
+        list_key = (self.cat_idx, self.item_idx, self.search_query, body_h, len(items), len(fav_set))
         if self._cached_list_key != list_key or self._cached_list_panel is None:
             visible_rows = max(4, body_h - 4)
             start = max(0, self.item_idx - visible_rows // 2)
@@ -473,26 +494,33 @@ class TerminalHub:
             for idx in range(start, end):
                 a = items[idx]
                 is_sel = idx == self.item_idx
+                is_fav = a.id in fav_set
+                fav_prefix = "★ " if is_fav else "  "
                 tag = "[3B]" if a.is_procedural else ""
                 num_str = f"[{idx + 1:02d}]"
-                avail_name = max(10, left_inner_w - len(num_str) - len(tag) - 6)
+                avail_name = max(10, left_inner_w - len(num_str) - len(tag) - 8)
                 disp_name = a.name if len(a.name) <= avail_name else (a.name[: avail_name - 2] + "..")
 
                 row_txt = Text()
                 if is_sel:
                     row_txt.append(f" > {num_str} ", style="bold yellow")
+                    if is_fav:
+                        row_txt.append("★ ", style="bold yellow")
                     row_txt.append(disp_name, style="bold cyan underline")
                     if tag:
                         row_txt.append(f"  {tag}", style="bold green")
                 else:
                     row_txt.append(f"   {num_str} ", style="dim cyan")
+                    if is_fav:
+                        row_txt.append("★ ", style="yellow")
                     row_txt.append(disp_name, style="white")
                     if tag:
                         row_txt.append(f"  {tag}", style="dim green")
                 list_lines.append(row_txt)
 
             if not items:
-                list_lines.append(Text("  Eşleşen karakter bulunamadı.", style="dim"))
+                empty_msg = "  Henüz favori eklenmedi (F tuşuyla ekle)." if self.categories[self.cat_idx] == FAV_CATEGORY else "  Eşleşen karakter bulunamadı."
+                list_lines.append(Text(empty_msg, style="dim"))
 
             scroll_hint = ""
             if start > 0 or end < len(items):
@@ -519,9 +547,16 @@ class TerminalHub:
 
         # Clean Right Live Portrait Preview Panel (centered & unobstructed)
         if selected:
-            theme_info = self.theme_lib.get(selected.recommended_color)
-            hex_col = str(theme_info.get("primary", "#FFFFFF")) if not theme_info.get("is_rainbow") else "bright_magenta"
-            fallback_style = f"bold {hex_col}"
+            sel_theme_key = self._current_theme_key()
+            resolved_key = selected.recommended_color if sel_theme_key == "auto" else sel_theme_key
+            theme_info = self.theme_lib.get(resolved_key)
+            theme_name = "Önerilen HD" if sel_theme_key == "auto" else str(theme_info.get("name", sel_theme_key))
+            if theme_info.get("is_rainbow"):
+                rainbow_palette = ["bright_red", "bright_yellow", "bright_green", "bright_cyan", "bright_blue", "bright_magenta"]
+                fallback_style = f"bold {rainbow_palette[int(time.monotonic() * 4) % len(rainbow_palette)]}"
+            else:
+                hex_col = str(theme_info.get("primary", "#FFFFFF"))
+                fallback_style = f"bold {hex_col}"
 
             art_h = max(4, body_h - 5)
             right_inner_w = max(28, int(term_w * 0.54) - 4)
@@ -529,13 +564,13 @@ class TerminalHub:
             proc = self._get_preview_renderer(selected, right_inner_w, art_h)
             if proc is not None:
                 pf = proc.step(dt_anim if dt_anim > 0 else 0.08)
-                p_lines, p_colors = pf.lines, pf.colors
+                p_lines, p_colors = pf.lines, (pf.colors if sel_theme_key == "auto" else None)
                 mode_info = "[bold green]Canlı 3B Shader[/bold green]"
             else:
                 f_idx = self._preview_frame % selected.frame_count
                 frame_txt = selected.frames[f_idx]
                 p_lines = frame_txt.split("\n")
-                p_colors = selected.get_frame_colors(f_idx)
+                p_colors = selected.get_frame_colors(f_idx) if sel_theme_key == "auto" else None
                 mode_info = f"[bold cyan]{selected.frame_count} kare • {selected.default_fps:g} FPS[/bold cyan]"
 
             # Crop cleanly if taller than art_h so bottom metadata never overflows Panel
@@ -547,11 +582,12 @@ class TerminalHub:
 
             art_text = _build_rich_multicolor_text(p_lines, p_colors, fallback_style)
             art_area = Align.center(art_text, vertical="middle", height=art_h)
+            fav_mark = "★ " if selected.id in fav_set else ""
             info_line1 = Text.from_markup(
-                f"[bold white]{escape(selected.name)}[/bold white]   •   {mode_info}"
+                f"[bold white]{fav_mark}{escape(selected.name)}[/bold white]   •   {mode_info}"
             )
             info_line2 = Text.from_markup(
-                f"[dim]Boyut: {selected.dimensions[0]}x{selected.dimensions[1]}  •  Etiket: {escape(', '.join(selected.tags[:4]))}[/dim]"
+                f"[dim]Boyut: {selected.dimensions[0]}x{selected.dimensions[1]}  •  Tema:[/dim] [cyan]{escape(theme_name)}[/cyan]"
             )
             preview_group = Group(
                 art_area,
@@ -654,14 +690,29 @@ class TerminalHub:
                             chosen = items[self.item_idx]
                             self.status_msg = f"'{chosen.name}' masaüstüne başlatılıyor..."
                             live.update(self._build_layout(0.0))
-                            ok, msg = spawn_asset_via_host(self.base_dir, chosen.id)
+                            ok, msg = spawn_asset_via_host(self.base_dir, chosen.id, color_theme=self._current_theme_key())
                             self.status_msg = msg
                             self._poll_active_widgets(force=True)
-                    elif ch in ("1", "2", "3", "4", "5", "6"):
-                        self.search_query = ""
-                        self.cat_idx = int(ch) - 1
-                        self.item_idx = 0
-                        self._preview_frame = 0
+                    elif ch in ("1", "2", "3", "4", "5", "6", "7"):
+                        idx_num = int(ch) - 1
+                        if 0 <= idx_num < len(self.categories):
+                            self.search_query = ""
+                            self.cat_idx = idx_num
+                            self.item_idx = 0
+                            self._preview_frame = 0
+                    elif ch in ("f", "F"):
+                        if items:
+                            chosen = items[self.item_idx]
+                            added = self.config_mgr.toggle_favorite(chosen.id)
+                            self.status_msg = f"'{chosen.name}' favorilere eklendi (★)." if added else f"'{chosen.name}' favorilerden çıkarıldı."
+                            self._invalidate_panel_caches()
+                    elif ch in ("c", "C"):
+                        if self.theme_keys:
+                            self.theme_idx = (self.theme_idx + 1) % len(self.theme_keys)
+                            tk = self._current_theme_key()
+                            t_lbl = "Önerilen HD" if tk == "auto" else str(self.theme_lib.get(tk).get("name", tk))
+                            self.status_msg = f"Önizleme & fırlatma teması: {t_lbl}"
+                            self._invalidate_panel_caches()
                     elif ch == "/":
                         live.stop()
                         self._prompt_search()
