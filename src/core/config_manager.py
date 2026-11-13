@@ -30,6 +30,25 @@ def get_runtime_signature(base_dir: Path) -> str:
     return f"src:{latest}"
 
 
+DEFAULT_PROFILES: Dict[str, List[Dict[str, Any]]] = {
+    "Ders Çalışma Düzeni": [
+        {"asset_id": "cat_bust_3d", "color_theme": "auto", "font_size": 12, "opacity": 0.92},
+        {"asset_id": "coffee_3d", "color_theme": "auto", "font_size": 12, "opacity": 0.92},
+        {"asset_id": "hourglass_3d", "color_theme": "auto", "font_size": 12, "opacity": 0.92, "duration_minutes": 25},
+    ],
+    "Gece Lo-Fi Düzeni": [
+        {"asset_id": "rainy_window_3d", "color_theme": "auto", "font_size": 12, "opacity": 0.90},
+        {"asset_id": "vinyl_turntable_3d", "color_theme": "auto", "font_size": 12, "opacity": 0.92},
+        {"asset_id": "lantern_3d", "color_theme": "auto", "font_size": 12, "opacity": 0.92},
+    ],
+    "Odak & Kozmos": [
+        {"asset_id": "saturn_3d", "color_theme": "auto", "font_size": 13, "opacity": 0.94},
+        {"asset_id": "galaxy_vortex_3d", "color_theme": "auto", "font_size": 12, "opacity": 0.88},
+        {"asset_id": "dna_helix_3d", "color_theme": "auto", "font_size": 12, "opacity": 0.92},
+    ],
+}
+
+
 class ConfigManager:
     """Handles loading and saving config.json safely."""
 
@@ -38,6 +57,8 @@ class ConfigManager:
         self._data: Dict[str, Any] = {
             "widgets": {},
             "last_open_widgets": [],
+            "favorites": [],
+            "profiles": {k: list(v) for k, v in DEFAULT_PROFILES.items()},
             "global": {
                 "default_font_size": 16,
                 "default_opacity": 0.92,
@@ -57,6 +78,9 @@ class ConfigManager:
                 self._data.update(loaded)
                 self._data.setdefault("widgets", {})
                 self._data.setdefault("last_open_widgets", [])
+                self._data.setdefault("favorites", [])
+                if not isinstance(self._data.get("profiles"), dict) or not self._data["profiles"]:
+                    self._data["profiles"] = {k: list(v) for k, v in DEFAULT_PROFILES.items()}
                 self._data.setdefault("global", {})
         except Exception:
             # Keep defaults if corrupted
@@ -83,6 +107,40 @@ class ConfigManager:
     def set_last_open_widgets(self, asset_ids: List[str]) -> None:
         self._data["last_open_widgets"] = list(dict.fromkeys(asset_ids))
         self.save()
+
+    def get_favorites(self) -> List[str]:
+        return [str(x) for x in self._data.get("favorites", [])]
+
+    def toggle_favorite(self, asset_id: str) -> bool:
+        favs = self.get_favorites()
+        if asset_id in favs:
+            favs = [x for x in favs if x != asset_id]
+            added = False
+        else:
+            favs.append(asset_id)
+            added = True
+        self._data["favorites"] = favs
+        self.save()
+        return added
+
+    def get_profiles(self) -> Dict[str, List[Dict[str, Any]]]:
+        profs = self._data.get("profiles", {})
+        return dict(profs) if isinstance(profs, dict) else {}
+
+    def save_profile(self, name: str, items: List[Dict[str, Any]]) -> None:
+        clean = name.strip()
+        if not clean:
+            return
+        self._data.setdefault("profiles", {})[clean] = items
+        self.save()
+
+    def delete_profile(self, name: str) -> bool:
+        profs = self._data.get("profiles", {})
+        if isinstance(profs, dict) and name in profs:
+            del profs[name]
+            self.save()
+            return True
+        return False
 
     def get_global(self, key: str, default: Any = None) -> Any:
         return self._data.get("global", {}).get(key, default)

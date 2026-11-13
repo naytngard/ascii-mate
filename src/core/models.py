@@ -212,7 +212,7 @@ class WidgetState:
     opacity: float = 0.94
     speed_multiplier: float = 1.0
     custom_fps: Optional[float] = None
-    color_theme: str = "auto"  # theme key, "auto", "auto_hd", or hex like #FF00AA
+    color_theme: str = "auto"  # theme key, "auto", or hex like #FF00AA
     glow_enabled: bool = True
     shadow_enabled: bool = True
     line_spacing: float = 0.88  # tight line height multiplier (0.75..1.15)
@@ -226,6 +226,13 @@ class WidgetState:
     show_timer_below: bool = True
     sleep_zzz_enabled: bool = False
     eye_blink_enabled: bool = False
+    # v2.1 3D & interactive features
+    grid_resolution: str = "auto"  # auto, compact, standard, hd, ultra
+    free_orbit_3d: bool = False
+    orbit_yaw: float = 0.0
+    orbit_pitch: float = 0.0
+    track_cursor: bool = False
+    pomodoro_break_enabled: bool = True
 
     @classmethod
     def from_dict(cls, asset_id: str, data: Optional[Dict[str, Any]]) -> "WidgetState":
@@ -233,6 +240,12 @@ class WidgetState:
             return cls(asset_id=asset_id)
         ls = float(data.get("line_spacing", 0.88))
         ls = max(0.75, min(1.15, ls))
+        theme = str(data.get("color_theme", "auto"))
+        if theme == "auto_hd":
+            theme = "auto"
+        res = str(data.get("grid_resolution", "auto"))
+        if res not in ("auto", "compact", "standard", "hd", "ultra"):
+            res = "auto"
         return cls(
             asset_id=asset_id,
             x=data.get("x"),
@@ -241,7 +254,7 @@ class WidgetState:
             opacity=float(data.get("opacity", 0.94)),
             speed_multiplier=float(data.get("speed_multiplier", 1.0)),
             custom_fps=data.get("custom_fps"),
-            color_theme=str(data.get("color_theme", "auto")),
+            color_theme=theme,
             glow_enabled=bool(data.get("glow_enabled", True)),
             shadow_enabled=bool(data.get("shadow_enabled", True)),
             line_spacing=ls,
@@ -255,6 +268,12 @@ class WidgetState:
             show_timer_below=bool(data.get("show_timer_below", True)),
             sleep_zzz_enabled=bool(data.get("sleep_zzz_enabled", False)),
             eye_blink_enabled=bool(data.get("eye_blink_enabled", False)),
+            grid_resolution=res,
+            free_orbit_3d=bool(data.get("free_orbit_3d", False)),
+            orbit_yaw=float(data.get("orbit_yaw", 0.0)),
+            orbit_pitch=max(-1.2, min(1.2, float(data.get("orbit_pitch", 0.0)))),
+            track_cursor=bool(data.get("track_cursor", False)),
+            pomodoro_break_enabled=bool(data.get("pomodoro_break_enabled", True)),
         )
 
     def to_dict(self) -> Dict[str, Any]:

@@ -57,9 +57,35 @@ class BaseProceduralRenderer:
         self.height = max(14, int(height))
         self.params = params or {}
         self.t = 0.0
+        self.yaw_offset = 0.0
+        self.pitch_offset = 0.0
+        self.cursor_look: Tuple[float, float] = (0.0, 0.0)
+        self.progress: Optional[float] = None
 
-    def step(self, dt: float, speed_mult: float = 1.0) -> ProceduralFrame:
+    def set_grid_size(self, width: int, height: int) -> None:
+        nw, nh = max(24, int(width)), max(14, int(height))
+        if nw != self.width or nh != self.height:
+            self.width = nw
+            self.height = nh
+            self._on_grid_resized()
+
+    def _on_grid_resized(self) -> None:
+        """Hook for renderers that cache grid-sized buffers or rays."""
+
+    def step(
+        self,
+        dt: float,
+        speed_mult: float = 1.0,
+        yaw_offset: float = 0.0,
+        pitch_offset: float = 0.0,
+        cursor_look: Tuple[float, float] = (0.0, 0.0),
+        progress: Optional[float] = None,
+    ) -> ProceduralFrame:
         self.t += dt * speed_mult
+        self.yaw_offset = yaw_offset
+        self.pitch_offset = pitch_offset
+        self.cursor_look = cursor_look
+        self.progress = progress
         return self.render_at(self.t)
 
     def render_at(self, t: float) -> ProceduralFrame:
@@ -112,7 +138,9 @@ class Saturn3DRenderer(BaseProceduralRenderer):
         self.lx_w = -0.7 / ll
         self.ly_w = -0.4 / ll
         self.lz_w = -0.6 / ll
+        self._on_grid_resized()
 
+    def _on_grid_resized(self) -> None:
         scale = min(self.height * 0.44, self.width * self.aspect * 0.38)
         self._rays: List[List[Tuple[float, float, float]]] = []
         for py in range(self.height):
@@ -136,9 +164,10 @@ class Saturn3DRenderer(BaseProceduralRenderer):
                     self._stars[(x, y)] = (ch, col, phase)
 
     def render_at(self, t: float) -> ProceduralFrame:
-        angle = t * 1.15
-        tilt_z = 0.22 + math.sin(angle * 0.35) * 0.05
-        cos_tx, sin_tx = math.cos(self.tilt_x), math.sin(self.tilt_x)
+        angle = t * 1.15 + self.yaw_offset
+        tilt_x = max(-1.35, min(1.35, self.tilt_x + self.pitch_offset * 0.65 + self.cursor_look[1] * 0.16))
+        tilt_z = 0.22 + math.sin(angle * 0.35) * 0.05 + self.cursor_look[0] * 0.14
+        cos_tx, sin_tx = math.cos(tilt_x), math.sin(tilt_x)
         cos_tz, sin_tz = math.cos(tilt_z), math.sin(tilt_z)
 
         def w2l(x: float, y: float, z: float) -> Tuple[float, float, float]:
@@ -274,15 +303,18 @@ class Donut3DRenderer(BaseProceduralRenderer):
         self.R2 = 2.0
         self.K2 = 5.4
         self.aspect = 0.52
-        scale = min(self.height * 0.34, self.width * self.aspect * 0.34)
-        self.K1 = (scale * self.K2) / (self.R1 + self.R2)
+        self._on_grid_resized()
 
         self._phis = [(j, math.cos(j), math.sin(j)) for j in [k * 0.14 for k in range(45)]]
         self._thetas = [(math.cos(i), math.sin(i)) for i in [k * 0.07 for k in range(90)]]
 
+    def _on_grid_resized(self) -> None:
+        scale = min(self.height * 0.34, self.width * self.aspect * 0.34)
+        self.K1 = (scale * self.K2) / (self.R1 + self.R2)
+
     def render_at(self, t: float) -> ProceduralFrame:
-        A = t * 1.25
-        B = t * 0.68
+        A = t * 1.25 + self.pitch_offset + self.cursor_look[1] * 0.22
+        B = t * 0.68 + self.yaw_offset + self.cursor_look[0] * 0.22
         cosA, sinA = math.cos(A), math.sin(A)
         cosB, sinB = math.cos(B), math.sin(B)
 
@@ -410,7 +442,7 @@ class ChristmasTree3DRenderer(BaseProceduralRenderer):
             scale_x = (w * 0.44) / 0.48
             scale_y = scale_x / (aspect * 1.85)
 
-        angle = t * 1.05
+        angle = t * 1.05 + self.yaw_offset + self.cursor_look[0] * 0.35
         cos_a, sin_a = math.cos(angle), math.sin(angle)
         lx, ly, lz = -0.577, -0.577, -0.577
 
@@ -500,6 +532,10 @@ class DNAHelix3DRenderer(BaseProceduralRenderer):
             ("C", "G", (0, 220, 255), (55, 235, 90)),
         ]
         rng = random.Random(1337)
+        self._on_grid_resized()
+
+    def _on_grid_resized(self) -> None:
+        rng = random.Random(1337)
         self.particles = [
             (rng.randrange(self.width), rng.randrange(self.height), rng.choice([".", "'", "+", "*"]), rng.uniform(0, 6.28))
             for _ in range(max(10, (self.width * self.height) // 55))
@@ -513,7 +549,7 @@ class DNAHelix3DRenderer(BaseProceduralRenderer):
             scale_x = (w * 0.46) / 0.35
             scale_y = scale_x / (self.aspect * 1.85)
 
-        angle = t * 1.3
+        angle = t * 1.3 + self.yaw_offset + self.cursor_look[0] * 0.35
         R = self.R
         cam_dist = self.cam_dist
         half_w, half_h = w / 2.0, h / 2.0
@@ -593,8 +629,9 @@ class OceanWave3DRenderer(BaseProceduralRenderer):
         cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
         ramp_max = len(WAVE_RAMP) - 1
 
-        horizon = int(h * 0.28)
-        moon_x = int(w * 0.72)
+        horizon = max(2, min(h - 4, int(h * (0.28 + max(-0.14, min(0.18, self.pitch_offset * 0.14))))))
+        moon_shift = max(-0.35, min(0.35, (self.yaw_offset * 0.16) + self.cursor_look[0] * 0.10))
+        moon_x = int(w * (0.72 + moon_shift))
         for y in range(horizon):
             for x in range(w):
                 dx = (x - moon_x) * 0.55
@@ -612,8 +649,8 @@ class OceanWave3DRenderer(BaseProceduralRenderer):
             depth = (sy - horizon + 1) / max(1, (h - horizon))
             z = 1.0 / (0.12 + depth * 0.88)
             for sx in range(w):
-                wx = (sx - w * 0.5) * 0.12 * z
-                wz = z * 2.4 - t * 1.9
+                wx = (sx - w * 0.5) * 0.12 * z + self.yaw_offset * 2.5
+                wz = z * 2.4 - t * 1.9 + self.pitch_offset * 1.5
 
                 h1 = math.sin(wx * 0.9 + wz * 1.1) * 0.55
                 h2 = math.sin(wx * 1.7 - wz * 0.75 + t * 0.8) * 0.28
@@ -654,9 +691,12 @@ class FireplaceThermalRenderer(BaseProceduralRenderer):
 
     def __init__(self, width: int = 48, height: int = 22, params: Optional[Dict[str, Any]] = None) -> None:
         super().__init__(width, height, params)
-        self.heat = [[0.0] * self.width for _ in range(self.height)]
         self.rng = random.Random(77)
-        for i in range(28):
+        self._on_grid_resized()
+
+    def _on_grid_resized(self) -> None:
+        self.heat = [[0.0] * self.width for _ in range(self.height)]
+        for i in range(24):
             self._advance_heat(i * 0.04)
 
     def _advance_heat(self, t: float) -> None:
@@ -688,8 +728,20 @@ class FireplaceThermalRenderer(BaseProceduralRenderer):
 
         self.heat = new_heat
 
-    def step(self, dt: float, speed_mult: float = 1.0) -> ProceduralFrame:
+    def step(
+        self,
+        dt: float,
+        speed_mult: float = 1.0,
+        yaw_offset: float = 0.0,
+        pitch_offset: float = 0.0,
+        cursor_look: Tuple[float, float] = (0.0, 0.0),
+        progress: Optional[float] = None,
+    ) -> ProceduralFrame:
         self.t += dt * speed_mult
+        self.yaw_offset = yaw_offset
+        self.pitch_offset = pitch_offset
+        self.cursor_look = cursor_look
+        self.progress = progress
         self._advance_heat(self.t)
         return self._to_frame(self.t)
 
@@ -738,6 +790,9 @@ class MatrixRainHDRenderer(BaseProceduralRenderer):
 
     def __init__(self, width: int = 50, height: int = 22, params: Optional[Dict[str, Any]] = None) -> None:
         super().__init__(width, height, params)
+        self._on_grid_resized()
+
+    def _on_grid_resized(self) -> None:
         rng = random.Random(1999)
         self.cols = []
         for x in range(self.width):
@@ -795,7 +850,7 @@ class GalaxyVortex3DRenderer(BaseProceduralRenderer):
     def render_at(self, t: float) -> ProceduralFrame:
         w, h = self.width, self.height
         aspect = 0.52
-        tilt = 0.62
+        tilt = max(-1.35, min(1.35, 0.62 + self.pitch_offset * 0.7))
         cos_t, sin_t = math.cos(tilt), math.sin(tilt)
         cam_dist = 4.5
         scale = min(h * 0.66, w * aspect * 0.62)
@@ -818,7 +873,7 @@ class GalaxyVortex3DRenderer(BaseProceduralRenderer):
 
         arm_colors = [(110, 225, 255), (195, 130, 255), (255, 165, 110)]
         for r, theta0, yj, ang_spd, ch, arm in self.particles:
-            th = theta0 + t * ang_spd
+            th = theta0 + t * ang_spd + self.yaw_offset
             x0 = r * math.cos(th)
             z0 = r * math.sin(th)
             y1 = yj * cos_t - z0 * sin_t
@@ -902,8 +957,8 @@ class Heart3DRenderer(BaseProceduralRenderer):
             scale_x = (w * 0.46) / 1.15
             scale_y = scale_x * aspect
 
-        yaw = t * 1.15
-        pitch = 0.22 * math.sin(t * 0.75)
+        yaw = t * 1.15 + self.yaw_offset + self.cursor_look[0] * 0.35
+        pitch = 0.22 * math.sin(t * 0.75) + self.pitch_offset + self.cursor_look[1] * 0.25
         cy, sy = math.cos(yaw), math.sin(yaw)
         cp, sp = math.cos(pitch), math.sin(pitch)
 
@@ -975,8 +1030,8 @@ class CrystalDiamond3DRenderer(BaseProceduralRenderer):
         half_w, half_h = w / 2.0, h / 2.0
         cam_dist = 3.9
 
-        yaw = t * 1.15
-        pitch = 0.36 + 0.14 * math.sin(t * 0.8)
+        yaw = t * 1.15 + self.yaw_offset + self.cursor_look[0] * 0.35
+        pitch = 0.36 + 0.14 * math.sin(t * 0.8) + self.pitch_offset + self.cursor_look[1] * 0.25
         cy, sy = math.cos(yaw), math.sin(yaw)
         cp, sp = math.cos(pitch), math.sin(pitch)
 
@@ -1073,7 +1128,7 @@ class Cube3DRenderer(BaseProceduralRenderer):
         half_w, half_h = w / 2.0, h / 2.0
         cam_dist = 4.6
 
-        A, B, C = t * 1.1, t * 0.78, t * 0.45
+        A, B, C = t * 1.1 + self.pitch_offset, t * 0.78 + self.yaw_offset + self.cursor_look[0] * 0.35, t * 0.45
         ca, sa = math.cos(A), math.sin(A)
         cb, sb = math.cos(B), math.sin(B)
         cc, sc = math.cos(C), math.sin(C)
@@ -1159,8 +1214,8 @@ class Pyramid3DRenderer(BaseProceduralRenderer):
         half_w, half_h = w / 2.0, h / 2.0
         cam_dist = 4.2
 
-        yaw = t * 0.95
-        pitch = 0.25
+        yaw = t * 0.95 + self.yaw_offset + self.cursor_look[0] * 0.35
+        pitch = 0.25 + self.pitch_offset + self.cursor_look[1] * 0.25
         cy, sy = math.cos(yaw), math.sin(yaw)
         cp, sp = math.cos(pitch), math.sin(pitch)
         lx, ly, lz = -0.60, -0.45, -0.66
@@ -1233,6 +1288,9 @@ class GlobeEarth3DRenderer(BaseProceduralRenderer):
         self.aspect = 0.52
         self.R = 1.0
         self.cam_dist = 3.2
+        self._on_grid_resized()
+
+    def _on_grid_resized(self) -> None:
         scale = min(self.height * 0.44, self.width * self.aspect * 0.44)
         self._rays: List[List[Tuple[float, float, float]]] = []
         fov = 1.48
@@ -1253,8 +1311,8 @@ class GlobeEarth3DRenderer(BaseProceduralRenderer):
                     self._stars[(x, y)] = (rng.choice([".", "*", "+"]), rng.uniform(0.0, 6.28))
 
     def render_at(self, t: float) -> ProceduralFrame:
-        spin = t * 0.9
-        tilt = 0.32
+        spin = t * 0.9 + self.yaw_offset + self.cursor_look[0] * 0.35
+        tilt = max(-1.2, min(1.2, 0.32 + self.pitch_offset * 0.7 + self.cursor_look[1] * 0.22))
         ct, st = math.cos(tilt), math.sin(tilt)
         lx, ly, lz = -0.60, -0.45, -0.66
         oz = -self.cam_dist
@@ -1353,7 +1411,7 @@ class Atom3DRenderer(BaseProceduralRenderer):
         cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
 
         # Nucleus wobble
-        nw = t * 1.4
+        nw = t * 1.4 + self.yaw_offset
         cn, sn = math.cos(nw), math.sin(nw)
         for nx0, ny0, nz0, ch, col in self.nucleons:
             x = nx0 * cn + nz0 * sn
@@ -1369,8 +1427,8 @@ class Atom3DRenderer(BaseProceduralRenderer):
         # 3 tilted rings + fast electrons
         R = 1.45
         for tilt_x, tilt_z, ring_col, spd, phase0 in self.orbits:
-            ctx, stx = math.cos(tilt_x), math.sin(tilt_x)
-            ctz, stz = math.cos(tilt_z + t * 0.22), math.sin(tilt_z + t * 0.22)
+            ctx, stx = math.cos(tilt_x + self.pitch_offset * 0.6), math.sin(tilt_x + self.pitch_offset * 0.6)
+            ctz, stz = math.cos(tilt_z + t * 0.22 + self.yaw_offset * 0.4), math.sin(tilt_z + t * 0.22 + self.yaw_offset * 0.4)
             for k in range(84):
                 a = k * 2.0 * math.pi / 84
                 ox, oy, oz = R * math.cos(a), 0.0, R * math.sin(a)
@@ -1431,8 +1489,8 @@ class Coffee3DRenderer(BaseProceduralRenderer):
 
         half_w, half_h = w / 2.0, h * 0.62
         cam_dist = 4.2
-        yaw = math.sin(t * 0.7) * 0.55
-        pitch = 0.34
+        yaw = math.sin(t * 0.7) * 0.55 + self.yaw_offset + self.cursor_look[0] * 0.35
+        pitch = max(-0.9, min(1.2, 0.34 + self.pitch_offset + self.cursor_look[1] * 0.22))
         cy, sy = math.cos(yaw), math.sin(yaw)
         cp, sp = math.cos(pitch), math.sin(pitch)
         lx, ly, lz = -0.58, -0.40, -0.70
@@ -1568,8 +1626,8 @@ class Snowflake3DRenderer(BaseProceduralRenderer):
         half_w, half_h = w / 2.0, h / 2.0
         cam_dist = 3.8
 
-        yaw = t * 1.15
-        pitch = 0.45 * math.sin(t * 0.7)
+        yaw = t * 1.15 + self.yaw_offset + self.cursor_look[0] * 0.35
+        pitch = 0.45 * math.sin(t * 0.7) + self.pitch_offset + self.cursor_look[1] * 0.25
         roll = t * 0.35
         cy, sy = math.cos(yaw), math.sin(yaw)
         cp, sp = math.cos(pitch), math.sin(pitch)
@@ -1621,14 +1679,16 @@ class AuroraShaderRenderer(BaseProceduralRenderer):
         ramp_max = len(ramp) - 1
 
         horizon = h - 4
+        phase_yaw = self.yaw_offset * 1.8
+        shift_pitch = max(-0.22, min(0.22, self.pitch_offset * 0.18 + self.cursor_look[1] * 0.08))
         for y in range(horizon):
             ny = y / max(1, horizon)
             for x in range(w):
                 nx = x / max(1, w)
                 # Multi-curtain sine field
-                w1 = math.sin(nx * 7.5 + t * 0.9 + math.sin(ny * 3.2 - t * 0.5))
-                w2 = math.cos(nx * 13.0 - t * 1.2 + ny * 4.0)
-                band = math.exp(-((ny - 0.35 - 0.14 * w1) ** 2) * 14.0)
+                w1 = math.sin(nx * 7.5 + phase_yaw + t * 0.9 + math.sin(ny * 3.2 - t * 0.5))
+                w2 = math.cos(nx * 13.0 - phase_yaw * 0.8 - t * 1.2 + ny * 4.0)
+                band = math.exp(-((ny - 0.35 - shift_pitch - 0.14 * w1) ** 2) * 14.0)
                 shimmer = max(0.0, 0.55 * band + 0.30 * band * (w2 * 0.5 + 0.5))
                 if shimmer > 0.14:
                     lum = min(1.0, shimmer * 1.15)
@@ -1670,19 +1730,21 @@ class WarpStars3DRenderer(BaseProceduralRenderer):
     def render_at(self, t: float) -> ProceduralFrame:
         w, h = self.width, self.height
         half_w, half_h = w / 2.0, h / 2.0
+        vanish_x = max(4.0, min(w - 5.0, half_w + (self.yaw_offset * 0.25 + self.cursor_look[0] * 0.22) * half_w))
+        vanish_y = max(3.0, min(h - 4.0, half_h + (self.pitch_offset * 0.25 + self.cursor_look[1] * 0.22) * half_h))
         buf = [[" "] * w for _ in range(h)]
         zbuf = [[999.0] * w for _ in range(h)]
         cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
 
-        buf[int(half_h)][int(half_w)] = "+"
-        cbuf[int(half_h)][int(half_w)] = (120, 175, 255)
+        buf[int(vanish_y)][int(vanish_x)] = "+"
+        cbuf[int(vanish_y)][int(vanish_x)] = (120, 175, 255)
 
         for x0, y0, z0, spd in self.stars:
             if abs(x0) < 0.03 and abs(y0) < 0.03:
                 continue
             z = ((z0 - t * spd) % 3.85) + 0.15
-            sx = int(half_w + (x0 / z) * half_w * 0.9)
-            sy = int(half_h + (y0 / z) * half_h * 0.9)
+            sx = int(vanish_x + (x0 / z) * half_w * 0.9)
+            sy = int(vanish_y + (y0 / z) * half_h * 0.9)
             if 0 <= sx < w and 0 <= sy < h and z < zbuf[sy][sx]:
                 zbuf[sy][sx] = z
                 closeness = 1.0 - (z / 4.0)
@@ -1700,6 +1762,708 @@ class WarpStars3DRenderer(BaseProceduralRenderer):
                     min(255, int(170 + 85 * closeness)),
                     255,
                 )
+
+        return ProceduralFrame(lines=["".join(r) for r in buf], colors=cbuf)
+
+
+class Hourglass3DRenderer(BaseProceduralRenderer):
+    """3D Revolving & Flowing Sand Hourglass, optionally synced to Pomodoro progress."""
+
+    def render_at(self, t: float) -> ProceduralFrame:
+        w, h = self.width, self.height
+        aspect = 0.52
+        scale_y = h * 0.42
+        scale_x = scale_y / aspect
+        if scale_x * 1.1 > w * 0.45:
+            scale_x = (w * 0.45) / 1.1
+            scale_y = scale_x * aspect
+
+        buf = [[" "] * w for _ in range(h)]
+        zbuf = [[-999.0] * w for _ in range(h)]
+        cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
+
+        half_w, half_h = w / 2.0, h / 2.0
+        cam_dist = 4.3
+        yaw = t * 0.65 + self.yaw_offset + self.cursor_look[0] * 0.35
+        pitch = 0.22 + 0.08 * math.sin(t * 0.8) + self.pitch_offset + self.cursor_look[1] * 0.2
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        cp, sp = math.cos(pitch), math.sin(pitch)
+        lx, ly, lz = -0.55, -0.45, -0.70
+
+        # Sand fill fraction: synced to Pomodoro remaining fraction if available, else 20s cycle
+        frac_rem = self.progress if self.progress is not None else (1.0 - ((t % 16.0) / 16.0))
+        frac_rem = max(0.02, min(0.98, frac_rem))
+        top_sand_cutoff = -0.95 * frac_rem  # y in [-0.95 .. 0.0]
+        bot_sand_top = 0.95 - 0.90 * (1.0 - frac_rem)  # y in [0.05 .. 0.95]
+
+        def proj(x0: float, y0: float, z0: float) -> Tuple[int, int, float]:
+            x1 = x0 * cy + z0 * sy
+            z1 = -x0 * sy + z0 * cy
+            y2 = y0 * cp - z1 * sp
+            z2 = y0 * sp + z1 * cp
+            d = cam_dist - z2
+            return int(half_w + (x1 / d) * scale_x * 2.1), int(half_h + (y2 / d) * scale_y * 2.1), z2
+
+        # 1. Top and bottom wooden frame rings + vertical pillars
+        for cap_y in (-1.02, 1.02):
+            for ip in range(56):
+                phi = ip * 2.0 * math.pi / 56.0
+                for rr in (0.72, 0.82, 0.90):
+                    sx, sy_p, z2 = proj(rr * math.cos(phi), cap_y, rr * math.sin(phi))
+                    if 0 <= sx < w and 0 <= sy_p < h and z2 > zbuf[sy_p][sx]:
+                        zbuf[sy_p][sx] = z2
+                        buf[sy_p][sx] = "=" if rr > 0.84 else "-"
+                        cbuf[sy_p][sx] = (175, 115, 65) if rr > 0.80 else (130, 82, 42)
+
+        for p_idx in range(3):
+            pang = p_idx * (2.0 * math.pi / 3.0) + 0.4
+            px0, pz0 = 0.84 * math.cos(pang), 0.84 * math.sin(pang)
+            for iy in range(28):
+                y0 = -0.98 + (iy / 27.0) * 1.96
+                sx, sy_p, z2 = proj(px0, y0, pz0)
+                if 0 <= sx < w and 0 <= sy_p < h and z2 > zbuf[sy_p][sx]:
+                    zbuf[sy_p][sx] = z2
+                    buf[sy_p][sx] = "|"
+                    cbuf[sy_p][sx] = (165, 110, 60)
+
+        # 2. Outer glass shell (double cone pinched at waist)
+        n_y = 32
+        for iy in range(n_y + 1):
+            y0 = -0.96 + (iy / n_y) * 1.92
+            ay = abs(y0)
+            r_glass = 0.08 + 0.72 * (ay ** 0.78)
+            for ip in range(44):
+                phi = ip * 2.0 * math.pi / 44.0
+                x0 = r_glass * math.cos(phi)
+                z0 = r_glass * math.sin(phi)
+                sx, sy_p, z2 = proj(x0, y0, z0)
+                if 0 <= sx < w and 0 <= sy_p < h and z2 > zbuf[sy_p][sx]:
+                    nrx = math.cos(phi) * cy + math.sin(phi) * sy
+                    nrz1 = -math.cos(phi) * sy + math.sin(phi) * cy
+                    nrz = nrz1 * cp
+                    spec = max(0.0, -(nrx * lx + nrz * lz))
+                    rim = abs(z2) < 0.25 or spec > 0.82
+                    if rim or (iy % 5 == 0 and ip % 3 == 0):
+                        zbuf[sy_p][sx] = z2
+                        buf[sy_p][sx] = "*" if spec > 0.88 else ("/" if (x0 * y0 < 0) else "\\")
+                        if abs(y0) < 0.14:
+                            buf[sy_p][sx] = ":"
+                        cbuf[sy_p][sx] = (205, 242, 255) if spec > 0.85 else (115, 195, 230)
+
+        # 3. Warm golden sand in top cone & bottom pile + falling stream
+        for iy in range(22):
+            y0 = -0.92 + (iy / 21.0) * 1.84
+            in_top_sand = (y0 < 0.0) and (y0 >= top_sand_cutoff)
+            in_bot_sand = (y0 > 0.04) and (y0 >= bot_sand_top)
+            if not (in_top_sand or in_bot_sand):
+                continue
+            r_max = 0.05 + 0.64 * (abs(y0) ** 0.78)
+            if in_bot_sand:
+                cone_frac = (y0 - bot_sand_top) / max(0.08, 0.94 - bot_sand_top)
+                r_max = min(r_max, 0.08 + cone_frac * 0.65)
+            for ir in (0.35, 0.7, 1.0):
+                rr = r_max * ir
+                for ip in range(18):
+                    phi = ip * 2.0 * math.pi / 18.0
+                    sx, sy_p, z2 = proj(rr * math.cos(phi), y0, rr * math.sin(phi))
+                    if 0 <= sx < w and 0 <= sy_p < h and z2 + 0.04 > zbuf[sy_p][sx]:
+                        zbuf[sy_p][sx] = z2 + 0.04
+                        buf[sy_p][sx] = "#" if ir < 0.6 else ("*" if ((iy + ip) % 2 == 0) else ":")
+                        cbuf[sy_p][sx] = (255, 212, 105) if (iy % 2 == 0) else (235, 175, 65)
+
+        # Falling sand grains through neck
+        for gi in range(10):
+            yg = ((gi / 10.0 + t * 1.8) % 1.0) * max(0.15, bot_sand_top)
+            sx, sy_p, z2 = proj(math.sin(t * 9 + gi) * 0.02, yg, 0.0)
+            if 0 <= sx < w and 0 <= sy_p < h:
+                buf[sy_p][sx] = "." if gi % 2 else ":"
+                cbuf[sy_p][sx] = (255, 232, 145)
+
+        return ProceduralFrame(lines=["".join(r) for r in buf], colors=cbuf)
+
+
+class CatBust3DRenderer(BaseProceduralRenderer):
+    """3D Sculpted Geometric Cat Bust with ear tufts, whiskers, blinking & cursor-tracking eyes."""
+
+    def render_at(self, t: float) -> ProceduralFrame:
+        w, h = self.width, self.height
+        aspect = 0.52
+        scale_y = h * 0.42
+        scale_x = scale_y / aspect
+        if scale_x * 1.25 > w * 0.46:
+            scale_x = (w * 0.46) / 1.25
+            scale_y = scale_x * aspect
+
+        buf = [[" "] * w for _ in range(h)]
+        zbuf = [[-999.0] * w for _ in range(h)]
+        cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
+        half_w, half_h = w / 2.0, h / 2.0
+        cam_dist = 4.0
+
+        yaw = math.sin(t * 0.85) * 0.42 + self.yaw_offset + self.cursor_look[0] * 0.45
+        pitch = 0.10 + math.sin(t * 1.2) * 0.05 + self.pitch_offset + self.cursor_look[1] * 0.25
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        cp, sp = math.cos(pitch), math.sin(pitch)
+        lx, ly, lz = -0.52, -0.50, -0.69
+        ramp_max = len(CHARS_RAMP) - 1
+
+        def plot(x0: float, y0: float, z0: float, nx0: float, ny0: float, nz0: float, kind: str) -> None:
+            x1 = x0 * cy + z0 * sy
+            z1 = -x0 * sy + z0 * cy
+            y2 = y0 * cp - z1 * sp
+            z2 = y0 * sp + z1 * cp
+            d = cam_dist - z2
+            if d <= 0.2:
+                return
+            sx = int(half_w + (x1 / d) * scale_x * 2.15)
+            sy_p = int(half_h + (y2 / d) * scale_y * 2.15)
+            if 0 <= sx < w and 0 <= sy_p < h and z2 > zbuf[sy_p][sx]:
+                nrx = nx0 * cy + nz0 * sy
+                nrz1 = -nx0 * sy + nz0 * cy
+                nry = ny0 * cp - nrz1 * sp
+                nrz = ny0 * sp + nrz1 * cp
+                diff = max(0.14, min(1.0, -(nrx * lx + nry * ly + nrz * lz) * 0.78 + 0.28))
+                zbuf[sy_p][sx] = z2
+                if kind == "eye":
+                    blink = (t % 4.2) > 4.0
+                    buf[sy_p][sx] = "-" if blink else "O"
+                    cbuf[sy_p][sx] = (255, 210, 120) if blink else (95, 255, 165)
+                elif kind == "nose":
+                    buf[sy_p][sx] = "v"
+                    cbuf[sy_p][sx] = (255, 130, 165)
+                elif kind == "ear_in":
+                    buf[sy_p][sx] = "^"
+                    cbuf[sy_p][sx] = (255, 155, 185)
+                elif kind == "collar":
+                    buf[sy_p][sx] = "="
+                    cbuf[sy_p][sx] = (255, 85, 115)
+                elif kind == "whisker":
+                    buf[sy_p][sx] = "-" if x0 < 0 else "-"
+                    cbuf[sy_p][sx] = (235, 225, 215)
+                else:
+                    buf[sy_p][sx] = CHARS_RAMP[max(1, int(diff * ramp_max))]
+                    cbuf[sy_p][sx] = (int(245 * diff + 20), int(185 * diff + 25), int(135 * diff + 25))
+
+        # 1. Head ellipsoid
+        for iv in range(28):
+            phi = -math.pi * 0.5 + (iv / 27.0) * math.pi
+            for iu in range(44):
+                th = iu * 2.0 * math.pi / 44.0
+                cx_u, sx_u = math.cos(th), math.sin(th)
+                cphi, sphi = math.cos(phi), math.sin(phi)
+                x0 = 0.78 * cphi * cx_u
+                y0 = -0.18 + 0.66 * sphi
+                z0 = 0.70 * cphi * sx_u
+                plot(x0, y0, z0, cphi * cx_u, sphi, cphi * sx_u, "fur")
+
+        # 2. Pointed cat ears
+        for side in (-1.0, 1.0):
+            for ih in range(12):
+                f = ih / 11.0
+                r_e = 0.26 * (1.0 - f) + 0.03
+                y_e = -0.70 - f * 0.48
+                x_c = side * (0.46 + f * 0.14)
+                for ia in range(16):
+                    a = ia * 2.0 * math.pi / 16.0
+                    ex = x_c + r_e * math.cos(a)
+                    ez = 0.05 + r_e * math.sin(a)
+                    kind = "ear_in" if (math.sin(a) < -0.35 and 0.15 < f < 0.78) else "fur"
+                    plot(ex, y_e, ez, math.cos(a), -0.3, math.sin(a), kind)
+
+        # 3. Shoulders + collar
+        for iy in range(16):
+            f = iy / 15.0
+            y0 = 0.42 + f * 0.68
+            r_s = 0.48 + f * 0.34
+            for iu in range(36):
+                a = iu * 2.0 * math.pi / 36.0
+                kind = "collar" if iy in (1, 2) else "fur"
+                plot(r_s * math.cos(a), y0, r_s * 0.72 * math.sin(a), math.cos(a), 0.1, math.sin(a), kind)
+
+        # 4. Eyes, nose & whiskers
+        lx_off = self.cursor_look[0] * 0.06
+        ly_off = self.cursor_look[1] * 0.04
+        for side in (-1.0, 1.0):
+            plot(side * 0.28 + lx_off, -0.22 + ly_off, -0.71, 0.0, 0.0, -1.0, "eye")
+            plot(side * 0.28 + lx_off, -0.25 + ly_off, -0.70, 0.0, 0.0, -1.0, "eye")
+        plot(0.0, -0.05, -0.73, 0.0, 0.0, -1.0, "nose")
+
+        for side in (-1.0, 1.0):
+            for wi in range(1, 5):
+                for wy in (-0.06, 0.04):
+                    wx = side * (0.48 + wi * 0.14)
+                    plot(wx, wy + wi * 0.015, -0.64, side * 0.5, 0.0, -0.8, "whisker")
+
+        return ProceduralFrame(lines=["".join(r) for r in buf], colors=cbuf)
+
+
+class OwlBust3DRenderer(BaseProceduralRenderer):
+    """3D Geometric Wise Owl Bust with feathered chest, ear tufts & cursor-tracking eyes."""
+
+    def render_at(self, t: float) -> ProceduralFrame:
+        w, h = self.width, self.height
+        aspect = 0.52
+        scale_y = h * 0.42
+        scale_x = scale_y / aspect
+        if scale_x * 1.2 > w * 0.46:
+            scale_x = (w * 0.46) / 1.2
+            scale_y = scale_x * aspect
+
+        buf = [[" "] * w for _ in range(h)]
+        zbuf = [[-999.0] * w for _ in range(h)]
+        cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
+        half_w, half_h = w / 2.0, h / 2.0
+        cam_dist = 4.1
+
+        yaw = math.sin(t * 0.55) * 0.35 + self.yaw_offset + self.cursor_look[0] * 0.52
+        pitch = 0.08 + self.pitch_offset + self.cursor_look[1] * 0.25
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        cp, sp = math.cos(pitch), math.sin(pitch)
+        lx, ly, lz = -0.5, -0.5, -0.7
+
+        def plot(x0: float, y0: float, z0: float, nx0: float, ny0: float, nz0: float, kind: str) -> None:
+            x1 = x0 * cy + z0 * sy
+            z1 = -x0 * sy + z0 * cy
+            y2 = y0 * cp - z1 * sp
+            z2 = y0 * sp + z1 * cp
+            d = cam_dist - z2
+            if d <= 0.2:
+                return
+            sx = int(half_w + (x1 / d) * scale_x * 2.1)
+            sy_p = int(half_h + (y2 / d) * scale_y * 2.1)
+            if 0 <= sx < w and 0 <= sy_p < h and z2 > zbuf[sy_p][sx]:
+                nrx = nx0 * cy + nz0 * sy
+                nrz1 = -nx0 * sy + nz0 * cy
+                nrz = ny0 * sp + nrz1 * cp
+                diff = max(0.15, min(1.0, -(nrx * lx + ny0 * ly + nrz * lz) * 0.75 + 0.3))
+                zbuf[sy_p][sx] = z2
+                if kind == "eye_ring":
+                    buf[sy_p][sx] = "O"
+                    cbuf[sy_p][sx] = (255, 220, 95)
+                elif kind == "pupil":
+                    blink = (t % 4.8) > 4.6
+                    buf[sy_p][sx] = "-" if blink else "@"
+                    cbuf[sy_p][sx] = (250, 215, 110) if blink else (255, 255, 255)
+                elif kind == "beak":
+                    buf[sy_p][sx] = "v"
+                    cbuf[sy_p][sx] = (255, 165, 45)
+                elif kind == "branch":
+                    buf[sy_p][sx] = "="
+                    cbuf[sy_p][sx] = (140, 90, 50)
+                else:
+                    buf[sy_p][sx] = "v" if (y0 > 0.15 and int((x0 + y0) * 9) % 2 == 0) else CHARS_RAMP[max(1, int(diff * 8))]
+                    if y0 > 0.10 and z0 < -0.15:
+                        cbuf[sy_p][sx] = (int(235 * diff + 20), int(215 * diff + 20), int(185 * diff + 15))
+                    else:
+                        cbuf[sy_p][sx] = (int(175 * diff + 20), int(130 * diff + 15), int(95 * diff + 15))
+
+        # Body & head combined ovoid
+        for iy in range(34):
+            phi = -math.pi * 0.5 + (iy / 33.0) * math.pi
+            y0 = 0.05 + 0.92 * math.sin(phi)
+            rx = (0.76 if y0 < -0.1 else 0.86) * math.cos(phi)
+            for iu in range(44):
+                a = iu * 2.0 * math.pi / 44.0
+                plot(rx * math.cos(a), y0, rx * 0.82 * math.sin(a), math.cos(a), math.sin(phi), math.sin(a), "feather")
+
+        # Ear tufts
+        for side in (-1.0, 1.0):
+            for k in range(8):
+                f = k / 7.0
+                plot(side * (0.46 + f * 0.25), -0.80 - f * 0.26, -0.05, side * 0.5, -0.5, -0.5, "feather")
+
+        # Big golden eyes & beak
+        look_x = self.cursor_look[0] * 0.06
+        look_y = self.cursor_look[1] * 0.05
+        for side in (-1.0, 1.0):
+            ex, ey = side * 0.30, -0.34
+            for ia in range(14):
+                a = ia * 2.0 * math.pi / 14.0
+                plot(ex + 0.16 * math.cos(a), ey + 0.16 * math.sin(a), -0.72, 0.0, 0.0, -1.0, "eye_ring")
+            plot(ex + look_x, ey + look_y, -0.75, 0.0, 0.0, -1.0, "pupil")
+        plot(0.0, -0.18, -0.78, 0.0, 0.0, -1.0, "beak")
+        plot(0.0, -0.12, -0.76, 0.0, 0.0, -1.0, "beak")
+
+        # Perch branch
+        for ix in range(-18, 19):
+            plot(ix * 0.075, 1.02, 0.0, 0.0, -1.0, 0.0, "branch")
+
+        return ProceduralFrame(lines=["".join(r) for r in buf], colors=cbuf)
+
+
+class VinylTurntable3DRenderer(BaseProceduralRenderer):
+    """3D Tilted Lo-Fi Spinning Vinyl Turntable with tonearm and live equalizer bars."""
+
+    def render_at(self, t: float) -> ProceduralFrame:
+        w, h = self.width, self.height
+        aspect = 0.52
+        buf = [[" "] * w for _ in range(h)]
+        cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
+
+        # Top audio spectrum equalizer strip
+        eq_h = max(3, int(h * 0.24))
+        for x in range(2, w - 2):
+            bar = int((0.5 + 0.5 * math.sin(t * 5.2 + x * 0.45) * math.cos(t * 2.8 - x * 0.22)) * eq_h)
+            for dy in range(bar):
+                y = eq_h - 1 - dy
+                if 0 <= y < h:
+                    buf[y][x] = "#" if dy == 0 else ("=" if dy % 2 else ":")
+                    ratio = dy / max(1, eq_h)
+                    cbuf[y][x] = (int(90 + 165 * ratio), int(235 - 110 * ratio), 255)
+
+        # Tilted 3D vinyl record below equalizer
+        cx, cy_p = w * 0.44, h * 0.64
+        rx_max = min(w * 0.38, (h - eq_h) * 0.88 / aspect)
+        tilt = max(0.32, min(0.85, 0.55 + self.pitch_offset * 0.35))
+        spin = t * 2.8 + self.yaw_offset
+
+        for y in range(eq_h, h):
+            for x in range(w):
+                nx = (x - cx) / max(1.0, rx_max)
+                ny = ((y - cy_p) / max(1.0, rx_max * aspect)) / tilt
+                r = math.sqrt(nx * nx + ny * ny)
+                if r <= 1.0:
+                    ang = math.atan2(ny, nx)
+                    if r < 0.09:
+                        buf[y][x] = "@"
+                        cbuf[y][x] = (235, 240, 250)
+                    elif r < 0.30:
+                        marker = math.cos(ang - spin) > 0.72
+                        buf[y][x] = "*" if marker else "+"
+                        cbuf[y][x] = (255, 235, 130) if marker else (235, 95, 145)
+                    elif r > 0.94:
+                        buf[y][x] = "=" if abs(nx) < 0.5 else "|"
+                        cbuf[y][x] = (145, 175, 210)
+                    else:
+                        highlight = (math.cos(ang * 2.0 - 0.8) + 1.0) * 0.5
+                        groove = (int(r * 18) % 2 == 0)
+                        glint = math.cos(ang - spin) > 0.88
+                        if glint:
+                            buf[y][x] = "*"
+                            cbuf[y][x] = (195, 245, 255)
+                        elif groove:
+                            buf[y][x] = "~" if highlight > 0.55 else "-"
+                            v = int(65 + 95 * highlight)
+                            cbuf[y][x] = (v, v + 12, v + 32)
+                        else:
+                            buf[y][x] = "."
+                            cbuf[y][x] = (55, 62, 85)
+
+        # Tonearm from top-right resting on groove
+        arm_x0, arm_y0 = int(w * 0.84), int(eq_h + 2)
+        arm_x1, arm_y1 = int(cx + rx_max * 0.45), int(cy_p + 1 + math.sin(t * 2.0) * 0.4)
+        steps = max(4, max(abs(arm_x1 - arm_x0), abs(arm_y1 - arm_y0)))
+        for s in range(steps + 1):
+            u = s / steps
+            px = int(round(arm_x0 + (arm_x1 - arm_x0) * u))
+            py = int(round(arm_y0 + (arm_y1 - arm_y0) * u))
+            if 0 <= px < w and 0 <= py < h:
+                buf[py][px] = "@" if s == 0 else ("=" if s == steps else "/")
+                cbuf[py][px] = (255, 210, 110) if s in (0, steps) else (225, 235, 245)
+
+        return ProceduralFrame(lines=["".join(r) for r in buf], colors=cbuf)
+
+
+class RainyWindow3DRenderer(BaseProceduralRenderer):
+    """Rainy Night Study Window with city bokeh lights and sliding glass raindrops."""
+
+    def __init__(self, width: int = 50, height: int = 24, params: Optional[Dict[str, Any]] = None) -> None:
+        super().__init__(width, height, params)
+        self._on_grid_resized()
+
+    def _on_grid_resized(self) -> None:
+        rng = random.Random(2025)
+        self.drops = [
+            (rng.randrange(2, max(4, self.width - 2)), rng.uniform(0.0, self.height), rng.uniform(1.8, 5.2))
+            for _ in range(max(12, self.width // 2))
+        ]
+        self.bokeh = [
+            (rng.randrange(3, max(5, self.width - 3)), rng.randrange(3, max(5, self.height - 3)),
+             rng.choice([(255, 195, 95), (95, 215, 255), (255, 115, 165), (145, 255, 185)]))
+            for _ in range(max(10, self.width // 3))
+        ]
+
+    def render_at(self, t: float) -> ProceduralFrame:
+        w, h = self.width, self.height
+        buf = [[" "] * w for _ in range(h)]
+        cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
+
+        # Warm glowing distant night bokeh
+        for bx, by, col in self.bokeh:
+            if 1 <= bx < w - 1 and 1 <= by < h - 1:
+                pulse = 0.55 + 0.35 * math.sin(t * 2.1 + bx)
+                buf[by][bx] = "o" if pulse > 0.72 else "."
+                cbuf[by][bx] = (int(col[0] * pulse * 0.75), int(col[1] * pulse * 0.75), int(col[2] * pulse * 0.75))
+
+        # Rain streaks slanting slightly with yaw_offset/wind
+        wind = self.yaw_offset * 0.4 + self.cursor_look[0] * 0.3
+        for dx0, y0, spd in self.drops:
+            yy = (y0 + t * spd) % max(1, h - 2)
+            iy = 1 + int(yy)
+            ix = 1 + int((dx0 + iy * wind) % max(1, w - 2))
+            if 1 <= ix < w - 1 and 1 <= iy < h - 1:
+                buf[iy][ix] = "o" if spd > 4.0 else "|"
+                cbuf[iy][ix] = (175, 232, 255)
+                if iy - 1 >= 1:
+                    buf[iy - 1][ix] = "'"
+                    cbuf[iy - 1][ix] = (110, 175, 225)
+                if iy - 2 >= 1 and buf[iy - 2][ix] == " ":
+                    buf[iy - 2][ix] = "."
+                    cbuf[iy - 2][ix] = (75, 125, 175)
+
+        # Crisp wooden window frame + crossbars
+        mid_x, mid_y = w // 2, h // 2
+        for x in range(w):
+            buf[0][x] = "="
+            buf[h - 1][x] = "="
+            buf[mid_y][x] = "-"
+            cbuf[0][x] = cbuf[h - 1][x] = (180, 125, 80)
+            cbuf[mid_y][x] = (145, 98, 62)
+        for y in range(h):
+            buf[y][0] = "|"
+            buf[y][w - 1] = "|"
+            buf[y][mid_x] = "|"
+            cbuf[y][0] = cbuf[y][w - 1] = (180, 125, 80)
+            cbuf[y][mid_x] = (145, 98, 62)
+        for cx, cy_c in ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1), (mid_x, mid_y)):
+            buf[cy_c][cx] = "+"
+            cbuf[cy_c][cx] = (220, 165, 110)
+
+        return ProceduralFrame(lines=["".join(r) for r in buf], colors=cbuf)
+
+
+class Lantern3DRenderer(BaseProceduralRenderer):
+    """3D Swinging Japanese Paper Lantern (Chochin) with warm glowing core."""
+
+    def render_at(self, t: float) -> ProceduralFrame:
+        w, h = self.width, self.height
+        aspect = 0.52
+        scale_y = h * 0.42
+        scale_x = scale_y / aspect
+        if scale_x * 1.15 > w * 0.45:
+            scale_x = (w * 0.45) / 1.15
+            scale_y = scale_x * aspect
+
+        buf = [[" "] * w for _ in range(h)]
+        zbuf = [[-999.0] * w for _ in range(h)]
+        cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
+        half_w, half_h = w / 2.0, h * 0.54
+        cam_dist = 4.1
+
+        sway = math.sin(t * 1.8) * 0.16 + self.cursor_look[0] * 0.18
+        yaw = t * 0.6 + self.yaw_offset
+        pitch = 0.15 + self.pitch_offset
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        cp, sp = math.cos(pitch), math.sin(pitch)
+        cs, ss = math.cos(sway), math.sin(sway)
+
+        def proj(x0: float, y0: float, z0: float) -> Tuple[int, int, float]:
+            x1 = x0 * cy + z0 * sy
+            z1 = -x0 * sy + z0 * cy
+            # Swing pendulum around top anchor y = -1.1
+            dy = y0 + 1.05
+            xs = x1 * cs - dy * ss
+            ys = x1 * ss + dy * cs - 1.05
+            y2 = ys * cp - z1 * sp
+            z2 = ys * sp + z1 * cp
+            d = cam_dist - z2
+            return int(half_w + (xs / d) * scale_x * 2.1), int(half_h + (y2 / d) * scale_y * 2.1), z2
+
+        # Hanging cord
+        for k in range(6):
+            sx, sy_p, _ = proj(0.0, -1.25 + k * 0.06, 0.0)
+            if 0 <= sx < w and 0 <= sy_p < h:
+                buf[sy_p][sx] = "|"
+                cbuf[sy_p][sx] = (200, 170, 120)
+
+        # Lantern body & ribs
+        flicker = 0.88 + 0.12 * math.sin(t * 7.5)
+        for iv in range(28):
+            f = iv / 27.0
+            y0 = -0.82 + f * 1.48
+            lat = (f - 0.5) * math.pi * 0.88
+            rib = 1.0 + 0.05 * math.cos(iv * 3.14)
+            rad = 0.72 * math.cos(lat) * rib
+            is_cap = iv in (0, 1, 26, 27)
+            for ip in range(44):
+                a = ip * 2.0 * math.pi / 44.0
+                sx, sy_p, z2 = proj(rad * math.cos(a), y0, rad * math.sin(a))
+                if 0 <= sx < w and 0 <= sy_p < h and z2 > zbuf[sy_p][sx]:
+                    zbuf[sy_p][sx] = z2
+                    if is_cap:
+                        buf[sy_p][sx] = "="
+                        cbuf[sy_p][sx] = (85, 65, 55)
+                    else:
+                        core = math.exp(-((f - 0.5) ** 2) * 5.0) * flicker
+                        buf[sy_p][sx] = "-" if (iv % 3 == 0) else ("*" if core > 0.72 else ":")
+                        cbuf[sy_p][sx] = (
+                            min(255, int(215 + 40 * core)),
+                            min(255, int(55 + 165 * core)),
+                            int(35 + 65 * core),
+                        )
+
+        # Hanging tassel at bottom
+        for k in range(5):
+            sx, sy_p, z2 = proj(0.03 * math.sin(t * 3 + k), 0.70 + k * 0.08, 0.0)
+            if 0 <= sx < w and 0 <= sy_p < h:
+                buf[sy_p][sx] = "|" if k < 4 else "*"
+                cbuf[sy_p][sx] = (255, 195, 75)
+
+        return ProceduralFrame(lines=["".join(r) for r in buf], colors=cbuf)
+
+
+class CampTent3DRenderer(BaseProceduralRenderer):
+    """3D Shaded A-Frame Tent, glowing campfire, crescent moon & starry night."""
+
+    def render_at(self, t: float) -> ProceduralFrame:
+        w, h = self.width, self.height
+        aspect = 0.52
+        scale_y = h * 0.40
+        scale_x = scale_y / aspect
+        if scale_x * 1.4 > w * 0.46:
+            scale_x = (w * 0.46) / 1.4
+            scale_y = scale_x * aspect
+
+        buf = [[" "] * w for _ in range(h)]
+        zbuf = [[-999.0] * w for _ in range(h)]
+        cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
+        half_w, half_h = w * 0.44, h * 0.62
+        cam_dist = 4.5
+
+        # Night stars & crescent moon
+        for y in range(max(1, int(h * 0.48))):
+            for x in range(w):
+                dx = (x - w * 0.80) * 0.55
+                dy = y - h * 0.18
+                if dx * dx + dy * dy < 3.0 and (dx + 0.7) ** 2 + (dy + 0.3) ** 2 > 1.8:
+                    buf[y][x] = "C" if dx < 0 else ")"
+                    cbuf[y][x] = (255, 240, 175)
+                elif ((x * 53 + y * 79) % 83) == 0:
+                    tw = 0.55 + 0.45 * math.sin(t * 2.3 + x)
+                    buf[y][x] = "*" if x % 3 == 0 else "."
+                    cbuf[y][x] = (int(175 * tw), int(205 * tw), int(255 * tw))
+
+        yaw = 0.48 + math.sin(t * 0.4) * 0.25 + self.yaw_offset + self.cursor_look[0] * 0.35
+        pitch = 0.16 + self.pitch_offset + self.cursor_look[1] * 0.18
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        cp, sp = math.cos(pitch), math.sin(pitch)
+
+        def plot(x0: float, y0: float, z0: float, ch: str, col: RGB) -> None:
+            x1 = x0 * cy + z0 * sy
+            z1 = -x0 * sy + z0 * cy
+            y2 = y0 * cp - z1 * sp
+            z2 = y0 * sp + z1 * cp
+            d = cam_dist - z2
+            if d <= 0.3:
+                return
+            sx = int(half_w + (x1 / d) * scale_x * 1.9)
+            sy_p = int(half_h + (y2 / d) * scale_y * 1.9)
+            if 0 <= sx < w and 0 <= sy_p < h and z2 > zbuf[sy_p][sx]:
+                zbuf[sy_p][sx] = z2
+                buf[sy_p][sx] = ch
+                cbuf[sy_p][sx] = col
+
+        # 3D A-frame tent faces
+        for iz in range(24):
+            z0 = -0.85 + (iz / 23.0) * 1.70
+            for ih in range(20):
+                f = ih / 19.0
+                y0 = -0.70 + f * 1.15
+                hw = f * 0.78
+                for side in (-1.0, 1.0):
+                    ch = "/" if (side < 0 and iz in (0, 23)) else ("\\" if (side > 0 and iz in (0, 23)) else ("#" if side < 0 else "="))
+                    col = (85, 195, 155) if side < 0 else (55, 145, 120)
+                    plot(side * hw, y0, z0, ch, col)
+                # Warm tent doorway on front z=-0.85
+                if iz == 0 and hw * 0.5 > 0.08:
+                    ix_max = int(hw * 5)
+                    for ix in range(-ix_max, ix_max + 1):
+                        plot(ix * 0.08, y0, z0 - 0.02, ":" if y0 > -0.1 else "*", (255, 200, 95))
+
+        # Crackling campfire on right side
+        fx, fy = int(w * 0.76), int(h * 0.76)
+        for dy in range(-4, 2):
+            for dx in range(-3, 4):
+                px, py = fx + dx, fy + dy
+                if 0 <= px < w and 0 <= py < h:
+                    if dy >= 0 and abs(dx) <= 2:
+                        buf[py][px] = "=" if dy == 1 else "#"
+                        cbuf[py][px] = (155, 92, 48)
+                    elif abs(dx) <= max(0, 2 + dy):
+                        fl = math.sin(t * 11.0 + dx * 2 + dy) > 0.0
+                        buf[py][px] = "^" if fl else "*"
+                        cbuf[py][px] = (255, 230, 95) if dy < -1 else (255, 125, 35)
+
+        return ProceduralFrame(lines=["".join(r) for r in buf], colors=cbuf)
+
+
+class Fireworks3DRenderer(BaseProceduralRenderer):
+    """3D Projective Fireworks Starburst Celebration Shader (used for Pomodoro celebrations)."""
+
+    def __init__(self, width: int = 48, height: int = 20, params: Optional[Dict[str, Any]] = None) -> None:
+        super().__init__(width, height, params)
+        rng = random.Random(2026)
+        self.bursts: List[Tuple[float, float, float, float, RGB, List[Tuple[float, float, float]]]] = []
+        palettes = [
+            (255, 95, 145),
+            (95, 235, 255),
+            (255, 220, 85),
+            (155, 130, 255),
+            (110, 255, 165),
+        ]
+        for bi in range(5):
+            cx = rng.uniform(-1.1, 1.1)
+            cy = rng.uniform(-0.7, 0.3)
+            cz = rng.uniform(-0.4, 0.4)
+            phase = bi * 0.55
+            col = palettes[bi % len(palettes)]
+            dirs: List[Tuple[float, float, float]] = []
+            for _ in range(44):
+                th = rng.uniform(0, 2.0 * math.pi)
+                vz = rng.uniform(-1.0, 1.0)
+                vr = math.sqrt(max(0.0, 1.0 - vz * vz)) * rng.uniform(0.65, 1.15)
+                dirs.append((vr * math.cos(th), vz, vr * math.sin(th)))
+            self.bursts.append((cx, cy, cz, phase, col, dirs))
+
+    def render_at(self, t: float) -> ProceduralFrame:
+        w, h = self.width, self.height
+        aspect = 0.52
+        scale = min(h * 0.45, w * aspect * 0.45) * 1.95
+        half_w, half_h = w / 2.0, h / 2.0
+        buf = [[" "] * w for _ in range(h)]
+        cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
+
+        for cx, cy, cz, phase, col, dirs in self.bursts:
+            age = (t + phase) % 2.4
+            if age < 0.35:
+                # Rising rocket trail
+                ry = 1.2 - (age / 0.35) * (1.2 - cy)
+                sx = int(half_w + cx * scale / aspect)
+                sy = int(half_h + ry * scale)
+                if 0 <= sx < w and 0 <= sy < h:
+                    buf[sy][sx] = "^"
+                    cbuf[sy][sx] = (255, 245, 190)
+                continue
+
+            b_t = age - 0.35
+            fade = max(0.0, 1.0 - b_t / 1.9)
+            if fade <= 0.05:
+                continue
+            gravity = 0.42 * b_t * b_t
+            radius = b_t * 1.35
+            for dx, dy, _dz in dirs:
+                for tail, ch in ((1.0, "*"), (0.78, "+"), (0.56, ".")):
+                    px = cx + dx * radius * tail
+                    py = cy + dy * radius * tail + gravity * tail
+                    sx = int(half_w + px * scale / aspect)
+                    sy = int(half_h + py * scale)
+                    if 0 <= sx < w and 0 <= sy < h:
+                        buf[sy][sx] = "@" if (ch == "*" and fade > 0.72) else ch
+                        cbuf[sy][sx] = (
+                            min(255, int(col[0] * fade + 35 * fade)),
+                            min(255, int(col[1] * fade + 35 * fade)),
+                            min(255, int(col[2] * fade + 35 * fade)),
+                        )
 
         return ProceduralFrame(lines=["".join(r) for r in buf], colors=cbuf)
 
@@ -1723,6 +2487,14 @@ PROCEDURAL_REGISTRY = {
     "snowflake_3d": (Snowflake3DRenderer, 48, 24),
     "aurora_shader": (AuroraShaderRenderer, 52, 22),
     "warp_stars_3d": (WarpStars3DRenderer, 50, 22),
+    "hourglass_3d": (Hourglass3DRenderer, 44, 24),
+    "cat_bust_3d": (CatBust3DRenderer, 46, 24),
+    "owl_bust_3d": (OwlBust3DRenderer, 46, 24),
+    "vinyl_turntable_3d": (VinylTurntable3DRenderer, 50, 22),
+    "rainy_window_3d": (RainyWindow3DRenderer, 50, 24),
+    "lantern_3d": (Lantern3DRenderer, 44, 24),
+    "camp_tent_3d": (CampTent3DRenderer, 52, 24),
+    "fireworks_3d": (Fireworks3DRenderer, 48, 22),
 }
 
 
