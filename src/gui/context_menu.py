@@ -238,6 +238,26 @@ def build_context_menu(widget: "CompanionWidget") -> QMenu:
     track_act.triggered.connect(lambda checked: widget.set_track_cursor(checked))
     scene_menu.addAction(track_act)
 
+    # Akıllı okunabilirlik: yazıların arkasına geç
+    rd_menu = menu.addMenu("👁️  Yazıların Arkasına Geç (Akıllı Okunabilirlik)")
+    rd_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+    rd_act = QAction("Etkin (ekrandaki yazıların üstünde soluklaş)", rd_menu, checkable=True)
+    rd_act.setChecked(widget.state.behind_text_enabled)
+    rd_act.triggered.connect(lambda checked: widget.set_behind_text(checked))
+    rd_menu.addAction(rd_act)
+    rd_menu.addSeparator()
+    for lbl, val in (("Hassasiyet: Düşük", 0.2), ("Hassasiyet: Orta", 0.5), ("Hassasiyet: Yüksek", 0.85)):
+        a = QAction(lbl, rd_menu, checkable=True)
+        a.setChecked(abs(widget.state.behind_text_sensitivity - val) < 0.17)
+        a.triggered.connect(lambda _c, v=val: widget.set_behind_text_sensitivity(v))
+        rd_menu.addAction(a)
+    rd_menu.addSeparator()
+    for lbl, val in (("Soluklaşma: %10", 0.10), ("Soluklaşma: %20", 0.20), ("Soluklaşma: %35", 0.35), ("Soluklaşma: %50", 0.50)):
+        a = QAction(lbl, rd_menu, checkable=True)
+        a.setChecked(abs(widget.state.behind_text_fade - val) < 0.06)
+        a.triggered.connect(lambda _c, v=val: widget.set_behind_text_fade(v))
+        rd_menu.addAction(a)
+
     menu.addSeparator()
 
     # Quick Visual Toggles

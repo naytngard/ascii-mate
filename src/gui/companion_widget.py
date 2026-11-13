@@ -7,7 +7,7 @@ import re
 import time
 from typing import Callable, Dict, List, Optional, Tuple
 
-from PyQt6.QtCore import QPoint, QPointF, QRectF, Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import QPoint, QPointF, QRect, QRectF, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import (
     QColor,
     QCursor,
@@ -35,6 +35,7 @@ from src.core.procedural_engine import (
 )
 from src.gui.context_menu import build_context_menu
 from src.gui.power import PowerMonitor
+from src.gui.readability import ReadabilityAnalyzer, capture_excluded, is_supported, set_display_affinity
 
 RGB = Tuple[int, int, int]
 
@@ -88,10 +89,10 @@ MIRROR_CHAR_MAP = str.maketrans({
 
 
 def _quantize(rgb: RGB, enabled: bool) -> RGB:
-    """Her kanalı 16'lık basamaklara indirir (3B karelerde komşu hücreler aynı rengi paylaşsın)."""
+    """Her kanalı 32'lik basamaklara indirir (3B karelerde komşu hücreler aynı rengi paylaşsın)."""
     if not enabled:
         return rgb
-    return (rgb[0] & 0xF0 | 8, rgb[1] & 0xF0 | 8, rgb[2] & 0xF0 | 8)
+    return (rgb[0] & 0xE0 | 16, rgb[1] & 0xE0 | 16, rgb[2] & 0xE0 | 16)
 
 
 class CompanionWidget(QWidget):
@@ -152,6 +153,7 @@ class CompanionWidget(QWidget):
         self._cursor_look: Tuple[float, float] = (0.0, 0.0)
         self._close_notified: bool = False
         self._suspended: bool = False
+        self._readability: Optional[ReadabilityAnalyzer] = None
         self._paused_by_user_hidden: bool = False
 
         # Eye blink state
@@ -294,8 +296,74 @@ class CompanionWidget(QWidget):
             if not suspended:
                 self._last_tick_time = time.monotonic()  # uzun uykudan sonra zıplama olmasın
                 self._invalidate_art()
+        if self._readability is not None:
+            self._readability.pause(self._suspended)
         self._tick_timer.stop()
         self._update_timer_interval()
+
+    def _read_levels(self) -> Optional[List[List[int]]]:
+        if self._readability is not None and self._readability.running:
+            return self._readability.levels or None
+        return None
+
+    def readability_region(self) -> Optional[Tuple[QRect, int, int]]:
+        """Akıllı okunabilirlik için yakalanacak ekran dikdörtgeni (global piksel) ve karakter ızgarası boyutu."""
+        lines = self._current_lines
+        if not lines:
+            return None
+        cols = max((len(l) for l in lines), default=0)
+        rows = len(lines)
+        if cols < 1 or rows < 1:
+            return None
+        char_w, line_h, _ = self._get_font_metrics()
+        origin = self.mapToGlobal(QPoint(12, 10))
+        return QRect(origin.x(), origin.y(), max(1, int(cols * char_w)), max(1, int(rows * line_h))), cols, rows
+
+    def _sync_readability(self) -> None:
+        """Mod açıksa analiz döngüsünü başlatır, kapalıysa durdurur (yakalama yalnızca mod açıkken çalışır)."""
+        if self.state.behind_text_enabled:
+            if self._readability is None:
+                self._readability = ReadabilityAnalyzer(self)
+                self._readability.mask_changed.connect(self._on_readability_changed)
+            if not self._readability.start():
+                self.state.behind_text_enabled = False
+                self._readability = None
+        elif self._readability is not None:
+            self._readability.stop()
+            self._readability = None
+            self._invalidate_art()
+            self.update()
+
+    def _on_readability_changed(self) -> None:
+        self._invalidate_art()
+        self.update()
+
+    def showEvent(self, event) -> None:  # noqa: N802
+        super().showEvent(event)
+        if capture_excluded():
+            set_display_affinity(self, True)
+        if self.state.behind_text_enabled and self._readability is None:
+            QTimer.singleShot(0, self._sync_readability)
+
+    def set_behind_text(self, enabled: bool) -> None:
+        if enabled and not is_supported():
+            QMessageBox.information(self, "Desteklenmiyor", "Akıllı okunabilirlik Windows 10 (2004) veya üstünü gerektirir.")
+            enabled = False
+        self.state.behind_text_enabled = bool(enabled)
+        self._sync_readability()
+        self._save_state()
+
+    def set_behind_text_sensitivity(self, value: float) -> None:
+        self.state.behind_text_sensitivity = max(0.0, min(1.0, float(value)))
+        if self._readability is not None:
+            self._readability._sig = None  # yeniden analiz
+        self._save_state()
+
+    def set_behind_text_fade(self, value: float) -> None:
+        self.state.behind_text_fade = max(0.08, min(0.6, float(value)))
+        self._invalidate_art()
+        self._save_state()
+        self.update()
 
     def _invalidate_art(self) -> None:
         self._art_dirty = True
@@ -694,26 +762,48 @@ class CompanionWidget(QWidget):
         start_y = 10.0 + ascent
         lines = self._current_lines
 
-        # 1. Glow (opsiyonel, varsayılan kapalı): tek geçiş, hafif köşegen kaydırma
+        levels = self._read_levels() if self.state.behind_text_enabled else None
+        lights = self._readability.light if (levels is not None and self._readability is not None) else None
+
+        def cell_level(i: int, col: int) -> int:
+            if levels is None or i >= len(levels) or col >= len(levels[i]):
+                return 0
+            return levels[i][col]
+
+        # 1. Glow (opsiyonel, varsayılan kapalı): tek geçiş
         if self.state.glow_enabled:
             painter.setPen(QColor(glow.red(), glow.green(), glow.blue(), int(55 * alpha)))
             for i, line in enumerate(lines):
                 if line.strip():
                     painter.drawText(QPointF(start_x + 1.2, start_y + i * line_h + 1.2), line)
 
-        # 2. Okunabilirlik gölgesi: tek geçiş
+        # 2. Okunabilirlik gölgesi: tek geçiş (yazının arkasına geçilen hücrelerde gölge yok)
         if self.state.shadow_enabled:
             painter.setPen(QColor(8, 10, 16, int(190 * alpha)))
             for i, line in enumerate(lines):
-                if line.strip():
-                    painter.drawText(QPointF(start_x + 1.0, start_y + i * line_h + 1.0), line)
+                if not line.strip():
+                    continue
+                if levels is not None:
+                    line = "".join(" " if (ch != " " and cell_level(i, k) >= 2) else ch for k, ch in enumerate(line))
+                    if not line.strip():
+                        continue
+                painter.drawText(QPointF(start_x + 1.0, start_y + i * line_h + 1.0), line)
 
-        # 3. Ön plan: çok renkli (koşu gruplu) ya da tek renk
-        if self._is_multicolor_active() and self._current_colors is not None:
-            fallback_rgb: RGB = (secondary.red(), secondary.green(), secondary.blue())
-            c_rows = self._current_colors
-            pen_cache: Dict[RGB, QColor] = {}
-            quant = self._procedural is not None  # 3B kareler: renkleri kuantala → daha uzun koşular, daha az drawText
+        # 3. Ön plan
+        multicolor = self._is_multicolor_active() and self._current_colors is not None
+        any_flagged = levels is not None and any(any(r) for r in levels)
+        if any_flagged:
+            fallback_rgb: RGB = (secondary.red(), secondary.green(), secondary.blue()) if multicolor else (primary.red(), primary.green(), primary.blue())
+            c_rows = self._current_colors if multicolor else []
+            pen_cache: Dict[Tuple[RGB, int, bool], QColor] = {}
+            quant = self._procedural is not None and multicolor
+            fade = max(0.08, min(0.6, self.state.behind_text_fade))
+
+            def key_at(i: int, k: int, c_row: list, c_len: int) -> Tuple[RGB, int, bool]:
+                rgb = _quantize((c_row[k] if k < c_len else None) or fallback_rgb, quant)
+                lv = cell_level(i, k)
+                lt = bool(lights[i][k]) if (lv and lights is not None and i < len(lights) and k < len(lights[i])) else False
+                return (rgb, lv, lt)
 
             for i, line in enumerate(lines):
                 if not line.strip():
@@ -724,27 +814,64 @@ class CompanionWidget(QWidget):
                 c_len = len(c_row)
                 col_idx = 0
                 while col_idx < n:
-                    ch = line[col_idx]
-                    if ch == " ":
+                    if line[col_idx] == " ":
                         col_idx += 1
                         continue
-                    rgb = _quantize((c_row[col_idx] if col_idx < c_len else None) or fallback_rgb, quant)
+                    key = key_at(i, col_idx, c_row, c_len)
+                    run_start = col_idx
+                    col_idx += 1
+                    while col_idx < n and line[col_idx] != " " and key_at(i, col_idx, c_row, c_len) == key:
+                        col_idx += 1
+                    qcol = pen_cache.get(key)
+                    if qcol is None:
+                        rgb, lv, lt = key
+                        a255 = alpha_255
+                        if lv:
+                            # arkaya geç: soluklaş + arka plan parlaklığının zıddına doğru renk kaydır
+                            a255 = int(alpha_255 * (1.0 - (lv / 3.0) * (1.0 - fade)))
+                            contrast = (22, 24, 34) if lt else (255, 255, 255)
+                            m = 0.22 * lv
+                            rgb = (
+                                int(rgb[0] + (contrast[0] - rgb[0]) * m),
+                                int(rgb[1] + (contrast[1] - rgb[1]) * m),
+                                int(rgb[2] + (contrast[2] - rgb[2]) * m),
+                            )
+                        qcol = QColor(rgb[0], rgb[1], rgb[2], a255)
+                        pen_cache[key] = qcol
+                    painter.setPen(qcol)
+                    # Monospace yazı tipi: x konumu = başlangıç + sütun * karakter genişliği (O(1))
+                    painter.drawText(QPointF(start_x + run_start * char_w, y), line[run_start:col_idx])
+        elif multicolor:
+            fallback_rgb2: RGB = (secondary.red(), secondary.green(), secondary.blue())
+            c_rows2 = self._current_colors or []
+            pen_cache2: Dict[RGB, QColor] = {}
+            quant2 = self._procedural is not None  # 3B kareler: renkleri kuantala → daha uzun koşular, daha az drawText
+            for i, line in enumerate(lines):
+                if not line.strip():
+                    continue
+                y = start_y + i * line_h
+                c_row = c_rows2[i] if i < len(c_rows2) else []
+                n = len(line)
+                c_len = len(c_row)
+                col_idx = 0
+                while col_idx < n:
+                    if line[col_idx] == " ":
+                        col_idx += 1
+                        continue
+                    rgb = _quantize((c_row[col_idx] if col_idx < c_len else None) or fallback_rgb2, quant2)
                     run_start = col_idx
                     col_idx += 1
                     while col_idx < n:
-                        nch = line[col_idx]
-                        if nch == " ":
+                        if line[col_idx] == " ":
                             break
-                        nrgb = _quantize((c_row[col_idx] if col_idx < c_len else None) or fallback_rgb, quant)
-                        if nrgb != rgb:
+                        if _quantize((c_row[col_idx] if col_idx < c_len else None) or fallback_rgb2, quant2) != rgb:
                             break
                         col_idx += 1
-                    qcol = pen_cache.get(rgb)
+                    qcol = pen_cache2.get(rgb)
                     if qcol is None:
                         qcol = QColor(rgb[0], rgb[1], rgb[2], alpha_255)
-                        pen_cache[rgb] = qcol
+                        pen_cache2[rgb] = qcol
                     painter.setPen(qcol)
-                    # Monospace yazı tipi: x konumu = başlangıç + sütun * karakter genişliği (O(1))
                     painter.drawText(QPointF(start_x + run_start * char_w, y), line[run_start:col_idx])
         else:
             painter.setPen(QColor(primary.red(), primary.green(), primary.blue(), alpha_255))
@@ -756,7 +883,7 @@ class CompanionWidget(QWidget):
         if self._timer_active and self.state.show_timer_below and not self._break_mode and not self._celebration_mode:
             mins = int(self._remaining_seconds // 60)
             secs = int(self._remaining_seconds % 60)
-            timer_str = f"☕ Mola {mins:02d}:{secs:02d}" if self._break_countdown_mode else f"⏱ {mins:02d}:{secs:02d}"
+            timer_str = f"[ Mola {mins:02d}:{secs:02d} ]" if self._break_countdown_mode else f"[ {mins:02d}:{secs:02d} ]"
             small_font = QFont(font)
             small_font.setPointSize(max(8, self.state.font_size - 4))
             painter.setFont(small_font)
@@ -1282,6 +1409,9 @@ class CompanionWidget(QWidget):
             self._close_notified = True
             try:
                 self._tick_timer.stop()
+                if self._readability is not None:
+                    self._readability.stop()
+                    self._readability = None
                 self.state.x = self.x()
                 self.state.y = self.y()
                 self._save_state()

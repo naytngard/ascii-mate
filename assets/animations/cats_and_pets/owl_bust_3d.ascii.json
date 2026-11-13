@@ -11,7 +11,7 @@
     "gece",
     "shader"
   ],
-  "default_fps": 15.0,
+  "default_fps": 12.0,
   "recommended_color": "auto_hd",
   "supports_eye_blink": true,
   "supports_sleep_zzz": false,

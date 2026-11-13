@@ -290,6 +290,24 @@ class SettingsDialog(QDialog):
         self.brk_chk.toggled.connect(lambda v: self.widget.set_pomodoro_break_enabled(v))
         root.addWidget(self.brk_chk)
 
+        self.behind_chk = QCheckBox("Yazıların Arkasına Geç (Akıllı Okunabilirlik — ekranı 2 Hz yakalar, kaydetmez)")
+        self.behind_chk.setChecked(self.widget.state.behind_text_enabled)
+        self.behind_chk.toggled.connect(lambda v: self.widget.set_behind_text(v))
+        root.addWidget(self.behind_chk)
+
+        rd_form = QFormLayout()
+        self.rd_sens = QSlider(Qt.Orientation.Horizontal)
+        self.rd_sens.setRange(0, 100)
+        self.rd_sens.setValue(int(round(self.widget.state.behind_text_sensitivity * 100)))
+        self.rd_sens.valueChanged.connect(lambda v: self.widget.set_behind_text_sensitivity(v / 100.0))
+        rd_form.addRow("   Hassasiyet:", self.rd_sens)
+        self.rd_fade = QSlider(Qt.Orientation.Horizontal)
+        self.rd_fade.setRange(8, 60)
+        self.rd_fade.setValue(int(round(self.widget.state.behind_text_fade * 100)))
+        self.rd_fade.valueChanged.connect(lambda v: self.widget.set_behind_text_fade(v / 100.0))
+        rd_form.addRow("   Soluklaşma düzeyi:", self.rd_fade)
+        root.addLayout(rd_form)
+
         if self.widget.asset.is_procedural:
             res_row = QHBoxLayout()
             res_lbl = QLabel("🖥️ 3B Izgara:")

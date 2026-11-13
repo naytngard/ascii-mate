@@ -49,7 +49,7 @@ def main() -> int:
             "category": category,
             "author": "ASCII Mate",
             "tags": tags,
-            "default_fps": 15.0,
+            "default_fps": 12.0,
             "recommended_color": "auto_hd",
             "supports_eye_blink": blink,
             "supports_sleep_zzz": False,
