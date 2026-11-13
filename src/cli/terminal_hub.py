@@ -51,39 +51,46 @@ CATEGORY_SHORT = {
 
 BANNER_WIDE_SEGMENTS: List[List[Tuple[str, str]]] = [
     [
-        ("    \\", "bold cyan"), ("o", "bold yellow"), ("/  ", "bold cyan"), ("*", "bold yellow"), ("      ", ""),
-        ("  _    ____   ____ ___ ___   ", "bold cyan"),
-        (" __  __    _  _____ _____ ", "bold magenta"),
+        ("\\ ", "bold cyan"), ("o", "bold yellow"), ("   ", ""), ("*", "bold bright_yellow"), ("  ", ""),
+        ("       _      _____    ____   ___   ___ ", "bold bright_cyan"),
+        ("    __  __      _      _____   _____ ", "bold bright_magenta"),
     ],
     [
-        ("     |  ", "bold cyan"), ("/      ", "bold yellow"),
-        (" / \\  / ___| / ___|_ _|_ _|  ", "bold cyan"),
-        ("|  \\/  |  / \\|_   _| ____|", "bold magenta"),
+        (" \\|__/   ", "bold cyan"),
+        ("      / \\    / ____|  / ___| |_ _| |_ _|", "bold cyan"),
+        ("   |  \\/  |    / \\    |_   _| | ____|", "bold magenta"),
     ],
     [
-        ("    /|\\", "bold cyan"), ("/       ", "bold yellow"),
-        ("/ _ \\ \\___ \\| |    | | | |   ", "bold blue"),
-        ("| |\\/| | / _ \\ | | |  _|  ", "bold bright_magenta"),
+        ("  |      ", "bold cyan"),
+        ("     / _ \\   \\___ \\  | |      | |   | | ", "bold bright_blue"),
+        ("   | |\\/| |   / _ \\     | |   |  _|  ", "bold bright_magenta"),
     ],
     [
-        ("    / \\        ", "bold cyan"),
-        ("/ ___ \\ ___) | |___ | | | |   ", "bold blue"),
-        ("| |  | |/ ___ \\| | | |___ ", "bold bright_magenta"),
+        (" / \\     ", "bold cyan"),
+        ("    / ___ \\   ___) | | |___   | |   | | ", "bold blue"),
+        ("   | |  | |  / ___ \\    | |   | |___ ", "bold magenta"),
     ],
     [
-        ("              ", ""),
-        ("/_/   \\_\\____/ \\____|___|___|  ", "bold bright_blue"),
-        ("|_|  |_/_/   \\_\\_| |_____|", "bold yellow"),
+        ("         ", ""),
+        ("   /_/   \\_\\ |____/   \\____| |___| |___|", "bold blue"),
+        ("   |_|  |_| /_/   \\_\\   |_|   |_____|", "bold yellow"),
     ],
     [
-        ("  ASCII Mate  --  Yuzen Masaustu Arkadasin  *  Saf Klasik ASCII & 3B   ", "bold white"),
+        ("          ", ""),
+        ("ASCII Mate", "bold bright_white"),
+        ("  •  ", "dim cyan"),
+        ("Yüzen Masaüstü Arkadaşın", "bright_cyan"),
+        ("  •  ", "dim cyan"),
+        ("Saf Klasik ASCII & 3B", "white"),
+        ("           ", ""),
     ],
 ]
 
 BANNER_COMPACT_SEGMENTS: List[List[Tuple[str, str]]] = [
-    [("  \\", "bold cyan"), ("o", "bold yellow"), ("/ ", "bold cyan"), ("*", "bold yellow"), ("   ASCII MATE              ", "bold magenta")],
-    [("   |     Yuzen Masaustu Arkadasin  ", "bold white")],
-    [("  / \\    Saf Klasik ASCII & 3B     ", "dim cyan")],
+    [("\\ ", "bold cyan"), ("o", "bold yellow"), ("   ", ""), ("*", "bold bright_yellow"), ("   ", ""), ("ASCII MATE", "bold bright_magenta"), ("                    ", "")],
+    [(" \\|__/    ", "bold cyan"), ("Yüzen Masaüstü Arkadaşın", "bright_cyan"), ("        ", "")],
+    [("  |       ", "bold cyan"), ("Saf Klasik ASCII & 3B", "white"), ("           ", "")],
+    [(" / \\      ", "bold cyan"), ("Terminal Hub", "dim cyan"), ("                    ", "")],
 ]
 
 NAV_SHORTCUTS: List[Tuple[str, str]] = [
@@ -104,7 +111,7 @@ DEFAULT_STATUS = "Bir karakter seçip Enter ile masaüstüne bırakın."
 
 def build_banner_text(width: int) -> Tuple[Text, int]:
     """Builds pure classic ASCII stickman + ASCII Mate banner sized cleanly to terminal width."""
-    rows = BANNER_WIDE_SEGMENTS if width >= 86 else BANNER_COMPACT_SEGMENTS
+    rows = BANNER_WIDE_SEGMENTS if width >= 90 else BANNER_COMPACT_SEGMENTS
     row_strs = ["".join(s for s, _ in segs) for segs in rows]
     max_w = max((len(s) for s in row_strs), default=0)
     txt = Text(no_wrap=True)
@@ -475,7 +482,7 @@ class TerminalHub:
             self._cached_header_width = None
             self._cached_list_key = None
 
-        is_wide = 1 if term_w >= 86 else 0
+        is_wide = 1 if term_w >= 90 else 0
         if self._cached_header_width != is_wide or self._cached_header_node is None:
             self._cached_header_node = Group(
                 Align.center(banner_txt),
