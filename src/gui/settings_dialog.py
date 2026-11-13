@@ -190,8 +190,11 @@ class SettingsDialog(QDialog):
         self.theme_combo = QComboBox()
         self.theme_combo.addItem("Önerilen (Otomatik)", "auto")
         for key, info in self.widget.theme_lib.themes.items():
+            if key == "auto_hd":
+                continue
             self.theme_combo.addItem(str(info.get("name", key)), key)
-        idx = self.theme_combo.findData(self.widget.state.color_theme)
+        cur_theme = "auto" if self.widget.state.color_theme == "auto_hd" else self.widget.state.color_theme
+        idx = self.theme_combo.findData(cur_theme)
         if idx >= 0:
             self.theme_combo.setCurrentIndex(idx)
         self.theme_combo.currentIndexChanged.connect(self._on_theme_changed)
@@ -276,6 +279,43 @@ class SettingsDialog(QDialog):
         self.blink_chk.setChecked(self.widget.state.eye_blink_enabled)
         self.blink_chk.toggled.connect(lambda v: self.widget.set_eye_blink(v))
         root.addWidget(self.blink_chk)
+
+        self.track_chk = QCheckBox("Fare İmlecinin Yönüne Bak (İzleme)")
+        self.track_chk.setChecked(self.widget.state.track_cursor)
+        self.track_chk.toggled.connect(lambda v: self.widget.set_track_cursor(v))
+        root.addWidget(self.track_chk)
+
+        self.brk_chk = QCheckBox("Pomodoro Bitince 5 dk Mola Sayacı Başlat")
+        self.brk_chk.setChecked(self.widget.state.pomodoro_break_enabled)
+        self.brk_chk.toggled.connect(lambda v: self.widget.set_pomodoro_break_enabled(v))
+        root.addWidget(self.brk_chk)
+
+        if self.widget.asset.is_procedural:
+            res_row = QHBoxLayout()
+            res_lbl = QLabel("🖥️ 3B Izgara:")
+            self.res_combo = QComboBox()
+            for rk, rname in (
+                ("auto", "Otomatik (Büyütmeye Göre)"),
+                ("compact", "Kompakt (38×18)"),
+                ("standard", "Standart (52×24)"),
+                ("hd", "HD (64×30)"),
+                ("ultra", "Ultra HD (74×34)"),
+            ):
+                self.res_combo.addItem(rname, rk)
+            r_idx = self.res_combo.findData(self.widget.state.grid_resolution)
+            if r_idx >= 0:
+                self.res_combo.setCurrentIndex(r_idx)
+            self.res_combo.currentIndexChanged.connect(
+                lambda: self.widget.set_grid_resolution(str(self.res_combo.currentData()))
+            )
+            res_row.addWidget(res_lbl)
+            res_row.addWidget(self.res_combo)
+            root.addLayout(res_row)
+
+            self.orbit_chk = QCheckBox("3B Serbest Bakış Modu (Sol Tıkla Döndür)")
+            self.orbit_chk.setChecked(self.widget.state.free_orbit_3d)
+            self.orbit_chk.toggled.connect(lambda v: self.widget.set_free_orbit(v))
+            root.addWidget(self.orbit_chk)
 
         close_btn = QPushButton("Tamam")
         close_btn.clicked.connect(self.accept)

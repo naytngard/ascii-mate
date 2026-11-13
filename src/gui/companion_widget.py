@@ -9,6 +9,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 from PyQt6.QtCore import QPoint, QPointF, QRectF, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import (
     QColor,
+    QCursor,
     QDragEnterEvent,
     QDropEvent,
     QFont,
@@ -24,7 +25,11 @@ from src.core.converter import import_file_to_community
 from src.core.library import AnimationLibrary, ThemeLibrary
 from src.core.models import AnimationAsset, WidgetState
 from src.core.particle_engine import ParticleEngine
-from src.core.procedural_engine import BaseProceduralRenderer, create_procedural_renderer
+from src.core.procedural_engine import (
+    BaseProceduralRenderer,
+    Fireworks3DRenderer,
+    create_procedural_renderer,
+)
 from src.gui.context_menu import build_context_menu
 
 RGB = Tuple[int, int, int]
@@ -33,6 +38,13 @@ MIN_FONT_SIZE = 6
 MAX_FONT_SIZE = 48
 EDGE_GRAB_MARGIN = 10
 CORNER_GRAB_MARGIN = 16
+
+GRID_PRESETS: Dict[str, Tuple[int, int]] = {
+    "compact": (38, 18),
+    "standard": (52, 24),
+    "hd": (64, 30),
+    "ultra": (74, 34),
+}
 
 MIRROR_CHAR_MAP = str.maketrans({
     "/": "\\",
@@ -81,6 +93,7 @@ class CompanionWidget(QWidget):
             if asset.procedural
             else None
         )
+        self._sync_procedural_grid()
 
         # Runtime animation state
         self._frame_idx: int = 0
@@ -89,6 +102,10 @@ class CompanionWidget(QWidget):
         self._hovered: bool = False
         self._dragging: bool = False
         self._drag_offset: QPoint = QPoint()
+        self._orbiting: bool = False
+        self._orbit_start_global: QPoint = QPoint()
+        self._orbit_start_yaw: float = 0.0
+        self._orbit_start_pitch: float = 0.0
         self._resize_mode: Optional[str] = None
         self._resize_hover_mode: Optional[str] = None
         self._resize_start_global: QPoint = QPoint()
@@ -98,14 +115,19 @@ class CompanionWidget(QWidget):
         self._lightning_flash: bool = False
         self._last_tick_time: float = time.monotonic()
         self._last_timer_sec: int = -1
+        self._cursor_look: Tuple[float, float] = (0.0, 0.0)
 
         # Eye blink state
         self._blink_timer: float = 0.0
         self._is_blinking: bool = False
 
-        # Study timer / fade-out state
+        # Study timer / Pomodoro fireworks & break countdown state
         self._remaining_seconds: float = float(self.state.duration_minutes * 60) if self.state.duration_minutes > 0 else 0.0
         self._timer_active: bool = self.state.duration_minutes > 0
+        self._celebration_mode: bool = False
+        self._celebration_elapsed: float = 0.0
+        self._celebration_renderer: Optional[Fireworks3DRenderer] = None
+        self._break_countdown_mode: bool = False
         self._break_mode: bool = False
         self._break_elapsed: float = 0.0
         self._fade_factor: float = 1.0
@@ -139,13 +161,52 @@ class CompanionWidget(QWidget):
         self._tick_timer.timeout.connect(self._on_tick)
         self._update_timer_interval()
 
+    def _compute_target_3d_grid(self) -> Tuple[int, int]:
+        res = self.state.grid_resolution
+        if res in GRID_PRESETS:
+            return GRID_PRESETS[res]
+        # Auto mode: scales monotonically with font_size from base asset dimensions
+        base_w, base_h = self.asset.dimensions
+        if base_w <= 0 or base_h <= 0:
+            base_w, base_h = 50, 22
+        scale = max(0.76, min(1.65, self.state.font_size / 14.0))
+        return max(32, min(88, int(round(base_w * scale)))), max(16, min(40, int(round(base_h * scale))))
+
+    def _sync_procedural_grid(self) -> None:
+        if self._procedural is not None:
+            gw, gh = self._compute_target_3d_grid()
+            self._procedural.set_grid_size(gw, gh)
+
+    def _compute_cursor_look(self) -> Tuple[float, float]:
+        if not self.state.track_cursor:
+            return (0.0, 0.0)
+        cur = QCursor.pos()
+        center = self.mapToGlobal(self.rect().center())
+        nx = max(-1.0, min(1.0, (cur.x() - center.x()) / 320.0))
+        ny = max(-1.0, min(1.0, (cur.y() - center.y()) / 220.0))
+        return (nx, ny)
+
     def _init_first_frame(self) -> None:
         if self._procedural is not None:
-            pf = self._procedural.render_at(0.0)
+            self._sync_procedural_grid()
+            pf = self._procedural.step(
+                0.0,
+                1.0,
+                yaw_offset=self.state.orbit_yaw,
+                pitch_offset=self.state.orbit_pitch,
+                cursor_look=self._cursor_look,
+                progress=self._pomodoro_progress(),
+            )
             self._current_lines = pf.lines
             self._current_colors = pf.colors
         else:
             self._current_lines, self._current_colors = self._get_static_frame(0)
+
+    def _pomodoro_progress(self) -> Optional[float]:
+        if not self._timer_active or self.state.duration_minutes <= 0 or self._break_countdown_mode:
+            return None
+        total = max(1.0, float(self.state.duration_minutes * 60))
+        return max(0.0, min(1.0, self._remaining_seconds / total))
 
     def _target_tick_ms(self) -> int:
         if self._procedural is not None:
@@ -261,6 +322,8 @@ class CompanionWidget(QWidget):
         return self.asset.particles.enabled_by_default
 
     def _is_multicolor_active(self) -> bool:
+        if self._celebration_mode and self._current_colors is not None:
+            return True
         if self._current_colors is None or self._lightning_flash or self._break_mode:
             return False
         return self.state.color_theme in ("auto", "auto_hd")
@@ -282,10 +345,35 @@ class CompanionWidget(QWidget):
             self.resize(new_w, new_h)
             self._invalidate_art()
 
+    def _apply_cursor_track_static(self, lines: List[str]) -> List[str]:
+        if not self.state.track_cursor:
+            return lines
+        nx = self._cursor_look[0]
+        if nx < -0.25:
+            pairs = (("( o.o )", "(o.o  )"), ("( O.O )", "(O.O  )"), ("( o_o )", "(o_o  )"), ("( -.- )", "(-.-  )"), ("( ^.^ )", "(^.^  )"))
+        elif nx > 0.25:
+            pairs = (("( o.o )", "(  o.o)"), ("( O.O )", "(  O.O)"), ("( o_o )", "(  o_o)"), ("( -.- )", "(  -.-)"), ("( ^.^ )", "(  ^.^ )"))
+        else:
+            return lines
+        out = []
+        for l in lines:
+            nl = l
+            for src, dst in pairs:
+                if src in nl:
+                    nl = nl.replace(src, dst[: len(src)])
+            out.append(nl)
+        return out
+
     def _on_tick(self) -> None:
         now = time.monotonic()
         dt = min(0.25, max(0.01, now - self._last_tick_time))
         self._last_tick_time = now
+
+        old_look = self._cursor_look
+        self._cursor_look = self._compute_cursor_look()
+        look_changed = self.state.track_cursor and (
+            abs(self._cursor_look[0] - old_look[0]) > 0.08 or abs(self._cursor_look[1] - old_look[1]) > 0.08
+        )
 
         theme_info = self._current_theme_info()
         is_rainbow = bool(theme_info.get("is_rainbow")) and not self._is_multicolor_active()
@@ -293,7 +381,7 @@ class CompanionWidget(QWidget):
             self._rainbow_hue = (self._rainbow_hue + dt * 0.14) % 1.0
 
         timer_changed = False
-        if self._timer_active and not self._break_mode:
+        if self._timer_active and not self._break_mode and not self._celebration_mode:
             self._remaining_seconds -= dt
             cur_sec = max(0, int(self._remaining_seconds))
             if cur_sec != self._last_timer_sec:
@@ -301,19 +389,60 @@ class CompanionWidget(QWidget):
                 timer_changed = True
             if self._remaining_seconds <= 0:
                 self._remaining_seconds = 0.0
-                self._break_mode = True
-                self._break_elapsed = 0.0
-                self._invalidate_art()
+                if not self._break_countdown_mode:
+                    # Work session finished -> trigger 5-sec Fireworks Celebration shader!
+                    self._celebration_mode = True
+                    self._celebration_elapsed = 0.0
+                    cur_w = max(40, max((len(l) for l in self._current_lines), default=48))
+                    cur_h = max(16, len(self._current_lines) or 20)
+                    self._celebration_renderer = Fireworks3DRenderer(width=cur_w, height=cur_h)
+                    self._invalidate_art()
+                else:
+                    # 5-min Break finished -> graceful fade-out close
+                    self._break_mode = True
+                    self._break_elapsed = 0.0
+                    self._invalidate_art()
+
+        if self._celebration_mode:
+            self._celebration_elapsed += dt
+            if self._celebration_renderer is None:
+                self._celebration_renderer = Fireworks3DRenderer(width=48, height=20)
+            pf = self._celebration_renderer.step(dt, 1.15)
+            lines = list(pf.lines)
+            colors = [list(r) for r in pf.colors]
+            msg = "  * MOLA ZAMANI! 5 dk dinlenme basliyor *  " if self.state.pomodoro_break_enabled else "  * TEBRIKLER! Oturum Tamamlandi! *  "
+            cw = len(lines[0]) if lines else len(msg)
+            banner = msg[:cw].center(cw)
+            if len(lines) >= 2:
+                lines[-1] = banner
+                colors[-1] = [(255, 235, 110) if ch != " " else None for ch in banner]
+            self._current_lines = lines
+            self._current_colors = colors
+            if self._celebration_elapsed >= 5.0:
+                self._celebration_mode = False
+                self._celebration_renderer = None
+                if self.state.pomodoro_break_enabled:
+                    self._break_countdown_mode = True
+                    self._remaining_seconds = 300.0
+                    self._last_timer_sec = -1
+                    self._init_first_frame()
+                else:
+                    self._break_mode = True
+                    self._break_elapsed = 0.0
+            self._recalculate_size()
+            self._invalidate_art()
+            self.update()
+            return
 
         if self._break_mode:
             self._break_elapsed += dt
             self._current_lines = [
-                "   * Mola Zamani! *    ",
-                " Dinlenmeyi hak ettin. ",
+                "   * Mola Tamamlandi! *   ",
+                " Yeni odak icin hazirsin. ",
             ]
             self._current_colors = None
-            if self._break_elapsed > 3.5:
-                self._fade_factor = max(0.0, 1.0 - (self._break_elapsed - 3.5) / 2.0)
+            if self._break_elapsed > 1.5:
+                self._fade_factor = max(0.0, 1.0 - (self._break_elapsed - 1.5) / 2.0)
                 if self._fade_factor <= 0.02:
                     self.close_widget()
                     return
@@ -341,15 +470,23 @@ class CompanionWidget(QWidget):
 
         frame_advanced = False
         if self._procedural is not None:
-            if not self._paused or self._current_lines == []:
-                pf = self._procedural.step(dt if not self._paused else 0.0, self.state.speed_multiplier)
+            self._sync_procedural_grid()
+            if not self._paused or self._current_lines == [] or self._orbiting or look_changed:
+                pf = self._procedural.step(
+                    dt if not self._paused else 0.0,
+                    self.state.speed_multiplier,
+                    yaw_offset=self.state.orbit_yaw,
+                    pitch_offset=self.state.orbit_pitch,
+                    cursor_look=self._cursor_look,
+                    progress=self._pomodoro_progress(),
+                )
                 base_lines = pf.lines
                 base_colors: Optional[List[List[Optional[RGB]]]] = pf.colors
                 if self.state.flip_horizontal:
                     max_w = max((len(l) for l in base_lines), default=0)
                     base_lines = [l.ljust(max_w)[::-1].translate(MIRROR_CHAR_MAP) for l in base_lines]
                     base_colors = [row[::-1] for row in base_colors]
-                frame_advanced = not self._paused
+                frame_advanced = (not self._paused) or self._orbiting or look_changed
             else:
                 base_lines = self._current_lines
                 base_colors = self._current_colors
@@ -364,9 +501,10 @@ class CompanionWidget(QWidget):
                     self._frame_accum -= steps
                     self._frame_idx = (self._frame_idx + steps) % self.asset.frame_count
             frame_advanced = self._frame_idx != old_idx
-            if not (frame_advanced or blink_changed or particles_on or is_rainbow or timer_changed or self._art_dirty):
+            if not (frame_advanced or blink_changed or look_changed or particles_on or is_rainbow or timer_changed or self._art_dirty):
                 return
             base_lines, base_colors = self._get_static_frame(self._frame_idx)
+            base_lines = self._apply_cursor_track_static(base_lines)
 
         base_lines = self._apply_eye_blink(base_lines)
 
@@ -415,7 +553,7 @@ class CompanionWidget(QWidget):
         if old_dims != new_dims:
             self._recalculate_size()
 
-        if frame_advanced or blink_changed or particles_on or is_rainbow or timer_changed or self._art_dirty:
+        if frame_advanced or blink_changed or look_changed or particles_on or is_rainbow or timer_changed or self._art_dirty:
             self._invalidate_art()
             self.update()
 
@@ -527,10 +665,10 @@ class CompanionWidget(QWidget):
                     painter.drawText(QPointF(start_x, start_y + i * line_h), line)
 
         # 4. Optional Remaining Timer Pill below character
-        if self._timer_active and self.state.show_timer_below and not self._break_mode:
+        if self._timer_active and self.state.show_timer_below and not self._break_mode and not self._celebration_mode:
             mins = int(self._remaining_seconds // 60)
             secs = int(self._remaining_seconds % 60)
-            timer_str = f"⏱ {mins:02d}:{secs:02d}"
+            timer_str = f"☕ Mola {mins:02d}:{secs:02d}" if self._break_countdown_mode else f"⏱ {mins:02d}:{secs:02d}"
             small_font = QFont(font)
             small_font.setPointSize(max(8, self.state.font_size - 4))
             painter.setFont(small_font)
@@ -668,11 +806,24 @@ class CompanionWidget(QWidget):
             if mode is not None:
                 self._resize_mode = mode
                 self._dragging = False
+                self._orbiting = False
                 self._resize_start_global = event.globalPosition().toPoint()
                 self._resize_start_geom = self.geometry()
                 self._resize_start_font = self.state.font_size
                 self.setCursor(self._cursor_for_mode(mode))
                 self.update()
+                event.accept()
+                return
+
+            if self._procedural is not None and (
+                bool(event.modifiers() & Qt.KeyboardModifier.ShiftModifier) or self.state.free_orbit_3d
+            ):
+                self._orbiting = True
+                self._dragging = False
+                self._orbit_start_global = event.globalPosition().toPoint()
+                self._orbit_start_yaw = self.state.orbit_yaw
+                self._orbit_start_pitch = self.state.orbit_pitch
+                self.setCursor(Qt.CursorShape.SizeAllCursor)
                 event.accept()
                 return
 
@@ -716,12 +867,23 @@ class CompanionWidget(QWidget):
                 self.state.font_size = new_font
                 self._cached_font = None
                 self._cached_font_metrics = None
+                self._refresh_procedural_immediately()
                 self._recalculate_size()
                 self._invalidate_art()
                 nx = (sg.x() + sg.width() - self.width()) if ("left" in mode) else sg.x()
                 ny = (sg.y() + sg.height() - self.height()) if ("top" in mode) else sg.y()
                 self.move(nx, ny)
                 self.update()
+            event.accept()
+            return
+
+        if self._orbiting and (event.buttons() & Qt.MouseButton.LeftButton):
+            delta = event.globalPosition().toPoint() - self._orbit_start_global
+            self.state.orbit_yaw = self._orbit_start_yaw + delta.x() * 0.015
+            self.state.orbit_pitch = max(-1.2, min(1.2, self._orbit_start_pitch + delta.y() * 0.012))
+            self._refresh_procedural_immediately()
+            self._invalidate_art()
+            self.update()
             event.accept()
             return
 
@@ -748,6 +910,15 @@ class CompanionWidget(QWidget):
                 self._resize_hover_mode = hover_mode
                 self.setCursor(self._cursor_for_mode(hover_mode))
                 self.update()
+                event.accept()
+                return
+
+            if self._orbiting:
+                self._orbiting = False
+                self._save_state()
+                hover_mode = self._hit_test_resize(event.position().toPoint())
+                self._resize_hover_mode = hover_mode
+                self.setCursor(self._cursor_for_mode(hover_mode))
                 event.accept()
                 return
 
@@ -829,14 +1000,63 @@ class CompanionWidget(QWidget):
         self._save_state()
         self.update()
 
+    def _refresh_procedural_immediately(self) -> None:
+        if self._procedural is not None:
+            self._sync_procedural_grid()
+            pf = self._procedural.step(
+                0.0,
+                1.0,
+                yaw_offset=self.state.orbit_yaw,
+                pitch_offset=self.state.orbit_pitch,
+                cursor_look=self._cursor_look,
+                progress=self._pomodoro_progress(),
+            )
+            self._current_lines = pf.lines
+            self._current_colors = pf.colors
+
     def set_font_size(self, size: int) -> None:
         self.state.font_size = max(MIN_FONT_SIZE, min(MAX_FONT_SIZE, size))
         self._cached_font = None
         self._cached_font_metrics = None
+        self._refresh_procedural_immediately()
         self._recalculate_size()
         self._invalidate_art()
         self._save_state()
         self.update()
+
+    def set_grid_resolution(self, resolution: str) -> None:
+        if resolution not in ("auto", "compact", "standard", "hd", "ultra"):
+            resolution = "auto"
+        self.state.grid_resolution = resolution
+        self._refresh_procedural_immediately()
+        self._recalculate_size()
+        self._invalidate_art()
+        self._save_state()
+        self.update()
+
+    def set_free_orbit(self, enabled: bool) -> None:
+        self.state.free_orbit_3d = bool(enabled)
+        self._save_state()
+
+    def reset_orbit(self) -> None:
+        self.state.orbit_yaw = 0.0
+        self.state.orbit_pitch = 0.0
+        self._refresh_procedural_immediately()
+        self._invalidate_art()
+        self._save_state()
+        self.update()
+
+    def set_track_cursor(self, enabled: bool) -> None:
+        self.state.track_cursor = bool(enabled)
+        self._cursor_look = self._compute_cursor_look()
+        self._refresh_procedural_immediately()
+        self._invalidate_art()
+        self._save_state()
+        self.update()
+
+    def set_pomodoro_break_enabled(self, enabled: bool) -> None:
+        self.state.pomodoro_break_enabled = bool(enabled)
+        self._save_state()
 
     def set_line_spacing(self, spacing: float) -> None:
         self.state.line_spacing = max(0.75, min(1.15, float(spacing)))
@@ -929,6 +1149,9 @@ class CompanionWidget(QWidget):
     def set_timer_minutes(self, mins: int) -> None:
         self.state.duration_minutes = max(0, mins)
         self._break_mode = False
+        self._celebration_mode = False
+        self._celebration_renderer = None
+        self._break_countdown_mode = False
         self._fade_factor = 1.0
         self._last_timer_sec = -1
         if mins > 0:
@@ -937,6 +1160,7 @@ class CompanionWidget(QWidget):
         else:
             self._timer_active = False
             self._remaining_seconds = 0.0
+        self._refresh_procedural_immediately()
         self._recalculate_size()
         self._invalidate_art()
         self._save_state()

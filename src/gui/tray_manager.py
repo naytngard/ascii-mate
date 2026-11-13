@@ -17,11 +17,13 @@ from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
     QMenu,
+    QMessageBox,
     QPushButton,
     QSystemTrayIcon,
     QVBoxLayout,
@@ -195,6 +197,7 @@ class WidgetHostManager(QObject):
         self._runtime_sig = get_runtime_signature(self.base_dir)
         self.widgets: Dict[str, CompanionWidget] = {}
         self._picker: Optional[QuickPickerDialog] = None
+        self._restoring: bool = False
 
         self.app.setQuitOnLastWindowClosed(False)
         self.icon = create_app_icon()
@@ -211,7 +214,12 @@ class WidgetHostManager(QObject):
             self.ipc = IPCBridge()
             self.ipc.command_received.connect(self._handle_ipc_command)
 
-    def spawn_widget(self, asset_id: str) -> Optional[CompanionWidget]:
+    def spawn_widget(
+        self,
+        asset_id: str,
+        color_theme: Optional[str] = None,
+        overrides: Optional[Dict[str, object]] = None,
+    ) -> Optional[CompanionWidget]:
         asset = self.library.get(asset_id)
         if not asset:
             self.library.reload()
@@ -233,12 +241,114 @@ class WidgetHostManager(QObject):
             config_mgr=self.config_mgr,
             manager_callbacks=callbacks,
         )
+        if color_theme:
+            w.set_color_theme(color_theme)
+        if overrides:
+            if "font_size" in overrides:
+                w.set_font_size(int(overrides["font_size"]))  # type: ignore[arg-type]
+            if "opacity" in overrides:
+                w.set_opacity(float(overrides["opacity"]))  # type: ignore[arg-type]
+            if "grid_resolution" in overrides:
+                w.set_grid_resolution(str(overrides["grid_resolution"]))
+            if "duration_minutes" in overrides and int(overrides["duration_minutes"]) > 0:  # type: ignore[arg-type]
+                w.set_timer_minutes(int(overrides["duration_minutes"]))  # type: ignore[arg-type]
+            if overrides.get("x") is not None and overrides.get("y") is not None:
+                w.move(int(overrides["x"]), int(overrides["y"]))  # type: ignore[arg-type]
+                w.state.x = int(overrides["x"])  # type: ignore[arg-type]
+                w.state.y = int(overrides["y"])  # type: ignore[arg-type]
+                w._save_state()
+
         w.closed.connect(self._on_widget_closed)
         self.widgets[instance_id] = w
         w.show()
-        self._persist_active_list()
+        if not self._restoring:
+            self._persist_active_list()
         self._rebuild_tray_menu()
         return w
+
+    def restore_last_session_widgets(self) -> int:
+        saved_ids = self.config_mgr.get_last_open_widgets()
+        if not saved_ids:
+            return 0
+        self._restoring = True
+        restored = 0
+        try:
+            for aid in saved_ids:
+                if self.spawn_widget(aid) is not None:
+                    restored += 1
+        finally:
+            self._restoring = False
+            self._persist_active_list()
+            self._rebuild_tray_menu()
+        return restored
+
+    def load_profile(self, name: str) -> None:
+        items = self.config_mgr.get_profiles().get(name)
+        if not items:
+            return
+        self._restoring = True
+        try:
+            self.close_all_widgets()
+            screen = QApplication.primaryScreen()
+            avail = screen.availableGeometry() if screen else None
+            for idx, entry in enumerate(items):
+                aid = str(entry.get("asset_id", ""))
+                if not aid:
+                    continue
+                theme = str(entry.get("color_theme", "auto")) if entry.get("color_theme") else None
+                ov = dict(entry)
+                w = self.spawn_widget(aid, color_theme=theme, overrides=ov)
+                # Stagger nicely across bottom-right / bottom-center / top-right when preset lacks x/y
+                if w and (entry.get("x") is None or entry.get("y") is None) and avail is not None:
+                    slot = idx % 3
+                    if slot == 0:
+                        nx = avail.right() - w.width() - 36
+                        ny = avail.bottom() - w.height() - 36
+                    elif slot == 1:
+                        nx = avail.left() + 40
+                        ny = avail.bottom() - w.height() - 36
+                    else:
+                        nx = avail.right() - w.width() - 36
+                        ny = avail.top() + 40
+                    w.move(max(avail.left(), nx), max(avail.top(), ny))
+                    w.state.x = w.x()
+                    w.state.y = w.y()
+                    w._save_state()
+        finally:
+            self._restoring = False
+            self._persist_active_list()
+            self._rebuild_tray_menu()
+
+    def save_current_profile_prompt(self) -> None:
+        if not self.widgets:
+            QMessageBox.information(None, "Bilgi", "Kaydedilecek açık widget yok.")
+            return
+        name, ok = QInputDialog.getText(
+            None,
+            "Masaüstü Düzeni Kaydet",
+            "Bu düzen için bir profil adı girin:",
+        )
+        if not ok or not name.strip():
+            return
+        items = [
+            {
+                "asset_id": w.asset.id,
+                "x": w.x(),
+                "y": w.y(),
+                "font_size": w.state.font_size,
+                "opacity": w.state.opacity,
+                "color_theme": w.state.color_theme,
+                "grid_resolution": w.state.grid_resolution,
+                "duration_minutes": w.state.duration_minutes,
+            }
+            for w in self.widgets.values()
+        ]
+        self.config_mgr.save_profile(name.strip(), items)
+        self._rebuild_tray_menu()
+
+    def set_restore_last_session(self, enabled: bool) -> None:
+        self.config_mgr.set_global("restore_last_session", bool(enabled))
+        self._rebuild_tray_menu()
 
     def close_widget_by_id(self, instance_id: str) -> bool:
         w = self.widgets.get(instance_id)
@@ -277,11 +387,13 @@ class WidgetHostManager(QObject):
 
     def _on_widget_closed(self, instance_id: str) -> None:
         self.widgets.pop(instance_id, None)
-        self._persist_active_list()
+        if not self._restoring:
+            self._persist_active_list()
         self._rebuild_tray_menu()
 
     def _persist_active_list(self) -> None:
-        self.config_mgr.set_last_open_widgets([w.asset.id for w in self.widgets.values()])
+        if not self._restoring:
+            self.config_mgr.set_last_open_widgets([w.asset.id for w in self.widgets.values()])
 
     def _on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
@@ -345,6 +457,36 @@ class WidgetHostManager(QObject):
             menu.addAction(empty_act)
 
         menu.addSeparator()
+
+        # Scene Profiles Submenu
+        prof_menu = menu.addMenu("📌  Masaüstü Düzeni (Profiller)")
+        prof_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+        profiles = self.config_mgr.get_profiles()
+        for pname, pitems in profiles.items():
+            pact = QAction(f"▶  {pname} ({len(pitems)} widget)", prof_menu)
+            pact.triggered.connect(lambda _c, pn=pname: self.load_profile(pn))
+            prof_menu.addAction(pact)
+        prof_menu.addSeparator()
+        save_prof_act = QAction("💾  Mevcut Masaüstü Düzenini Kaydet...", prof_menu)
+        save_prof_act.triggered.connect(self.save_current_profile_prompt)
+        prof_menu.addAction(save_prof_act)
+
+        if profiles:
+            del_menu = prof_menu.addMenu("🗑️  Profil Sil")
+            del_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+            for pname in profiles:
+                dact = QAction(pname, del_menu)
+                dact.triggered.connect(
+                    lambda _c, pn=pname: (self.config_mgr.delete_profile(pn), self._rebuild_tray_menu())
+                )
+                del_menu.addAction(dact)
+
+        restore_act = QAction("🔄  Açılışta Son Açık Widget'ları Geri Yükle", menu, checkable=True)
+        restore_act.setChecked(bool(self.config_mgr.get_global("restore_last_session", False)))
+        restore_act.triggered.connect(lambda checked: self.set_restore_last_session(checked))
+        menu.addAction(restore_act)
+
+        menu.addSeparator()
         quit_act = QAction("🚪 Uygulamadan Tamamen Çık", menu)
         quit_act.triggered.connect(self.shutdown)
         menu.addAction(quit_act)
@@ -359,7 +501,8 @@ class WidgetHostManager(QObject):
             reply["host_sig"] = self._runtime_sig
         elif cmd == "spawn":
             asset_id = str(msg.get("asset_id", ""))
-            w = self.spawn_widget(asset_id)
+            theme_arg = msg.get("color_theme")
+            w = self.spawn_widget(asset_id, color_theme=str(theme_arg) if theme_arg else None)
             if w:
                 reply["instance_id"] = w.instance_id
                 reply["name"] = w.asset.name

@@ -10,6 +10,7 @@ from PyQt6.QtGui import QAction, QColor
 from PyQt6.QtWidgets import QColorDialog, QFileDialog, QInputDialog, QMenu, QMessageBox
 
 from src.core.converter import import_file_to_community
+from src.core.procedural_engine import create_procedural_renderer
 from src.gui.settings_dialog import SettingsDialog
 
 if TYPE_CHECKING:
@@ -113,6 +114,40 @@ def build_context_menu(widget: "CompanionWidget") -> QMenu:
     show_t_act.triggered.connect(lambda checked: widget.set_show_timer_below(checked))
     timer_menu.addAction(show_t_act)
 
+    brk_act = QAction("☕ Süre Bitince 5 dk Mola Sayacı Başlat", timer_menu, checkable=True)
+    brk_act.setChecked(widget.state.pomodoro_break_enabled)
+    brk_act.triggered.connect(lambda checked: widget.set_pomodoro_break_enabled(checked))
+    timer_menu.addAction(brk_act)
+
+    # 3D Grid Resolution & Orbit Submenu (for live 3D/Shader widgets)
+    if widget.asset.is_procedural:
+        res_labels = {
+            "auto": "Otomatik (Büyütmeye Göre)",
+            "compact": "Kompakt (38×18)",
+            "standard": "Standart (52×24)",
+            "hd": "HD (64×30)",
+            "ultra": "Ultra HD (74×34)",
+        }
+        cur_lbl = res_labels.get(widget.state.grid_resolution, "Otomatik")
+        res_menu = menu.addMenu(f"🖥️  3B Izgara Çözünürlüğü ({cur_lbl})")
+        res_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+        for r_key, r_name in res_labels.items():
+            ract = QAction(r_name, res_menu, checkable=True)
+            ract.setChecked(widget.state.grid_resolution == r_key)
+            ract.triggered.connect(lambda _c, rk=r_key: widget.set_grid_resolution(rk))
+            res_menu.addAction(ract)
+
+        orbit_menu = menu.addMenu("🧭  3B Serbest Bakış (Shift+Sol Tık)")
+        orbit_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+        free_orb_act = QAction("Sol Tıkla Doğrudan Döndür (Sürükleme Kapalı)", orbit_menu, checkable=True)
+        free_orb_act.setChecked(widget.state.free_orbit_3d)
+        free_orb_act.triggered.connect(lambda checked: widget.set_free_orbit(checked))
+        orbit_menu.addAction(free_orb_act)
+
+        reset_orb_act = QAction("🔄 3B Kamera Açısını Sıfırla", orbit_menu)
+        reset_orb_act.triggered.connect(widget.reset_orbit)
+        orbit_menu.addAction(reset_orb_act)
+
     # Speed Submenu
     spd_menu = menu.addMenu(f"⚡  Animasyon Hızı ({widget.state.speed_multiplier:.2g}x)")
     spd_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
@@ -132,12 +167,14 @@ def build_context_menu(widget: "CompanionWidget") -> QMenu:
     color_menu = menu.addMenu("🎨  Renk & Tema")
     color_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
     auto_act = QAction("✨ Önerilen (Varsayılan)", color_menu, checkable=True)
-    auto_act.setChecked(widget.state.color_theme == "auto")
+    auto_act.setChecked(widget.state.color_theme in ("auto", "auto_hd"))
     auto_act.triggered.connect(lambda: widget.set_color_theme("auto"))
     color_menu.addAction(auto_act)
     color_menu.addSeparator()
 
     for key, info in widget.theme_lib.themes.items():
+        if key == "auto_hd":
+            continue
         act = QAction(str(info.get("name", key)), color_menu, checkable=True)
         act.setChecked(widget.state.color_theme == key)
         act.triggered.connect(lambda _c, k=key: widget.set_color_theme(k))
@@ -195,6 +232,11 @@ def build_context_menu(widget: "CompanionWidget") -> QMenu:
     blink_act.setChecked(widget.state.eye_blink_enabled)
     blink_act.triggered.connect(lambda checked: widget.set_eye_blink(checked))
     scene_menu.addAction(blink_act)
+
+    track_act = QAction("👀 Fare İmlecinin Yönüne Bak", scene_menu, checkable=True)
+    track_act.setChecked(widget.state.track_cursor)
+    track_act.triggered.connect(lambda checked: widget.set_track_cursor(checked))
+    scene_menu.addAction(track_act)
 
     menu.addSeparator()
 
@@ -297,8 +339,63 @@ def _export_asset_file(widget: "CompanionWidget") -> None:
     if not out_path:
         return
     try:
+        payload = widget.asset.to_dict()
+        if widget.asset.is_procedural and widget.asset.procedural:
+            # Bake a smooth 24-frame playable multi-color loop of the live 3D shader
+            gw, gh = widget._compute_target_3d_grid()
+            renderer = create_procedural_renderer(widget.asset.procedural, {"width": gw, "height": gh})
+            if renderer is not None:
+                baked_frames = []
+                raw_color_grids = []
+                dt = 1.0 / max(10.0, min(20.0, float(widget.asset.default_fps or 18.0)))
+                for _ in range(24):
+                    pf = renderer.step(
+                        dt,
+                        1.0,
+                        yaw_offset=widget.state.orbit_yaw,
+                        pitch_offset=widget.state.orbit_pitch,
+                    )
+                    baked_frames.append("\n".join(pf.lines))
+                    raw_color_grids.append(pf.colors)
+
+                # Quantize RGB palette into single-char keys for valid schema v2.0 color_frames
+                key_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                pal_rev = {}
+                palette_map = {}
+                color_frames = []
+                for cgrid in raw_color_grids:
+                    crows = []
+                    for crow in cgrid:
+                        chars = []
+                        for rgb in crow:
+                            if rgb is None:
+                                chars.append(" ")
+                            else:
+                                # Quantize RGB to 32-step grid to keep palette <= 62 keys
+                                q = (rgb[0] & 0xE0, rgb[1] & 0xE0, rgb[2] & 0xE0)
+                                k = pal_rev.get(q)
+                                if k is None:
+                                    if len(pal_rev) < len(key_chars):
+                                        k = key_chars[len(pal_rev)]
+                                        pal_rev[q] = k
+                                        palette_map[k] = f"#{q[0]:02X}{q[1]:02X}{q[2]:02X}"
+                                    else:
+                                        k = min(
+                                            pal_rev,
+                                            key=lambda pq: (pq[0] - q[0]) ** 2 + (pq[1] - q[1]) ** 2 + (pq[2] - q[2]) ** 2,
+                                        )
+                                        k = pal_rev[k]
+                                chars.append(k)
+                        crows.append("".join(chars))
+                    color_frames.append("\n".join(crows))
+
+                payload["schema_version"] = "2.0"
+                payload["frames"] = baked_frames
+                payload["palette_map"] = palette_map
+                payload["color_frames"] = color_frames
+
         with Path(out_path).open("w", encoding="utf-8") as f:
-            json.dump(widget.asset.to_dict(), f, ensure_ascii=False, indent=2)
+            json.dump(payload, f, ensure_ascii=False, indent=2)
         QMessageBox.information(widget, "Dışa Aktarıldı", f"Kaydedildi:\n{out_path}")
     except Exception as e:
         QMessageBox.warning(widget, "Hata", f"Kaydedilemedi: {e}")
