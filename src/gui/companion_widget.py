@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 import time
 from typing import Callable, Dict, List, Optional, Tuple
 
@@ -18,8 +19,10 @@ from PyQt6.QtGui import (
     QPen,
     QPixmap,
 )
+from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtWidgets import QApplication, QMessageBox, QWidget
 
+from src.core.app_logging import get_logger
 from src.core.config_manager import ConfigManager
 from src.core.converter import import_file_to_community
 from src.core.library import AnimationLibrary, ThemeLibrary
@@ -33,6 +36,25 @@ from src.core.procedural_engine import (
 from src.gui.context_menu import build_context_menu
 
 RGB = Tuple[int, int, int]
+
+log = get_logger("widget")
+
+_NA = r"(?<![A-Za-z0-9])"
+_NB = r"(?![A-Za-z0-9])"
+# Varsayılan göz kırpma kalıpları: yalnızca göz benzeri bağlamlarda eşleşir (düz yazıdaki "o o" gibi yerlere dokunmaz).
+_DEFAULT_BLINK_RULES: List[Tuple["re.Pattern[str]", str]] = [
+    (re.compile(_NA + r"[oO^•◉]([._])[oO^•◉]" + _NB), lambda m: "-" + m.group(1) + "-")  # type: ignore[arg-type]
+] + [
+    (re.compile(r"([(\[{|<]\s?)" + pat + r"(\s?[)\]}|>])"), rep)
+    for pat, rep in (
+        (r"[oO0^] [oO0^]", r"\1- -\2"),
+        (r"[oO0^],[oO0^]", r"\1-,-\2"),
+    )
+] + [
+    (re.compile(r"\(o \)"), "(- )"),
+    (re.compile(r"\( o\)"), "( -)"),
+    (re.compile(r"[oO^]ω[oO^]"), "-ω-"),
+]
 
 MIN_FONT_SIZE = 6
 MAX_FONT_SIZE = 48
@@ -75,16 +97,18 @@ class CompanionWidget(QWidget):
         theme_lib: ThemeLibrary,
         config_mgr: ConfigManager,
         manager_callbacks: Optional[Dict[str, Callable]] = None,
+        slot: int = 0,
     ) -> None:
         super().__init__()
         self.instance_id = instance_id
+        self.slot = slot  # aynı animasyonun n. kopyası: ayar/konum (asset_id, slot) ile saklanır
         self.asset = asset
         self.library = library
         self.theme_lib = theme_lib
         self.config_mgr = config_mgr
         self.manager_callbacks = manager_callbacks or {}
 
-        self.state: WidgetState = self.config_mgr.get_widget_state(asset.id)
+        self.state: WidgetState = self.config_mgr.get_widget_state(asset.id, slot)
         self.particle_engine = ParticleEngine()
 
         # Optional live 3D / shader procedural engine
@@ -116,6 +140,7 @@ class CompanionWidget(QWidget):
         self._last_tick_time: float = time.monotonic()
         self._last_timer_sec: int = -1
         self._cursor_look: Tuple[float, float] = (0.0, 0.0)
+        self._close_notified: bool = False
 
         # Eye blink state
         self._blink_timer: float = 0.0
@@ -123,7 +148,8 @@ class CompanionWidget(QWidget):
 
         # Study timer / Pomodoro fireworks & break countdown state
         self._remaining_seconds: float = float(self.state.duration_minutes * 60) if self.state.duration_minutes > 0 else 0.0
-        self._timer_active: bool = self.state.duration_minutes > 0
+        # Süre ayarı (duration_minutes) kayıtlı kalır ama sayaç açılışta KENDİLİĞİNDEN başlamaz; menüden/profilden başlatılır.
+        self._timer_active: bool = False
         self._celebration_mode: bool = False
         self._celebration_elapsed: float = 0.0
         self._celebration_renderer: Optional[Fireworks3DRenderer] = None
@@ -236,15 +262,34 @@ class CompanionWidget(QWidget):
         if not initial:
             self.show()
 
+    def _screen_geometry_for(self, x: int, y: int):
+        """(x, y) noktasını (widget merkezi) içeren ekranın kullanılabilir alanı; yoksa en yakın ekran, o da yoksa birincil."""
+        center = QPoint(x + self.width() // 2, y + self.height() // 2)
+        screen = QGuiApplication.screenAt(center)
+        if screen is None:
+            best, best_d = None, None
+            for sc in QGuiApplication.screens():
+                g = sc.geometry()
+                dx = max(g.left() - center.x(), 0, center.x() - g.right())
+                dy = max(g.top() - center.y(), 0, center.y() - g.bottom())
+                d = dx * dx + dy * dy
+                if best_d is None or d < best_d:
+                    best, best_d = sc, d
+            screen = best
+        if screen is None:
+            screen = QGuiApplication.primaryScreen()
+        return screen.availableGeometry() if screen else QRectF(0, 0, 1280, 720).toRect()
+
     def _restore_or_place_position(self) -> None:
-        screen = QApplication.primaryScreen()
-        avail = screen.availableGeometry() if screen else QRectF(0, 0, 1280, 720).toRect()
         if self.state.x is not None and self.state.y is not None:
+            avail = self._screen_geometry_for(self.state.x, self.state.y)
             nx = max(avail.left(), min(avail.right() - self.width(), self.state.x))
             ny = max(avail.top(), min(avail.bottom() - self.height(), self.state.y))
             self.move(nx, ny)
         else:
-            offset = (hash(self.instance_id) % 5) * 36
+            screen = QGuiApplication.primaryScreen()
+            avail = screen.availableGeometry() if screen else QRectF(0, 0, 1280, 720).toRect()
+            offset = (self.slot % 5) * 36 + (abs(hash(self.asset.id)) % 3) * 36
             nx = avail.right() - self.width() - 40 - offset
             ny = avail.bottom() - self.height() - 40 - offset
             self.move(max(avail.left(), nx), max(avail.top(), ny))
@@ -291,27 +336,17 @@ class CompanionWidget(QWidget):
     def _apply_eye_blink(self, lines: List[str]) -> List[str]:
         if not self._is_blinking:
             return lines
-        out = []
+        custom = self.asset.blink_patterns
+        out: List[str] = []
         for l in lines:
-            nl = (
-                l.replace("o.o", "-.-")
-                .replace("O.O", "-.-")
-                .replace("^.^", "-.-")
-                .replace("•.•", "-.-")
-                .replace("◉.◉", "-.-")
-                .replace("o_o", "-_-")
-                .replace("O_O", "-_-")
-                .replace("•_•", "-_-")
-                .replace("o o", "- -")
-                .replace("0 0", "- -")
-                .replace("^ ^", "- -")
-                .replace("O,O", "-,-")
-                .replace("(o )", "(- )")
-                .replace("( o)", "( -)")
-                .replace("oωo", "-ω-")
-                .replace("^ω^", "-ω-")
-            )
-            out.append(nl)
+            if custom:
+                for src, dst in custom:
+                    if src in l:
+                        l = l.replace(src, dst)
+            else:
+                for rx, rep in _DEFAULT_BLINK_RULES:
+                    l = rx.sub(rep, l)
+            out.append(l)
         return out
 
     def is_particles_active(self) -> bool:
@@ -996,7 +1031,7 @@ class CompanionWidget(QWidget):
     # --- State Mutators & Persistence ---
 
     def _save_state(self) -> None:
-        self.config_mgr.save_widget_state(self.state)
+        self.config_mgr.save_widget_state(self.state, self.slot)
 
     def set_opacity(self, opacity: float) -> None:
         self.state.opacity = max(0.15, min(1.0, opacity))
@@ -1177,10 +1212,19 @@ class CompanionWidget(QWidget):
         self._save_state()
         self.update()
 
+    def closeEvent(self, event) -> None:  # noqa: N802
+        """Her kapanış yolunda (Alt+F4, kod, oturum sonu) `closed` sinyali tam bir kez gider."""
+        if not self._close_notified:
+            self._close_notified = True
+            try:
+                self._tick_timer.stop()
+                self.state.x = self.x()
+                self.state.y = self.y()
+                self._save_state()
+            except Exception:
+                log.exception("kapanışta durum kaydedilemedi")
+            self.closed.emit(self.instance_id)
+        super().closeEvent(event)
+
     def close_widget(self) -> None:
-        self.state.x = self.x()
-        self.state.y = self.y()
-        self._save_state()
-        self._tick_timer.stop()
-        self.closed.emit(self.instance_id)
         self.close()

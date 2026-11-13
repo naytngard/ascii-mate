@@ -5,14 +5,18 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 
 BASE_ROOT = Path(__file__).resolve().parent
 if str(BASE_ROOT) not in sys.path:
     sys.path.insert(0, str(BASE_ROOT))
 
+from src.core.app_logging import get_logger, setup_logging
 from src.core.config_manager import ConfigManager
 from src.core.library import AnimationLibrary, ThemeLibrary
+
+log = get_logger("main")
 
 _HOST_MUTEX_HANDLE = None
 
@@ -24,7 +28,7 @@ def _set_windows_app_id() -> None:
         import ctypes
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("asciimate.companion.app")
     except Exception:
-        pass
+        log.exception("AppUserModelID ayarlanamadı")
 
 
 def _acquire_host_mutex() -> bool:
@@ -43,6 +47,7 @@ def _acquire_host_mutex() -> bool:
         _HOST_MUTEX_HANDLE = handle
         return True
     except Exception:
+        log.exception("Host mutex'i alınamadı; tek-örnek denetimi atlanıyor")
         return True
 
 
@@ -54,7 +59,7 @@ def _release_host_mutex() -> None:
             ctypes.windll.kernel32.ReleaseMutex(_HOST_MUTEX_HANDLE)
             ctypes.windll.kernel32.CloseHandle(_HOST_MUTEX_HANDLE)
         except Exception:
-            pass
+            log.exception("Host mutex'i bırakılamadı")
         _HOST_MUTEX_HANDLE = None
 
 
@@ -75,13 +80,22 @@ def resolve_paths() -> tuple[Path, Path]:
 
 def run_host(initial_widget_id: str | None = None, initial_theme: str | None = None) -> int:
     _set_windows_app_id()
-    if not _acquire_host_mutex():
+    # Eski (bayat) host kapanırken mutex'i hemen bırakmayabilir: kısa bekle-ve-tekrar dene (~4 sn).
+    acquired = False
+    for _attempt in range(30 if initial_widget_id else 1):
+        if _acquire_host_mutex():
+            acquired = True
+            break
+        time.sleep(0.13)
+    if not acquired:
         if initial_widget_id:
+            # Güncel bir host gerçekten çalışıyor: widget'ı ona yaptır.
             from src.cli.terminal_hub import send_ipc
             payload = {"cmd": "spawn", "asset_id": initial_widget_id}
             if initial_theme:
                 payload["color_theme"] = initial_theme
-            send_ipc(payload, timeout=0.6)
+            res = send_ipc(payload, timeout=1.0)
+            return 0 if res and res.get("ok") else 1
         return 0
 
     from PyQt6.QtWidgets import QApplication
@@ -144,12 +158,22 @@ def run_cli(prewarm: bool = True) -> int:
 
 
 def main() -> int:
+    setup_logging()
     parser = argparse.ArgumentParser(description="ASCII Mate")
     parser.add_argument("--host", action="store_true", help="Arka plan PyQt6 widget ve tepsi sunucusunu başlatır.")
     parser.add_argument("--widget", type=str, default=None, help="Doğrudan belirtilen ID'li widget'ı masaüstünde açar.")
     parser.add_argument("--theme", type=str, default=None, help="--widget ile açılırken uygulanacak renk teması.")
     parser.add_argument("--no-prewarm", action="store_true", help="Terminal Hub açılırken GUI host ön-ısıtmasını devre dışı bırakır.")
     args = parser.parse_args()
+
+    # Paketli GUI exe (konsolsuz) argümansız açılınca tepsi host'unu başlatır; Terminal Hub ASCII_Mate_CLI.exe'dedir.
+    if (
+        getattr(sys, "frozen", False)
+        and not args.widget
+        and not args.host
+        and not Path(sys.executable).stem.lower().endswith("_cli")
+    ):
+        return run_host()
 
     if args.host:
         return run_host()

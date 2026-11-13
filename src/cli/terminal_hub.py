@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 import time
-from multiprocessing.connection import Client, Listener
+from multiprocessing.connection import Listener
 from pathlib import Path
 import threading
 from typing import Dict, List, Optional, Tuple
@@ -22,12 +22,16 @@ from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 
+from src.core.app_logging import get_logger
 from src.core.config_manager import ConfigManager, get_runtime_signature
+from src.core.ipc import PIPE_ADDRESS, PIPE_CLI_ADDRESS, connect, get_authkey, pipe_exists
 from src.core.converter import import_file_to_community
 from src.core.library import CATEGORY_ORDER, AnimationLibrary, ThemeLibrary
 from src.core.models import AnimationAsset
 from src.core.procedural_engine import BaseProceduralRenderer, create_procedural_renderer
-from src.gui.tray_manager import PIPE_ADDRESS, PIPE_CLI_ADDRESS, focus_existing_cli_hub
+from src.gui.tray_manager import focus_existing_cli_hub
+
+log = get_logger("hub")
 
 try:
     import ctypes
@@ -153,7 +157,7 @@ def _bring_console_to_front() -> None:
         else:
             user32.SetForegroundWindow(root_hwnd)
     except Exception:
-        pass
+        log.debug("konsol öne getirilemedi", exc_info=True)
 
 
 class _CLIFocusServer:
@@ -172,24 +176,33 @@ class _CLIFocusServer:
             except OSError:
                 pass
         try:
-            with Listener(PIPE_CLI_ADDRESS) as listener:
-                self._listener = listener
-                while self._running:
-                    try:
-                        conn = listener.accept()
-                    except Exception:
+            listener = Listener(PIPE_CLI_ADDRESS, authkey=get_authkey())
+        except Exception:
+            log.exception("CLI odak dinleyicisi başlatılamadı")
+            return
+        self._listener = listener
+        with listener:
+            while self._running:
+                try:
+                    conn = listener.accept()
+                except Exception:
+                    if not self._running:
                         break
+                    log.warning("CLI IPC accept hatası (döngü sürüyor)", exc_info=True)
+                    time.sleep(0.1)
+                    continue
+                try:
+                    msg = conn.recv()
+                    if isinstance(msg, dict) and msg.get("cmd") == "focus":
+                        _bring_console_to_front()
+                    conn.send({"ok": True})
+                except Exception:
+                    log.debug("CLI IPC komutu işlenemedi", exc_info=True)
+                finally:
                     try:
-                        msg = conn.recv()
-                        if isinstance(msg, dict) and msg.get("cmd") == "focus":
-                            _bring_console_to_front()
-                        conn.send({"ok": True})
+                        conn.close()
                     except Exception:
                         pass
-                    finally:
-                        conn.close()
-        except Exception:
-            pass
 
     def stop(self) -> None:
         self._running = False
@@ -249,8 +262,9 @@ def build_footer_panel(term_w: int, active_cnt: int, status_msg: str) -> Tuple[P
 def is_ipc_available() -> bool:
     """Checks whether the GUI Host IPC named pipe / socket exists without raising exceptions."""
     try:
-        return os.path.exists(PIPE_ADDRESS)
+        return pipe_exists(PIPE_ADDRESS)
     except Exception:
+        log.debug("IPC varlık yoklaması başarısız", exc_info=True)
         return False
 
 
@@ -259,12 +273,13 @@ def send_ipc(payload: dict, timeout: float = 2.0) -> Optional[dict]:
     if not is_ipc_available():
         return None
     try:
-        with Client(PIPE_ADDRESS) as conn:
+        with connect(PIPE_ADDRESS) as conn:
             conn.send(payload)
             if conn.poll(timeout):
                 return conn.recv()
             return {"ok": True}
     except Exception:
+        log.debug("IPC isteği başarısız: %s", payload.get("cmd"), exc_info=True)
         return None
 
 
@@ -277,7 +292,10 @@ def _spawn_host_process(base_dir: Path) -> None:
             | subprocess.CREATE_NO_WINDOW
         )
     if getattr(sys, "frozen", False):
-        subprocess.Popen([sys.executable, "--host"], creationflags=creation_flags)
+        # Paketli sürümde konsolsuz GUI exe (ASCII_Mate.exe) host'u çalıştırır; CLI exe'sinden değil.
+        gui_exe = Path(sys.executable).with_name("ASCII_Mate.exe")
+        exe = str(gui_exe) if gui_exe.exists() else sys.executable
+        subprocess.Popen([exe, "--host"], creationflags=creation_flags)
     else:
         main_py = base_dir / "main.py"
         subprocess.Popen(
@@ -311,7 +329,7 @@ def prewarm_gui_host(base_dir: Path) -> None:
             return
         _spawn_host_process(base_dir)
     except Exception:
-        pass
+        log.exception("GUI host ön-ısıtması başarısız")
 
 
 def ensure_gui_host_running(base_dir: Path) -> bool:

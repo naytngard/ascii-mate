@@ -24,3 +24,9 @@ assets/library_index.json
 *.bak
 .DS_Store
 Thumbs.db
+
+# Kisisel ayarlar (config.example.json ornek olarak tutulur)
+config.json
+config.json.lock
+config.json.bak
+config.json.*.tmp

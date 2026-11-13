@@ -6,8 +6,9 @@ import os
 import subprocess
 import sys
 import threading
+import time
 import uuid
-from multiprocessing.connection import Client, Listener
+from multiprocessing.connection import Listener
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -29,28 +30,30 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from src.core.app_logging import get_logger
 from src.core.config_manager import ConfigManager, get_runtime_signature
+from src.core.ipc import PIPE_ADDRESS, PIPE_CLI_ADDRESS, connect, get_authkey, pipe_exists
 from src.core.library import AnimationLibrary, ThemeLibrary
 from src.gui.companion_widget import CompanionWidget
 from src.gui.context_menu import DARK_GLASS_MENU_QSS
 from src.gui.settings_dialog import DARK_GLASS_DIALOG_QSS
 
-PIPE_ADDRESS = r"\\.\pipe\ascii_mate_ipc" if os.name == "nt" else "/tmp/ascii_mate_ipc.sock"
-PIPE_CLI_ADDRESS = r"\\.\pipe\ascii_mate_cli_ipc" if os.name == "nt" else "/tmp/ascii_mate_cli_ipc.sock"
+log = get_logger("tray")
 
 
 def focus_existing_cli_hub(timeout: float = 0.35) -> bool:
     """Asks an already-running CLI Terminal Hub to bring its console window to front."""
     try:
-        if not os.path.exists(PIPE_CLI_ADDRESS):
+        if not pipe_exists(PIPE_CLI_ADDRESS):
             return False
-        with Client(PIPE_CLI_ADDRESS) as conn:
+        with connect(PIPE_CLI_ADDRESS) as conn:
             conn.send({"cmd": "focus"})
             if conn.poll(timeout):
                 res = conn.recv()
                 return bool(isinstance(res, dict) and res.get("ok"))
             return True
     except Exception:
+        log.debug("CLI hub odağı istenemedi", exc_info=True)
         return False
 
 
@@ -180,29 +183,41 @@ class IPCBridge(QObject):
             except OSError:
                 pass
         try:
-            with Listener(PIPE_ADDRESS) as listener:
-                while self._running:
-                    try:
-                        conn = listener.accept()
-                    except Exception:
-                        break
-                    try:
-                        msg = conn.recv()
-                        done_ev = threading.Event()
-                        holder: Dict[str, object] = {"reply": {"ok": True}, "event": done_ev}
-                        self.command_received.emit(msg, holder)
-                        done_ev.wait(timeout=3.0)
-                        conn.send(holder["reply"])
-                    except Exception as e:
-                        try:
-                            conn.send({"ok": False, "error": str(e)})
-                        except Exception:
-                            pass
-                    finally:
-                        conn.close()
+            listener = Listener(PIPE_ADDRESS, authkey=get_authkey())
         except Exception:
-            # Another host may already own the pipe
-            pass
+            # Başka bir host pipe'a sahip olabilir
+            log.exception("IPC dinleyicisi başlatılamadı")
+            return
+        with listener:
+            while self._running:
+                try:
+                    conn = listener.accept()  # yanlış authkey → AuthenticationError (istemci reddedilir)
+                except Exception:
+                    if not self._running:
+                        break
+                    log.warning("IPC accept hatası (döngü sürüyor)", exc_info=True)
+                    time.sleep(0.1)
+                    continue
+                try:
+                    msg = conn.recv()
+                    if not isinstance(msg, dict):
+                        raise ValueError("IPC mesajı dict olmalı")
+                    done_ev = threading.Event()
+                    holder: Dict[str, object] = {"reply": {"ok": True}, "event": done_ev}
+                    self.command_received.emit(msg, holder)
+                    done_ev.wait(timeout=3.0)
+                    conn.send(holder["reply"])
+                except Exception as e:
+                    log.warning("IPC komutu işlenemedi", exc_info=True)
+                    try:
+                        conn.send({"ok": False, "error": str(e)})
+                    except Exception:
+                        pass
+                finally:
+                    try:
+                        conn.close()
+                    except Exception:
+                        pass
 
     def stop(self) -> None:
         self._running = False
@@ -260,6 +275,11 @@ class WidgetHostManager(QObject):
         if not asset:
             return None
 
+        # Aynı animasyonun kopyaları ayrı ayar/konum tutsun: en küçük boş örnek sırası (slot)
+        used_slots = {w.slot for w in self.widgets.values() if w.asset.id == asset_id}
+        slot = 0
+        while slot in used_slots:
+            slot += 1
         instance_id = f"{asset_id}_{uuid.uuid4().hex[:6]}"
         callbacks = {
             "spawn_asset": self.spawn_widget,
@@ -273,6 +293,7 @@ class WidgetHostManager(QObject):
             theme_lib=self.theme_lib,
             config_mgr=self.config_mgr,
             manager_callbacks=callbacks,
+            slot=slot,
         )
         if color_theme:
             w.set_color_theme(color_theme)
@@ -415,8 +436,9 @@ class WidgetHostManager(QObject):
         if self._hub_proc is not None and self._hub_proc.poll() is None:
             return
         if getattr(sys, "frozen", False):
+            cli_exe = Path(sys.executable).with_name("ASCII_Mate_CLI.exe")
             self._hub_proc = subprocess.Popen(
-                [sys.executable],
+                [str(cli_exe) if cli_exe.exists() else sys.executable],
                 creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0,
             )
         else:

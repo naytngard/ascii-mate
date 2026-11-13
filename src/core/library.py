@@ -6,7 +6,10 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from src.core.app_logging import get_logger
 from src.core.models import AnimationAsset
+
+log = get_logger("library")
 
 
 CATEGORY_ORDER = [
@@ -45,6 +48,7 @@ class ThemeLibrary:
                     data = json.load(f)
                 self.themes = data.get("themes", {})
             except Exception:
+                log.exception("themes.json okunamadı")
                 self.themes = {}
         if not self.themes:
             self.themes = {
@@ -76,6 +80,7 @@ class AnimationLibrary:
         self.extra_community_dir = Path(extra_community_dir) if extra_community_dir else None
         self.assets: Dict[str, AnimationAsset] = {}
         self.load_errors: List[str] = []
+        self.warnings: List[str] = []  # yinelenen id vb. (hata değil, yükleme sürer)
         self.used_index_cache: bool = False
         self.reload()
 
@@ -124,9 +129,10 @@ class AnimationLibrary:
                 src_path = str(self.animations_dir / rel) if rel else None
                 is_comm = bool(item.get("_is_community", False))
                 asset = AnimationAsset.from_dict(item, source_path=src_path, is_community=is_comm)
-                loaded[asset.id] = asset
+                self._add_asset(loaded, asset, item.get("_rel_path", ""))
             return loaded
         except Exception:
+            log.exception("kütüphane indeksi okunamadı; yeniden taranacak")
             return None
 
     def _write_index(self, main_entries: List[Tuple[Path, str, int, int]], main_records: List[Dict[str, Any]]) -> None:
@@ -143,8 +149,8 @@ class AnimationLibrary:
                 json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
             tmp.replace(idx_file)
         except Exception:
-            # Read-only bundles (e.g. frozen _MEIPASS) silently skip cache writes
-            pass
+            # Read-only bundles (e.g. frozen _MEIPASS) skip cache writes
+            log.info("indeks önbelleği yazılamadı (salt-okunur olabilir)", exc_info=True)
 
     def _load_single_file(self, json_file: Path, is_comm: bool) -> Optional[Tuple[AnimationAsset, Dict[str, Any]]]:
         try:
@@ -163,12 +169,33 @@ class AnimationLibrary:
             )
             return asset, data
         except Exception as exc:
+            log.error("animasyon yüklenemedi: %s: %s", json_file.name, exc)
             self.load_errors.append(f"{json_file.name}: {exc}")
             return None
+
+    def _add_asset(self, target: Dict[str, AnimationAsset], asset: AnimationAsset, where: str) -> bool:
+        """Yinelenen id kuralı: YERLEŞİK animasyon her zaman kazanır; topluluk dosyası yerleşik olanı ezmez.
+        İki yerleşik/iki topluluk dosyası çakışırsa ilk görülen (alfabetik yol sırası) kalır. Her durumda uyarı loglanır.
+        """
+        prev = target.get(asset.id)
+        if prev is None:
+            target[asset.id] = asset
+            return True
+        msg = f"Yinelenen animasyon id'si '{asset.id}': {where or asset.source_path} yok sayıldı (mevcut: {prev.source_path})"
+        if prev.is_community and not asset.is_community:
+            msg = f"Yinelenen animasyon id'si '{asset.id}': yerleşik dosya topluluk dosyasının yerini aldı ({prev.source_path} yok sayıldı)"
+            target[asset.id] = asset
+            self.warnings.append(msg)
+            log.warning(msg)
+            return True
+        self.warnings.append(msg)
+        log.warning(msg)
+        return False
 
     def reload(self) -> None:
         self.assets.clear()
         self.load_errors.clear()
+        self.warnings.clear()
         self.used_index_cache = False
 
         main_entries = self._scan_dir_files(self.animations_dir)
@@ -184,7 +211,7 @@ class AnimationLibrary:
                 res = self._load_single_file(p, is_comm=is_comm)
                 if res is not None:
                     asset, raw_data = res
-                    self.assets[asset.id] = asset
+                    self._add_asset(self.assets, asset, rel)
                     rec = dict(raw_data)
                     rec["_rel_path"] = rel
                     rec["_is_community"] = is_comm
@@ -198,7 +225,7 @@ class AnimationLibrary:
                 res = self._load_single_file(p, is_comm=True)
                 if res is not None:
                     asset, _ = res
-                    self.assets[asset.id] = asset
+                    self._add_asset(self.assets, asset, str(p))
 
     def all_assets(self) -> List[AnimationAsset]:
         return list(self.assets.values())

@@ -6,6 +6,33 @@ from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, List, Optional, Tuple
 
 
+def _clamp_float(value: Any, lo: float, hi: float, default: Optional[float]) -> Optional[float]:
+    """Sayıya çevirir ve [lo, hi] aralığına kırpar; bozuk/NaN/sonsuz değerde default döner."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return default
+    if v != v or v in (float("inf"), float("-inf")):
+        return default
+    return max(lo, min(hi, v))
+
+
+def _clamp_int(value: Any, lo: int, hi: int, default: int) -> int:
+    v = _clamp_float(value, lo, hi, None)
+    return default if v is None else int(round(v))
+
+
+def _parse_blink_patterns(raw: Any) -> List[List[str]]:
+    """Animasyon başına göz kırpma kalıpları: [[ara, yerine], ...] (aynı uzunlukta olmalı)."""
+    out: List[List[str]] = []
+    if isinstance(raw, list):
+        for item in raw:
+            if isinstance(item, (list, tuple)) and len(item) == 2 and all(isinstance(s, str) for s in item):
+                if item[0] and len(item[0]) == len(item[1]):
+                    out.append([item[0], item[1]])
+    return out
+
+
 @dataclass
 class ParticleConfig:
     """Configuration for dynamic ASCII particle overlay effects."""
@@ -77,6 +104,7 @@ class AnimationAsset:
     is_community: bool = False
     supports_eye_blink: bool = False
     supports_sleep_zzz: bool = False
+    blink_patterns: List[List[str]] = field(default_factory=list)  # [[ara, yerine], ...]
     # v2.0 HD & Procedural 3D support
     procedural: Optional[str] = None
     procedural_params: Dict[str, Any] = field(default_factory=dict)
@@ -171,6 +199,7 @@ class AnimationAsset:
             is_community=is_community,
             supports_eye_blink=bool(data.get("supports_eye_blink", False)),
             supports_sleep_zzz=bool(data.get("supports_sleep_zzz", False)),
+            blink_patterns=_parse_blink_patterns(data.get("blink_patterns")),
             procedural=str(proc) if proc else None,
             procedural_params=dict(proc_params) if isinstance(proc_params, dict) else {},
             palette_map=palette_map,
@@ -213,7 +242,7 @@ class WidgetState:
     speed_multiplier: float = 1.0
     custom_fps: Optional[float] = None
     color_theme: str = "auto"  # theme key, "auto", or hex like #FF00AA
-    glow_enabled: bool = True
+    glow_enabled: bool = False
     shadow_enabled: bool = True
     line_spacing: float = 0.88  # tight line height multiplier (0.75..1.15)
     particles_enabled: Optional[bool] = None
@@ -233,47 +262,55 @@ class WidgetState:
     orbit_pitch: float = 0.0
     track_cursor: bool = False
     pomodoro_break_enabled: bool = True
+    # v2.2 akıllı okunabilirlik (yazıların arkasına geç)
+    behind_text_enabled: bool = False
+    behind_text_sensitivity: float = 0.5  # 0..1
+    behind_text_fade: float = 0.2  # soluk alfa çarpanı 0.08..0.6
 
     @classmethod
     def from_dict(cls, asset_id: str, data: Optional[Dict[str, Any]]) -> "WidgetState":
-        if not data:
+        if not data or not isinstance(data, dict):
             return cls(asset_id=asset_id)
-        ls = float(data.get("line_spacing", 0.88))
-        ls = max(0.75, min(1.15, ls))
         theme = str(data.get("color_theme", "auto"))
         if theme == "auto_hd":
             theme = "auto"
         res = str(data.get("grid_resolution", "auto"))
         if res not in ("auto", "compact", "standard", "hd", "ultra"):
             res = "auto"
+        x, y = data.get("x"), data.get("y")
+        if not (isinstance(x, int) and isinstance(y, int)) or isinstance(x, bool) or isinstance(y, bool):
+            x, y = None, None
         return cls(
             asset_id=asset_id,
-            x=data.get("x"),
-            y=data.get("y"),
-            font_size=int(data.get("font_size", 14)),
-            opacity=float(data.get("opacity", 0.94)),
-            speed_multiplier=float(data.get("speed_multiplier", 1.0)),
-            custom_fps=data.get("custom_fps"),
+            x=x,
+            y=y,
+            font_size=_clamp_int(data.get("font_size"), 6, 48, 14),
+            opacity=_clamp_float(data.get("opacity"), 0.15, 1.0, 0.94),
+            speed_multiplier=_clamp_float(data.get("speed_multiplier"), 0.1, 5.0, 1.0),
+            custom_fps=_clamp_float(data.get("custom_fps"), 0.5, 60.0, None),
             color_theme=theme,
-            glow_enabled=bool(data.get("glow_enabled", True)),
+            glow_enabled=bool(data.get("glow_enabled", False)),
             shadow_enabled=bool(data.get("shadow_enabled", True)),
-            line_spacing=ls,
+            line_spacing=_clamp_float(data.get("line_spacing"), 0.75, 1.15, 0.88),
             particles_enabled=data.get("particles_enabled"),
             particle_density=str(data.get("particle_density", "medium")),
             particle_override_type=data.get("particle_override_type"),
             flip_horizontal=bool(data.get("flip_horizontal", False)),
             always_on_top=bool(data.get("always_on_top", True)),
             click_through=bool(data.get("click_through", False)),
-            duration_minutes=int(data.get("duration_minutes", 0)),
+            duration_minutes=_clamp_int(data.get("duration_minutes"), 0, 24 * 60, 0),
             show_timer_below=bool(data.get("show_timer_below", True)),
             sleep_zzz_enabled=bool(data.get("sleep_zzz_enabled", False)),
             eye_blink_enabled=bool(data.get("eye_blink_enabled", False)),
             grid_resolution=res,
             free_orbit_3d=bool(data.get("free_orbit_3d", False)),
-            orbit_yaw=float(data.get("orbit_yaw", 0.0)),
-            orbit_pitch=max(-1.2, min(1.2, float(data.get("orbit_pitch", 0.0)))),
+            orbit_yaw=_clamp_float(data.get("orbit_yaw"), -1000.0, 1000.0, 0.0),
+            orbit_pitch=_clamp_float(data.get("orbit_pitch"), -1.2, 1.2, 0.0),
             track_cursor=bool(data.get("track_cursor", False)),
             pomodoro_break_enabled=bool(data.get("pomodoro_break_enabled", True)),
+            behind_text_enabled=bool(data.get("behind_text_enabled", False)),
+            behind_text_sensitivity=_clamp_float(data.get("behind_text_sensitivity"), 0.0, 1.0, 0.5),
+            behind_text_fade=_clamp_float(data.get("behind_text_fade"), 0.08, 0.6, 0.2),
         )
 
     def to_dict(self) -> Dict[str, Any]:

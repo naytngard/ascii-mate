@@ -30,6 +30,19 @@ def normalize_frames(frames: List[str]) -> List[str]:
     return normalized
 
 
+def _trim_common_blank_margins(raw_frames: List[str]) -> List[str]:
+    """Kareler arası ORTAK üst/alt boşluğu korur: yalnızca tüm karelerde boş olan baştaki/sondaki satırları atar.
+    (Her kareyi ayrı kırpmak, kare başına farklı boşluk yüzünden animasyonun kaymasına yol açar.)
+    """
+    frames = [rf.split("\n") for rf in raw_frames]
+    frames = [f for f in frames if any(l.strip() for l in f)]
+    if not frames:
+        return []
+    top = min(next(i for i, l in enumerate(f) if l.strip()) for f in frames)
+    bottom = min(next(i for i, l in enumerate(reversed(f)) if l.strip()) for f in frames)
+    return ["\n".join(f[top: len(f) - bottom]) for f in frames]
+
+
 def slugify(text: str) -> str:
     tr_map = str.maketrans("çğıöşüÇĞİÖŞÜ ", "cgiosucgiosu_")
     clean = text.translate(tr_map).lower()
@@ -58,15 +71,7 @@ def txt_to_ascii_json(
         else:
             raw_frames = [text]
 
-    cleaned_frames: List[str] = []
-    for rf in raw_frames:
-        lines = rf.split("\n")
-        while lines and lines[0].strip() == "":
-            lines.pop(0)
-        while lines and lines[-1].strip() == "":
-            lines.pop()
-        if lines:
-            cleaned_frames.append("\n".join(lines))
+    cleaned_frames = _trim_common_blank_margins(raw_frames)
 
     if not cleaned_frames:
         cleaned_frames = ["(Boş ASCII)"]
