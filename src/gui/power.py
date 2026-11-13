@@ -58,7 +58,8 @@ class PowerMonitor(QObject):
         super().__init__()
         self.locked: bool = False
         self.on_battery: bool = False
-        self.fullscreen_rect: Optional[QRect] = None  # tam ekran önplan penceresinin (başka süreç) ekranı
+        self.fullscreen_rect: Optional[QRect] = None  # önplandaki başka süreç penceresinin dikdörtgeni (mantıksal px)
+        self._is_fullscreen = False
         self.battery_saver_enabled: bool = True  # "pildeyken otomatik düşür" (genel ayar)
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.poll)
@@ -73,11 +74,12 @@ class PowerMonitor(QObject):
         return 0.6 if (self.on_battery and self.battery_saver_enabled) else 1.0
 
     def is_suspended_for(self, rect: QRect, always_on_top: bool) -> bool:
-        """Kilitliyse her zaman; tam ekran uygulama aynı ekranı kaplıyorsa ve widget en üstte DEĞİLSE (arkada kalır)."""
+        """Kilitliyse her zaman. Widget "Her Zaman Üstte" DEĞİLSE ve önplandaki başka bir pencere (tam ekran ya da
+        değil) widget'ı TAMAMEN örtüyorsa da durur — görünmeyen widget hiç tick atmaz."""
         if self.locked:
             return True
         if self.fullscreen_rect is not None and not always_on_top:
-            return self.fullscreen_rect.intersects(rect)
+            return self.fullscreen_rect.contains(rect) or self.fullscreen_rect.intersects(rect) and self._is_fullscreen
         return False
 
     # --- yoklama ---
@@ -88,12 +90,13 @@ class PowerMonitor(QObject):
         try:
             locked = self._poll_locked()
             on_batt = self._poll_battery()
-            fs = self._poll_fullscreen() if not locked else None
+            fg = self._poll_foreground() if not locked else None
         except Exception:
             log.debug("güç/oturum yoklaması başarısız", exc_info=True)
             return
-        if locked != self.locked or on_batt != self.on_battery or fs != self.fullscreen_rect:
-            self.locked, self.on_battery, self.fullscreen_rect = locked, on_batt, fs
+        fs, is_full = (fg if fg is not None else (None, False))
+        if locked != self.locked or on_batt != self.on_battery or fs != self.fullscreen_rect or is_full != self._is_fullscreen:
+            self.locked, self.on_battery, self.fullscreen_rect, self._is_fullscreen = locked, on_batt, fs, is_full
             self.changed.emit()
 
     @staticmethod
@@ -114,7 +117,7 @@ class PowerMonitor(QObject):
         return st.ACLineStatus == 0
 
     @staticmethod
-    def _poll_fullscreen() -> Optional[QRect]:
+    def _poll_foreground() -> Optional[tuple]:
         user32 = ctypes.windll.user32
         hwnd = user32.GetForegroundWindow()
         if not hwnd or user32.IsIconic(hwnd):
@@ -136,6 +139,11 @@ class PowerMonitor(QObject):
         if not hmon or not user32.GetMonitorInfoW(hmon, ctypes.byref(mi)):
             return None
         m = mi.rcMonitor
+        # Win32 fiziksel piksel → Qt mantıksal piksel (birincil ekranın ölçeğiyle yaklaşık)
+        from PyQt6.QtGui import QGuiApplication
+
+        scr = QGuiApplication.primaryScreen()
+        k = scr.devicePixelRatio() if scr is not None else 1.0
         if rect.left <= m.left and rect.top <= m.top and rect.right >= m.right and rect.bottom >= m.bottom:
-            return QRect(m.left, m.top, m.right - m.left, m.bottom - m.top)
-        return None
+            return QRect(int(m.left / k), int(m.top / k), int((m.right - m.left) / k), int((m.bottom - m.top) / k)), True
+        return QRect(int(rect.left / k), int(rect.top / k), int((rect.right - rect.left) / k), int((rect.bottom - rect.top) / k)), False

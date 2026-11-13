@@ -34,13 +34,14 @@ from src.core.procedural_engine import (
     create_procedural_renderer,
 )
 from src.gui.context_menu import build_context_menu
+from src.gui.cell_compositor import ClassicCellRenderer, lines_to_arrays
 from src.gui.hd_renderer import HD_ABS_FPS_CAP, HD_QUALITY, HDPlayer
 from src.gui.power import PowerMonitor
 from src.gui.readability import ReadabilityAnalyzer, capture_excluded, is_supported, set_display_affinity
 
 RGB = Tuple[int, int, int]
 
-SHADER_DEFAULT_FPS_CAP = 15.0  # 3B shader varsayılan FPS tavanı (kullanıcı özel FPS ile değiştirebilir)
+SHADER_DEFAULT_FPS_CAP = 8.0  # 3B shader varsayılan FPS tavanı (gerçek CPU ölçümüne göre; İnce Ayar → Manuel FPS ile artırılabilir)
 
 log = get_logger("widget")
 
@@ -153,6 +154,8 @@ class CompanionWidget(QWidget):
         self._last_timer_sec: int = -1
         self._cursor_look: Tuple[float, float] = (0.0, 0.0)
         self._close_notified: bool = False
+        self.stat_ticks: int = 0  # ölçüm: zamanlayıcı tetiklenme sayısı
+        self.stat_paints: int = 0  # ölçüm: gerçekleşen paintEvent sayısı
         self._suspended: bool = False
         self._readability: Optional[ReadabilityAnalyzer] = None
         self._paused_by_user_hidden: bool = False
@@ -176,6 +179,8 @@ class CompanionWidget(QWidget):
         # Offscreen QPixmap art cache
         self._art_pixmap: Optional[QPixmap] = None
         self._art_dirty: bool = True
+        self._cells = ClassicCellRenderer()  # glif atlası + değişen hücre yolu (varsayılan)
+        self._cells_ok: bool = False  # son çizim hücre yolundan mı yapıldı
         self._cached_font: Optional[QFont] = None
         self._cached_font_metrics: Optional[Tuple[int, float, float, float]] = None  # (size, char_w, line_h, ascent)
 
@@ -376,7 +381,7 @@ class CompanionWidget(QWidget):
                 self._invalidate_art()
         if self._readability is not None:
             self._readability.pause(self._suspended)
-        self._tick_timer.stop()
+        # Aralık değişmediyse zamanlayıcıyı yeniden başlatma (sürüklerken her moveEvent'te tick gecikmesin)
         self._update_timer_interval()
 
     def _read_levels(self) -> Optional[List[List[int]]]:
@@ -624,6 +629,7 @@ class CompanionWidget(QWidget):
         return out
 
     def _on_tick(self) -> None:
+        self.stat_ticks += 1
         if self._suspended:
             return
         if self._hd is not None:
@@ -822,8 +828,7 @@ class CompanionWidget(QWidget):
         if unchanged and not (blink_changed or timer_changed or self._art_dirty or is_rainbow or self._lightning_flash):
             return
         if frame_advanced or blink_changed or look_changed or particles_on or is_rainbow or timer_changed or self._art_dirty:
-            self._invalidate_art()
-            self.update()
+            self._refresh_art(full=timer_changed or self._art_dirty)
 
     def _current_theme_info(self) -> Dict[str, object]:
         theme_key = self.asset.recommended_color if self.state.color_theme == "auto" else self.state.color_theme
@@ -846,7 +851,77 @@ class CompanionWidget(QWidget):
 
         return primary, secondary, glow
 
+    def _cell_path_possible(self) -> bool:
+        """Glow kapalıyken hücre-atlas yolu kullanılır (glow tek ek geçiş gerektirir → eski yol)."""
+        return not self.state.glow_enabled
+
+    def _rebuild_cells(self) -> bool:
+        """Hücre-atlas yolu. Uygun değilse (glow / ASCII dışı) False döner ve eski drawText yolu kullanılır."""
+        if not self._cell_path_possible():
+            self._cells_ok = False
+            return False
+        primary, secondary, _glow = self._resolve_colors()
+        multicolor = self._is_multicolor_active() and self._current_colors is not None
+        fb = (secondary.red(), secondary.green(), secondary.blue()) if multicolor else (primary.red(), primary.green(), primary.blue())
+        arrs = lines_to_arrays(self._current_lines or ["(Bos)"], self._current_colors if multicolor else None, fb)
+        if arrs is None:
+            self._cells_ok = False
+            return False
+        chars, colors = arrs
+        font = self._build_font()
+        char_w, line_h, ascent = self._get_font_metrics()
+        font_h = QFontMetricsF(font).height()
+        dpr = max(1.0, self.devicePixelRatioF())
+        alpha = max(0.0, min(1.0, self.state.opacity * self._fade_factor))
+        self._cells.configure(font, char_w, line_h, ascent, font_h, dpr, alpha, self.state.shadow_enabled)
+        levels = light = None
+        if self.state.behind_text_enabled:
+            lv = self._read_levels()
+            if lv and self._readability is not None:
+                import numpy as np
+
+                levels = np.asarray(lv, dtype=np.int8)
+                light = np.asarray(self._readability.light, dtype=bool)
+        self._cells.render(chars, colors, levels, light, max(0.08, min(0.6, self.state.behind_text_fade)))
+        self._cells_ok = True
+        self._art_dirty = False
+        self._art_pixmap = None
+        return True
+
+    def _refresh_art(self, full: bool = False) -> None:
+        """Hücre yolunda kareyi hemen birleştirir ve YALNIZCA değişen bölgeyi yeniden boyatır (katmanlı pencere
+        güncellemesi alanla orantılıdır). Eski yolda tüm pixmap geçersiz kılınır."""
+        if not full and self._cells_ok and self._cell_path_possible() and self._hd is None:
+            if self._rebuild_cells():
+                r = self._cells.dirty_rect_logical(12.0, 10.0)
+                if r is not None:
+                    self.update(*r)
+                return
+        self._invalidate_art()
+        self.update()
+
+    def _paint_timer_pill(self, painter: QPainter) -> None:
+        if not (self._timer_active and self.state.show_timer_below and not self._break_mode and not self._celebration_mode):
+            return
+        font = self._build_font()
+        _char_w, line_h, ascent = self._get_font_metrics()
+        _p, secondary, _g = self._resolve_colors()
+        alpha = max(0.0, min(1.0, self.state.opacity * self._fade_factor))
+        mins = int(self._remaining_seconds // 60)
+        secs = int(self._remaining_seconds % 60)
+        timer_str = f"[ Mola {mins:02d}:{secs:02d} ]" if self._break_countdown_mode else f"[ {mins:02d}:{secs:02d} ]"
+        small_font = QFont(font)
+        small_font.setPointSize(max(8, self.state.font_size - 4))
+        painter.setFont(small_font)
+        ty = 10.0 + ascent + len(self._current_lines) * line_h
+        if self.state.shadow_enabled:
+            painter.setPen(QColor(0, 0, 0, int(190 * alpha)))
+            painter.drawText(QPointF(13.0, ty + 1.0), timer_str)
+        painter.setPen(QColor(secondary.red(), secondary.green(), secondary.blue(), int(215 * alpha)))
+        painter.drawText(QPointF(12.0, ty), timer_str)
+
     def _rebuild_art_pixmap(self) -> None:
+        self._cells_ok = False
         dpr = max(1.0, self.devicePixelRatioF())
         pw = max(1, int(math.ceil(self.width() * dpr)))
         ph = max(1, int(math.ceil(self.height() * dpr)))
@@ -1008,6 +1083,7 @@ class CompanionWidget(QWidget):
         self._art_dirty = False
 
     def paintEvent(self, event) -> None:  # noqa: N802
+        self.stat_paints += 1
         painter = QPainter(self)
 
         # CRITICAL WINDOWS HIT-TEST FIX:
@@ -1060,10 +1136,16 @@ class CompanionWidget(QWidget):
                 painter.drawImage(12, 10, img)
             return
 
-        if self._art_dirty or self._art_pixmap is None:
-            self._rebuild_art_pixmap()
+        if self._art_dirty or (self._art_pixmap is None and not self._cells_ok):
+            if not self._rebuild_cells():
+                self._rebuild_art_pixmap()
 
-        if self._art_pixmap is not None:
+        if self._cells_ok:
+            img = self._cells.image
+            if img is not None:
+                painter.drawImage(QPointF(12.0, 10.0), img)
+            self._paint_timer_pill(painter)
+        elif self._art_pixmap is not None:
             painter.drawPixmap(0, 0, self._art_pixmap)
 
     # --- Resize Hit-Testing & Cursor Helpers ---
