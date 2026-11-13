@@ -11,7 +11,22 @@ import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
+
 RGB = Tuple[int, int, int]
+
+
+def _first_max_winners(pix: np.ndarray, z: np.ndarray) -> np.ndarray:
+    """Z-buffer'ı sıralı döngüyle BİREBİR aynı çözer: her piksel için en büyük z'li örnek; eşitlikte İLK örnek kazanır
+    (döngüdeki `z > zbuf` katı karşılaştırmasıyla aynı). Döndürülen: kazanan örneklerin indeksleri."""
+    if pix.size == 0:
+        return np.empty(0, np.intp)
+    idx = np.arange(pix.size)
+    order = np.lexsort((idx, -z, pix))  # piksel ↑, z ↓, indeks ↑
+    sp = pix[order]
+    first = np.ones(sp.size, bool)
+    first[1:] = sp[1:] != sp[:-1]
+    return order[first]
 
 CHARS_RAMP = " .:-=+*#%@"
 DONUT_RAMP = ".,-~:;=!*#$@"
@@ -162,8 +177,118 @@ class Saturn3DRenderer(BaseProceduralRenderer):
                     col = rng.choice(palette)
                     phase = rng.uniform(0.0, 6.28)
                     self._stars[(x, y)] = (ch, col, phase)
+        flat = [r for row in self._rays for r in row]
+        self._np_rays = np.array(flat, dtype=np.float64).reshape(-1, 3)  # aynı float'lar, satır-öncelikli
 
     def render_at(self, t: float) -> ProceduralFrame:
+        """Işın sınıflandırması (küre/halka/boşluk) NumPy ile; gölgeleme yalnızca isabet eden piksellerde orijinal
+        Python/`math` ifadeleriyle → `_render_at_reference` ile BİREBİR aynı çıktı (testle doğrulanır)."""
+        angle = t * 1.15 + self.yaw_offset
+        tilt_x = max(-1.35, min(1.35, self.tilt_x + self.pitch_offset * 0.65 + self.cursor_look[1] * 0.16))
+        tilt_z = 0.22 + math.sin(angle * 0.35) * 0.05 + self.cursor_look[0] * 0.14
+        cos_tx, sin_tx = math.cos(tilt_x), math.sin(tilt_x)
+        cos_tz, sin_tz = math.cos(tilt_z), math.sin(tilt_z)
+
+        def w2l(x: float, y: float, z: float) -> Tuple[float, float, float]:
+            y1 = y * cos_tx + z * sin_tx
+            z1 = -y * sin_tx + z * cos_tx
+            x2 = x * cos_tz + y1 * sin_tz
+            y2 = -x * sin_tz + y1 * cos_tz
+            return x2, y2, z1
+
+        lx, ly, lz = w2l(self.lx_w, self.ly_w, self.lz_w)
+        ox, oy, oz = w2l(0.0, 0.0, -self.cam_dist)
+        o2_minus_r2 = (ox * ox + oy * oy + oz * oz) - self.R * self.R
+        R = self.R
+        R_in = self.R_in
+        R_out = self.R_out
+        c_in = self.cassini_in
+        c_out = self.cassini_out
+        ramp_max = len(CHARS_RAMP) - 1
+        W, H = self.width, self.height
+
+        rays = self._np_rays
+        dwx, dwy, dwz = rays[:, 0], rays[:, 1], rays[:, 2]
+        y1 = dwy * cos_tx + dwz * sin_tx
+        dz = -dwy * sin_tx + dwz * cos_tx
+        dx = dwx * cos_tz + y1 * sin_tz
+        dy = -dwx * sin_tz + y1 * cos_tz
+        b = 2.0 * (ox * dx + oy * dy + oz * dz)
+        disc = b * b - 4.0 * o2_minus_r2
+        t1 = (-b - np.sqrt(np.maximum(disc, 0.0))) * 0.5
+        t_sphere = np.where((disc >= 0.0) & (t1 > 0.0), t1, 1e9)
+        dy_ok = np.abs(dy) > 1e-5
+        tr = np.where(dy_ok, -oy / np.where(dy_ok, dy, 1.0), -1.0)
+        rx = ox + tr * dx
+        rz = oz + tr * dz
+        dist = np.sqrt(rx * rx + rz * rz)
+        ring_hit = (tr > 0.0) & (R_in <= dist) & (dist <= R_out) & ~((c_in <= dist) & (dist <= c_out))
+        t_ring = np.where(ring_hit, tr, 1e9)
+        sphere = (t_sphere < t_ring) & (t_sphere < 1e8)
+        ring = ~sphere & (t_ring < 1e8)
+
+        chars = [" "] * (W * H)
+        cols: List[Optional[RGB]] = [None] * (W * H)
+        sid = np.nonzero(sphere)[0]
+        ts = t_sphere[sid]
+        hxs = (ox + ts * dx[sid]).tolist()
+        hys = (oy + ts * dy[sid]).tolist()
+        hzs = (oz + ts * dz[sid]).tolist()
+        for k, hx, hy, hz in zip(sid.tolist(), hxs, hys, hzs):
+            diffuse = max(0.0, -(hx * lx + hy * ly + hz * lz))
+            shadow = 1.0
+            if abs(ly) > 1e-4:
+                sr = hy / ly
+                if sr > 0.0:
+                    shx = hx - sr * lx
+                    shz = hz - sr * lz
+                    sh_dist = math.sqrt(shx * shx + shz * shz)
+                    if R_in <= sh_dist <= R_out and not (c_in <= sh_dist <= c_out):
+                        shadow = 0.32
+            lon = math.atan2(hz, hx)
+            bands = (
+                math.sin(hy * 18.0) * 0.08
+                + math.cos(hy * 36.0 + 1.2) * 0.05
+                + math.sin(hy * 60.0) * 0.03
+                + math.sin(lon * 3.0 + angle * 1.6) * 0.04
+            )
+            intensity = max(0.05, min(1.0, diffuse * shadow * 0.85 + 0.14 + bands))
+            chars[k] = CHARS_RAMP[int(intensity * ramp_max)]
+            br = intensity * shadow
+            cols[k] = (min(255, int(235 * br + 35)), min(255, int(188 * br + 25)), min(255, int(115 * br + 15)))
+
+        rid = np.nonzero(ring)[0]
+        trr = t_ring[rid]
+        rxs = (ox + trr * dx[rid]).tolist()
+        rzs = (oz + trr * dz[rid]).tolist()
+        for k, rxv, rzv, rr_ in zip(rid.tolist(), rxs, rzs, dist[rid].tolist()):
+            sb = -2.0 * (rxv * lx + rzv * lz)
+            sc = (rxv * rxv + rzv * rzv) - R * R
+            sdisc = sb * sb - 4.0 * sc
+            ring_shadow = 1.0
+            if sdisc >= 0.0:
+                st = (-sb - math.sqrt(sdisc)) * 0.5
+                if st > 0.01:
+                    ring_shadow = 0.22
+            groove = math.sin(rr_ * 45.0) * 0.25 + 0.75
+            intensity = max(0.04, min(1.0, ring_shadow * groove * 0.88))
+            chars[k] = CHARS_RAMP[int(intensity * ramp_max)]
+            cols[k] = (min(255, int(215 * intensity + 30)), min(255, int(202 * intensity + 25)), min(255, int(180 * intensity + 20)))
+
+        hit = sphere | ring
+        for (px, py), (ch, col, phase) in self._stars.items():
+            k = py * W + px
+            if not hit[k]:
+                twinkle = 0.65 + 0.35 * math.sin(t * 2.5 + phase)
+                chars[k] = ch
+                cols[k] = (int(col[0] * twinkle), int(col[1] * twinkle), int(col[2] * twinkle))
+
+        lines = ["".join(chars[r * W : (r + 1) * W]) for r in range(H)]
+        colors = [cols[r * W : (r + 1) * W] for r in range(H)]
+        return ProceduralFrame(lines=lines, colors=colors)
+
+    def _render_at_reference(self, t: float) -> ProceduralFrame:
+        """Orijinal (saf Python) sürüm — yalnızca eşdeğerlik testi için korunur."""
         angle = t * 1.15 + self.yaw_offset
         tilt_x = max(-1.35, min(1.35, self.tilt_x + self.pitch_offset * 0.65 + self.cursor_look[1] * 0.16))
         tilt_z = 0.22 + math.sin(angle * 0.35) * 0.05 + self.cursor_look[0] * 0.14
@@ -307,12 +432,61 @@ class Donut3DRenderer(BaseProceduralRenderer):
 
         self._phis = [(j, math.cos(j), math.sin(j)) for j in [k * 0.14 for k in range(45)]]
         self._thetas = [(math.cos(i), math.sin(i)) for i in [k * 0.07 for k in range(90)]]
+        # NumPy yolu için aynı tablolar (math.cos/sin ile hesaplanmış değerler → birebir aynı float'lar)
+        self._np_j = np.repeat(np.array([p[0] for p in self._phis]), len(self._thetas))
+        self._np_cphi = np.repeat(np.array([p[1] for p in self._phis]), len(self._thetas))
+        self._np_sphi = np.repeat(np.array([p[2] for p in self._phis]), len(self._thetas))
+        self._np_ct = np.tile(np.array([q[0] for q in self._thetas]), len(self._phis))
+        self._np_st = np.tile(np.array([q[1] for q in self._thetas]), len(self._phis))
+        self._np_jidx = np.repeat(np.arange(len(self._phis)), len(self._thetas))
 
     def _on_grid_resized(self) -> None:
         scale = min(self.height * 0.34, self.width * self.aspect * 0.34)
         self.K1 = (scale * self.K2) / (self.R1 + self.R2)
 
     def render_at(self, t: float) -> ProceduralFrame:
+        """NumPy ile vektörleştirilmiş; `_render_at_reference` ile BİREBİR aynı çıktı (testle doğrulanır)."""
+        A = t * 1.25 + self.pitch_offset + self.cursor_look[1] * 0.22
+        B = t * 0.68 + self.yaw_offset + self.cursor_look[0] * 0.22
+        cosA, sinA = math.cos(A), math.sin(A)
+        cosB, sinB = math.cos(B), math.sin(B)
+        w, h = self.width, self.height
+        half_w = w / 2.0
+        half_h = h / 2.0
+        k1_x = self.K1 * self.aspect * 1.85
+        k1_y = self.K1
+        R1, R2, K2 = self.R1, self.R2, self.K2
+        cos_phi, sin_phi, cos_theta, sin_theta = self._np_cphi, self._np_sphi, self._np_ct, self._np_st
+
+        circlex = R2 + R1 * cos_theta
+        circley = R1 * sin_theta
+        x = circlex * (cosB * cos_phi + sinA * sinB * sin_phi) - circley * cosA * sinB
+        y = circlex * (sinB * cos_phi - sinA * cosB * sin_phi) + circley * cosA * cosB
+        z = K2 + cosA * circlex * sin_phi + circley * sinA
+        ooz = 1.0 / z
+        xp = (half_w + k1_x * ooz * x).astype(np.int64)
+        yp = (half_h - k1_y * ooz * y).astype(np.int64)
+        L = (
+            cos_phi * cos_theta * sinB
+            - cosA * cos_theta * sin_phi
+            - sinA * sin_theta
+            + cosB * (cosA * sin_theta - cos_theta * sinA * sin_phi)
+        )
+        ok = (xp >= 0) & (xp < w) & (yp >= 0) & (yp < h) & (L > 0.0) & (ooz > 0.0)
+        sel = np.nonzero(ok)[0]
+        win = sel[_first_max_winners((yp[sel] * w + xp[sel]), ooz[sel])]
+
+        buf = [[" "] * w for _ in range(h)]
+        cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
+        ramp_len = len(DONUT_RAMP)
+        hues = [(j / 6.283185 + A * 0.18) % 1.0 for j, _c, _s in self._phis]
+        for k, xx, yy, ll in zip(self._np_jidx[win].tolist(), xp[win].tolist(), yp[win].tolist(), L[win].tolist()):
+            buf[yy][xx] = DONUT_RAMP[min(ramp_len - 1, max(0, int(ll * 8.0)))]
+            cbuf[yy][xx] = hsv_to_rgb(hues[k], 0.85, min(1.0, ll * 0.88 + 0.22))
+        return ProceduralFrame(lines=["".join(r) for r in buf], colors=cbuf)
+
+    def _render_at_reference(self, t: float) -> ProceduralFrame:
+        """Orijinal (saf Python) sürüm — yalnızca eşdeğerlik testi için korunur."""
         A = t * 1.25 + self.pitch_offset + self.cursor_look[1] * 0.22
         B = t * 0.68 + self.yaw_offset + self.cursor_look[0] * 0.22
         cosA, sinA = math.cos(A), math.sin(A)
@@ -946,8 +1120,68 @@ class Heart3DRenderer(BaseProceduralRenderer):
                 self.samples.append((x, y, z, nx / nl, ny / nl, nz / nl))
                 if abs(z) > 0.02:
                     self.samples.append((x, y, -z, nx / nl, ny / nl, -nz / nl))
+        self._np_s = np.array(self.samples, dtype=np.float64)  # (N, 6) aynı float'lar
 
     def render_at(self, t: float) -> ProceduralFrame:
+        """NumPy ile vektörleştirilmiş izdüşüm + z-buffer; gölgeleme kazanan örneklerde orijinal Python ifadeleriyle
+        yapılır → `_render_at_reference` ile BİREBİR aynı çıktı (testle doğrulanır)."""
+        w, h = self.width, self.height
+        aspect = 0.52
+        pulse = 1.0 + 0.085 * (max(0.0, math.sin(t * 3.6)) ** 4)
+        scale_y = h * 0.41 * pulse
+        scale_x = scale_y / aspect
+        if scale_x * 1.15 > w * 0.46:
+            scale_x = (w * 0.46) / 1.15
+            scale_y = scale_x * aspect
+
+        yaw = t * 1.15 + self.yaw_offset + self.cursor_look[0] * 0.35
+        pitch = 0.22 * math.sin(t * 0.75) + self.pitch_offset + self.cursor_look[1] * 0.25
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        cp, sp = math.cos(pitch), math.sin(pitch)
+
+        lx, ly, lz = -0.45, -0.52, -0.72
+        ll = math.sqrt(lx * lx + ly * ly + lz * lz)
+        lx, ly, lz = lx / ll, ly / ll, lz / ll
+        half_w, half_h = w / 2.0, h / 2.0
+        cam_dist = 3.8
+        ramp_max = len(DONUT_RAMP) - 1
+
+        S = self._np_s
+        x0, y0, z0 = S[:, 0], S[:, 1], S[:, 2]
+        x1 = x0 * cy + z0 * sy
+        z1 = -x0 * sy + z0 * cy
+        y2 = y0 * cp - z1 * sp
+        z2 = y0 * sp + z1 * cp
+        dist = cam_dist - z2
+        okd = dist > 0.2
+        safe = np.where(okd, dist, 1.0)
+        sx = (half_w + (x1 / safe) * scale_x * 2.8).astype(np.int64)
+        sy_p = (half_h + (y2 / safe) * scale_y * 2.8).astype(np.int64)
+        ok = okd & (sx >= 0) & (sx < w) & (sy_p >= 0) & (sy_p < h) & (z2 > -999.0)
+        sel = np.nonzero(ok)[0]
+        win = sel[_first_max_winners(sy_p[sel] * w + sx[sel], z2[sel])]
+
+        buf = [[" "] * w for _ in range(h)]
+        cbuf: List[List[Optional[RGB]]] = [[None] * w for _ in range(h)]
+        samples = self.samples
+        for i, xx, yy in zip(win.tolist(), sx[win].tolist(), sy_p[win].tolist()):
+            _x0, _y0, _z0, nx0, ny0, nz0 = samples[i]
+            nrx = nx0 * cy + nz0 * sy
+            nrz1 = -nx0 * sy + nz0 * cy
+            nry = ny0 * cp - nrz1 * sp
+            nrz = ny0 * sp + nrz1 * cp
+            diff = max(0.0, -(nrx * lx + nry * ly + nrz * lz))
+            spec = diff ** 5
+            lum = max(0.08, min(1.0, diff * 0.78 + 0.16 + spec * 0.35))
+            buf[yy][xx] = DONUT_RAMP[int(lum * ramp_max)]
+            r = min(255, int(130 + 125 * lum + 60 * spec))
+            g = min(255, int(18 + 65 * lum + 125 * spec))
+            b = min(255, int(45 + 75 * lum + 115 * spec))
+            cbuf[yy][xx] = (r, g, b)
+        return ProceduralFrame(lines=["".join(r) for r in buf], colors=cbuf)
+
+    def _render_at_reference(self, t: float) -> ProceduralFrame:
+        """Orijinal (saf Python) sürüm — yalnızca eşdeğerlik testi için korunur."""
         w, h = self.width, self.height
         aspect = 0.52
         pulse = 1.0 + 0.085 * (max(0.0, math.sin(t * 3.6)) ** 4)
