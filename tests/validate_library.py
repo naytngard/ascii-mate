@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+import unicodedata
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -59,6 +60,55 @@ def check_box_alignment(frames: list[str], label: str) -> tuple[bool, str]:
                             )
     if len(dims) > 1:
         return False, f"{label}: Kare boyutlari uyusmuyor: {sorted(dims)}"
+    return True, "OK"
+
+
+def check_no_tabs_wide(frames: list[str], label: str) -> tuple[bool, str]:
+    """Sekme karakteri ve geniş (çift hücre) / emoji karakterleri yasak: hizayı bozarlar."""
+    for fi, fr in enumerate(frames):
+        for r, ln in enumerate(fr.split("\n")):
+            if "\t" in ln:
+                return False, f"{label}#frame{fi} satır {r}: sekme (TAB) karakteri var"
+            for c, ch in enumerate(ln):
+                if unicodedata.east_asian_width(ch) in ("W", "F") or ord(ch) > 0x2E80:
+                    return False, f"{label}#frame{fi} satır {r} sütun {c}: geniş/emoji karakter {ch!r}"
+    return True, "OK"
+
+
+def check_uniform_geometry(frames: list[str], label: str) -> tuple[bool, str]:
+    """Tüm karelerde aynı satır sayısı ve aynı (sağa boşlukla doldurulmuş) satır genişliği."""
+    heights = {len(f.split("\n")) for f in frames}
+    if len(heights) != 1:
+        return False, f"{label}: kare satır sayıları farklı: {sorted(heights)}"
+    widths = {len(ln) for f in frames for ln in f.split("\n")}
+    if len(widths) != 1:
+        return False, f"{label}: satır genişlikleri farklı (sağ kenar boşluk dolgusu eksik): {sorted(widths)}"
+    return True, "OK"
+
+
+def _blank_margins(frame: str) -> tuple[int, int, int]:
+    lines = frame.split("\n")
+    filled = [i for i, ln in enumerate(lines) if ln.strip()]
+    if not filled:
+        return len(lines), 0, 0
+    top = filled[0]
+    bottom = len(lines) - 1 - filled[-1]
+    left = min(len(lines[i]) - len(lines[i].lstrip()) for i in filled)
+    return top, bottom, left
+
+
+def check_frame_jump(frames: list[str], label: str, max_row_delta: int = 2, max_col_delta: int = 3) -> tuple[bool, str]:
+    """Kareler arası 'zıplama': baştaki/sondaki boş satır ve soldaki boşluk sayıları kareler arasında tutarlı olmalı."""
+    if len(frames) < 2:
+        return True, "OK"
+    margins = [_blank_margins(f) for f in frames]
+    tops = [m[0] for m in margins]
+    bots = [m[1] for m in margins]
+    lefts = [m[2] for m in margins]
+    if max(tops) - min(tops) > max_row_delta or max(bots) - min(bots) > max_row_delta:
+        return False, f"{label}: kareler arası dikey zıplama (üst boş satır {tops}, alt boş satır {bots})"
+    if max(lefts) - min(lefts) > max_col_delta:
+        return False, f"{label}: kareler arası yatay zıplama (sol boşluk {lefts})"
     return True, "OK"
 
 
@@ -148,6 +198,16 @@ def main() -> int:
                 print(f"[FAIL] {align_msg}")
                 failed += 1
                 continue
+            static_ok = True
+            for chk in (check_no_tabs_wide, check_uniform_geometry, check_frame_jump):
+                c_ok, c_msg = chk(data["frames"], str(rel))
+                if not c_ok:
+                    print(f"[FAIL] {c_msg}")
+                    failed += 1
+                    static_ok = False
+                    break
+            if not static_ok:
+                continue
 
         seen_ids[aid] = str(rel)
         passed += 1
@@ -212,6 +272,9 @@ def main() -> int:
         print(f"  • {cat}: {len(lib.by_category(cat))} adet")
     print("-" * 60)
     print(f"SONUÇ: {passed} / {total} PASS")
+
+    for w in lib.warnings:
+        print(f"[UYARI] {w}")
 
     if failed > 0 or passed < 100:
         if passed < 100:

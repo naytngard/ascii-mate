@@ -2510,3 +2510,11 @@ def create_procedural_renderer(
     w = int(p.get("width", def_w))
     h = int(p.get("height", def_h))
     return cls(width=w, height=h, params=p)
+
+
+# --- Elipsoit tabanlı 3B model motoru (kontur + öznitelik katmanı). DİKKAT: ascii_models'i doğrudan değil,
+# bu modül üzerinden içe aktarın (dairesel içe aktarma sırası burada çözülür).
+from src.core import ascii_animals as _ascii_animals  # noqa: E402,F401
+from src.core import ascii_models as _ascii_models  # noqa: E402
+
+PROCEDURAL_REGISTRY.update(_ascii_models.MODEL_REGISTRY)

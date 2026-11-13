@@ -30,3 +30,4 @@ config.json
 config.json.lock
 config.json.bak
 config.json.*.tmp
+tests/contact_sheet.txt
