@@ -1,4 +1,4 @@
-﻿"""Tüm statik animasyonların ilk karesini tek bir metin sayfasında gösterir (gözle kontrol için).
+"""Tüm statik animasyonların ilk karesini tek bir metin sayfasında gösterir (gözle kontrol için).
 Kullanım: python tests/contact_sheet.py [çıktı.txt]   (varsayılan: stdout ve tests/contact_sheet.txt)
 """
 

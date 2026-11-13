@@ -1,4 +1,4 @@
-﻿"""Eski çizimlerin (klasik ASCII + matematiksel shader'lar) birebir aynı kaldığını kanıtlar.
+"""Eski çizimlerin (klasik ASCII + matematiksel shader'lar) birebir aynı kaldığını kanıtlar.
 
 Altın özetler `tests/make_golden.py` ile commit 6a64039'da (HD içerik görevinden ÖNCE) üretildi.
 """

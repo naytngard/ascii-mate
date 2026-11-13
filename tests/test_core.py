@@ -1,4 +1,4 @@
-﻿"""Birim testleri: converter, ConfigManager, AnimationLibrary, WidgetState, IPC, 3B modeller, kütüphane doğrulayıcı."""
+"""Birim testleri: converter, ConfigManager, AnimationLibrary, WidgetState, IPC, 3B modeller, kütüphane doğrulayıcı."""
 
 from __future__ import annotations
 

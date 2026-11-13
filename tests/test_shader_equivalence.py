@@ -1,4 +1,4 @@
-﻿"""NumPy'a vektörleştirilen shader'ların orijinal saf-Python sürümle BİREBİR aynı çıktı verdiğini kanıtlar."""
+"""NumPy'a vektörleştirilen shader'ların orijinal saf-Python sürümle BİREBİR aynı çıktı verdiğini kanıtlar."""
 
 from __future__ import annotations
 

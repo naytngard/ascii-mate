@@ -1,4 +1,4 @@
-﻿# ✨ ASCII Mate (Yüzen Masaüstü ASCII Arkadaşı)
+# ✨ ASCII Mate (Yüzen Masaüstü ASCII Arkadaşı)
 
 Ders çalışırken, kod yazarken veya kitap okurken masaüstünüzde PDF'lerin, VS Code'un ve pencerelerin **tam üzerinde** hiçbir arkaplan veya çerçeve olmadan süzülen, tamamen saydam, sürüklenebilir, büyütülebilir **137 animasyon**: 134 saf klasik ASCII / canlı 3B Shader (35 canlı 3B model) + 3 opsiyonel **HD renkli ASCII** örneği (tüm karakterler ve zamanlayıcı etiketi saf ASCII'dir).
 

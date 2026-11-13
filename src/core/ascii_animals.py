@@ -1,4 +1,4 @@
-﻿"""3B ASCII hayvan/karakter modelleri (ascii_models motoru üzerinde). Doğrudan değil, procedural_engine üzerinden içe aktarılır."""
+"""3B ASCII hayvan/karakter modelleri (ascii_models motoru üzerinde). Doğrudan değil, procedural_engine üzerinden içe aktarılır."""
 
 from __future__ import annotations
 

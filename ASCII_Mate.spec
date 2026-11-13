@@ -1,4 +1,4 @@
-﻿# -*- mode: python ; coding: utf-8 -*-
+# -*- mode: python ; coding: utf-8 -*-
 # Iki exe uretir: ASCII_Mate.exe (konsolsuz GUI/tepsi) ve ASCII_Mate_CLI.exe (Terminal Hub icin konsollu).
 
 EXCLUDES = [

@@ -1,4 +1,4 @@
-﻿"""Eski (dokunulmaması gereken) çizimlerin altın özetlerini üretir: tests/golden_legacy.json.
+"""Eski (dokunulmaması gereken) çizimlerin altın özetlerini üretir: tests/golden_legacy.json.
 
 Yalnızca bilinçli bir değişiklikten sonra yeniden çalıştırın. Kapsam:
   * assets/animations altındaki tüm klasik/shader .ascii.json dosyaları (yenilenen elipsoit modelleri ve HD'ler hariç)

@@ -1,4 +1,4 @@
-﻿"""ascii_models tabanlı 3B model asset'lerini (.ascii.json) üretir/günceller.
+"""ascii_models tabanlı 3B model asset'lerini (.ascii.json) üretir/günceller.
 
 Kullanım: python tools/generate_model_assets.py
 `frames` alanı yalnızca terminal önizlemesi/dışa aktarma içindir; canlı çizimi `procedural` shader'ı yapar.

@@ -1,4 +1,4 @@
-﻿"""GERÇEK CPU ölçümü: gerçek bir tepsi host'u başlatır, widget'ları IPC ile açar ve host SÜRECİNİN CPU süresini ölçer.
+"""GERÇEK CPU ölçümü: gerçek bir tepsi host'u başlatır, widget'ları IPC ile açar ve host SÜRECİNİN CPU süresini ölçer.
 
 Tahmin değil: işletim sisteminin süreç için tuttuğu kullanıcı+çekirdek CPU süresi (psutil, yoksa GetProcessTimes)
 ölçüm penceresinin başında ve sonunda okunur. Raporlanan:

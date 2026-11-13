@@ -1,4 +1,4 @@
-﻿"""Terminalde bir animasyonu önizler. Kullanım:
+"""Terminalde bir animasyonu önizler. Kullanım:
     python tests/preview_art.py <id> [--w 64 --h 30] [--t 1.2] [--yaw 0.4] [--color] [--frames N]
 3B shader'lar için --t zamanında kare üretir; statik animasyonlarda --frame ile kare seçer.
 --color ANSI 24-bit renk basar (Windows Terminal destekler).
