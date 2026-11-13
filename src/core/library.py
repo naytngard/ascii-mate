@@ -52,6 +52,17 @@ class ThemeLibrary:
             }
 
     def get(self, key: str) -> Dict[str, object]:
+        if key in ("auto", "auto_hd"):
+            return self.themes.get(
+                "auto_hd",
+                {
+                    "name": "HD Çok Renkli (Orijinal)",
+                    "primary": "#F8FAFC",
+                    "secondary": "#38BDF8",
+                    "glow": "#7DD3FC",
+                    "is_rainbow": False,
+                },
+            )
         if key.startswith("#") and len(key) in (4, 7):
             return {"name": f"Özel ({key})", "primary": key, "secondary": key, "glow": key, "is_rainbow": False}
         return self.themes.get(key, next(iter(self.themes.values())))

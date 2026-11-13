@@ -1,13 +1,5 @@
 {
   "themes": {
-    "auto_hd": {
-      "name": "HD Çok Renkli (Orijinal)",
-      "primary": "#F8FAFC",
-      "secondary": "#38BDF8",
-      "glow": "#7DD3FC",
-      "is_rainbow": false,
-      "is_auto_hd": true
-    },
     "white": {
       "name": "Saf Beyaz (Tebeşir)",
       "primary": "#FFFFFF",

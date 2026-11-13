@@ -29,7 +29,7 @@ def resolve_paths() -> tuple[Path, Path]:
     return base, base
 
 
-def run_host(initial_widget_id: str | None = None) -> int:
+def run_host(initial_widget_id: str | None = None, initial_theme: str | None = None) -> int:
     from PyQt6.QtWidgets import QApplication
     from src.gui.tray_manager import WidgetHostManager
 
@@ -56,9 +56,11 @@ def run_host(initial_widget_id: str | None = None) -> int:
     )
 
     if initial_widget_id:
-        w = manager.spawn_widget(initial_widget_id)
+        w = manager.spawn_widget(initial_widget_id, color_theme=initial_theme)
         if not w:
             print(f"[HATA] '{initial_widget_id}' ID'li animasyon bulunamadı.")
+    elif config_mgr.get_global("restore_last_session", False):
+        manager.restore_last_session_widgets()
     return app.exec()
 
 
@@ -82,6 +84,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="ASCII Mate")
     parser.add_argument("--host", action="store_true", help="Arka plan PyQt6 widget ve tepsi sunucusunu başlatır.")
     parser.add_argument("--widget", type=str, default=None, help="Doğrudan belirtilen ID'li widget'ı masaüstünde açar.")
+    parser.add_argument("--theme", type=str, default=None, help="--widget ile açılırken uygulanacak renk teması.")
     parser.add_argument("--no-prewarm", action="store_true", help="Terminal Hub açılırken GUI host ön-ısıtmasını devre dışı bırakır.")
     args = parser.parse_args()
 
@@ -89,11 +92,17 @@ def main() -> int:
         return run_host()
 
     if args.widget:
-        from src.cli.terminal_hub import send_ipc
-        res = send_ipc({"cmd": "spawn", "asset_id": args.widget}, timeout=0.6)
-        if res and res.get("ok"):
-            return 0
-        return run_host(initial_widget_id=args.widget)
+        from src.cli.terminal_hub import _shutdown_stale_host_if_needed, send_ipc
+
+        _, write_dir = resolve_paths()
+        if _shutdown_stale_host_if_needed(write_dir):
+            payload = {"cmd": "spawn", "asset_id": args.widget}
+            if args.theme:
+                payload["color_theme"] = args.theme
+            res = send_ipc(payload, timeout=0.6)
+            if res and res.get("ok"):
+                return 0
+        return run_host(initial_widget_id=args.widget, initial_theme=args.theme)
 
     return run_cli(prewarm=not args.no_prewarm)
 

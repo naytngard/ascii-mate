@@ -89,7 +89,7 @@ def txt_to_ascii_json(
             "toggle_label": "Parçacık Efekti",
             "spawn_area": "bottom",
             "density": "medium",
-            "chars": ["*", ".", "·"],
+            "chars": ["*", ".", "+"],
         },
         "frames": norm_frames,
     }
