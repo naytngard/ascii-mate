@@ -7,7 +7,7 @@ import subprocess
 import sys
 import threading
 import uuid
-from multiprocessing.connection import Listener
+from multiprocessing.connection import Client, Listener
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -36,16 +36,48 @@ from src.gui.context_menu import DARK_GLASS_MENU_QSS
 from src.gui.settings_dialog import DARK_GLASS_DIALOG_QSS
 
 PIPE_ADDRESS = r"\\.\pipe\ascii_mate_ipc" if os.name == "nt" else "/tmp/ascii_mate_ipc.sock"
+PIPE_CLI_ADDRESS = r"\\.\pipe\ascii_mate_cli_ipc" if os.name == "nt" else "/tmp/ascii_mate_cli_ipc.sock"
 
 
-def create_app_icon() -> QIcon:
-    """Generates a crisp, self-contained glowing stickman badge icon without external .ico files."""
+def focus_existing_cli_hub(timeout: float = 0.35) -> bool:
+    """Asks an already-running CLI Terminal Hub to bring its console window to front."""
+    try:
+        if not os.path.exists(PIPE_CLI_ADDRESS):
+            return False
+        with Client(PIPE_CLI_ADDRESS) as conn:
+            conn.send({"cmd": "focus"})
+            if conn.poll(timeout):
+                res = conn.recv()
+                return bool(isinstance(res, dict) and res.get("ok"))
+            return True
+    except Exception:
+        return False
+
+
+def create_app_icon(base_dir: Optional[Path] = None) -> QIcon:
+    """Loads the bespoke ASCII Mate icon from assets, with a crisp drawn fallback."""
+    candidates: List[Path] = []
+    if base_dir is not None:
+        candidates.extend([base_dir / "assets" / "app_icon.ico", base_dir / "assets" / "app_icon.png"])
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        mp = Path(meipass)
+        candidates.extend([mp / "assets" / "app_icon.ico", mp / "assets" / "app_icon.png"])
+    proj_assets = Path(__file__).resolve().parents[2] / "assets"
+    candidates.extend([proj_assets / "app_icon.ico", proj_assets / "app_icon.png"])
+
+    for cand in candidates:
+        if cand.exists():
+            icon = QIcon(str(cand))
+            if not icon.isNull():
+                return icon
+
     pm = QPixmap(64, 64)
     pm.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pm)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
 
-    painter.setBrush(QColor(18, 22, 34, 245))
+    painter.setBrush(QColor(15, 23, 42, 245))
     painter.setPen(QColor(56, 189, 248, 220))
     painter.drawRoundedRect(4, 4, 56, 56, 14, 14)
 
@@ -197,10 +229,11 @@ class WidgetHostManager(QObject):
         self._runtime_sig = get_runtime_signature(self.base_dir)
         self.widgets: Dict[str, CompanionWidget] = {}
         self._picker: Optional[QuickPickerDialog] = None
+        self._hub_proc: Optional[subprocess.Popen] = None
         self._restoring: bool = False
 
         self.app.setQuitOnLastWindowClosed(False)
-        self.icon = create_app_icon()
+        self.icon = create_app_icon(self.base_dir)
         self.app.setWindowIcon(self.icon)
 
         self.tray = QSystemTrayIcon(self.icon, self)
@@ -375,11 +408,20 @@ class WidgetHostManager(QObject):
         self._picker.activateWindow()
 
     def open_terminal_hub(self) -> None:
+        # 1. If a Terminal Hub is already open anywhere, focus its existing console window!
+        if focus_existing_cli_hub():
+            return
+        # 2. Avoid racing multiple consoles while a freshly spawned Terminal Hub is initializing
+        if self._hub_proc is not None and self._hub_proc.poll() is None:
+            return
         if getattr(sys, "frozen", False):
-            subprocess.Popen([sys.executable], creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0)
+            self._hub_proc = subprocess.Popen(
+                [sys.executable],
+                creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0,
+            )
         else:
             main_py = self.base_dir / "main.py"
-            subprocess.Popen(
+            self._hub_proc = subprocess.Popen(
                 [sys.executable, str(main_py)],
                 cwd=str(self.base_dir),
                 creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == "nt" else 0,

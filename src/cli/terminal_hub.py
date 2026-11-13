@@ -6,8 +6,9 @@ import os
 import subprocess
 import sys
 import time
-from multiprocessing.connection import Client
+from multiprocessing.connection import Client, Listener
 from pathlib import Path
+import threading
 from typing import Dict, List, Optional, Tuple
 
 from rich import box
@@ -26,9 +27,10 @@ from src.core.converter import import_file_to_community
 from src.core.library import CATEGORY_ORDER, AnimationLibrary, ThemeLibrary
 from src.core.models import AnimationAsset
 from src.core.procedural_engine import BaseProceduralRenderer, create_procedural_renderer
-from src.gui.tray_manager import PIPE_ADDRESS
+from src.gui.tray_manager import PIPE_ADDRESS, PIPE_CLI_ADDRESS, focus_existing_cli_hub
 
 try:
+    import ctypes
     import msvcrt
     WINDOWS = True
 except ImportError:
@@ -49,40 +51,39 @@ CATEGORY_SHORT = {
 
 BANNER_WIDE_SEGMENTS: List[List[Tuple[str, str]]] = [
     [
-        ("   \\ ", "bold cyan"), ("o", "bold yellow"), (" /  ", "bold cyan"), ("*", "bold yellow"), ("     ", ""),
-        ("   _    ____   ____ ___ ___  ", "bold cyan"),
+        ("    \\", "bold cyan"), ("o", "bold yellow"), ("/  ", "bold cyan"), ("*", "bold yellow"), ("      ", ""),
+        ("  _    ____   ____ ___ ___   ", "bold cyan"),
         (" __  __    _  _____ _____ ", "bold magenta"),
     ],
     [
-        ("    \\|/", "bold cyan"), ("  /", "bold yellow"), ("      ", ""),
-        ("  / \\  / ___| / ___|_ _|_ _| ", "bold cyan"),
+        ("     |  ", "bold cyan"), ("/      ", "bold yellow"),
+        (" / \\  / ___| / ___|_ _|_ _|  ", "bold cyan"),
         ("|  \\/  |  / \\|_   _| ____|", "bold magenta"),
     ],
     [
-        ("     |  ", "bold cyan"), ("/", "bold yellow"), ("      ", ""),
-        (" / _ \\ \\___ \\| |    | | | |  ", "bold blue"),
+        ("    /|\\", "bold cyan"), ("/       ", "bold yellow"),
+        ("/ _ \\ \\___ \\| |    | | | |   ", "bold blue"),
         ("| |\\/| | / _ \\ | | |  _|  ", "bold bright_magenta"),
     ],
     [
-        ("   _/ \\_       ", "bold cyan"),
-        ("/ ___ \\ ___) | |___ | | | |  ", "bold blue"),
+        ("    / \\        ", "bold cyan"),
+        ("/ ___ \\ ___) | |___ | | | |   ", "bold blue"),
         ("| |  | |/ ___ \\| | | |___ ", "bold bright_magenta"),
     ],
     [
-        ("               ", ""),
-        ("/_/   \\_\\____/ \\____|___|___| ", "bold bright_blue"),
+        ("              ", ""),
+        ("/_/   \\_\\____/ \\____|___|___|  ", "bold bright_blue"),
         ("|_|  |_/_/   \\_\\_| |_____|", "bold yellow"),
     ],
     [
-        ("              ", ""),
-        ("ASCII Mate  --  Yuzen Masaustu Arkadasin  *  Saf Klasik ASCII & 3B", "bold white"),
+        ("  ASCII Mate  --  Yuzen Masaustu Arkadasin  *  Saf Klasik ASCII & 3B   ", "bold white"),
     ],
 ]
 
 BANNER_COMPACT_SEGMENTS: List[List[Tuple[str, str]]] = [
-    [("  \\o/ ", "bold cyan"), ("*", "bold yellow"), ("   ASCII MATE", "bold magenta")],
-    [("   |   ", "bold cyan"), ("  Yuzen Masaustu Arkadasin", "bold white")],
-    [("  / \\  ", "bold cyan"), ("  Saf Klasik ASCII & Canli 3B", "dim cyan")],
+    [("  \\", "bold cyan"), ("o", "bold yellow"), ("/ ", "bold cyan"), ("*", "bold yellow"), ("   ASCII MATE              ", "bold magenta")],
+    [("   |     Yuzen Masaustu Arkadasin  ", "bold white")],
+    [("  / \\    Saf Klasik ASCII & 3B     ", "dim cyan")],
 ]
 
 NAV_SHORTCUTS: List[Tuple[str, str]] = [
@@ -104,13 +105,97 @@ DEFAULT_STATUS = "Bir karakter seçip Enter ile masaüstüne bırakın."
 def build_banner_text(width: int) -> Tuple[Text, int]:
     """Builds pure classic ASCII stickman + ASCII Mate banner sized cleanly to terminal width."""
     rows = BANNER_WIDE_SEGMENTS if width >= 86 else BANNER_COMPACT_SEGMENTS
-    txt = Text()
+    row_strs = ["".join(s for s, _ in segs) for segs in rows]
+    max_w = max((len(s) for s in row_strs), default=0)
+    txt = Text(no_wrap=True)
     for i, segs in enumerate(rows):
         if i > 0:
             txt.append("\n")
+        cur_w = 0
         for s_text, s_style in segs:
             txt.append(s_text, style=s_style)
+            cur_w += len(s_text)
+        if cur_w < max_w:
+            txt.append(" " * (max_w - cur_w))
     return txt, len(rows)
+
+
+def _bring_console_to_front() -> None:
+    """Restores and focuses this CLI Hub's console / terminal window on Windows."""
+    if not WINDOWS:
+        return
+    try:
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        hwnd = kernel32.GetConsoleWindow()
+        if not hwnd:
+            return
+        root_hwnd = user32.GetAncestor(hwnd, 2) or hwnd  # GA_ROOT = 2 (handles Windows Terminal too)
+        user32.ShowWindow(root_hwnd, 9)  # SW_RESTORE
+        fg_hwnd = user32.GetForegroundWindow()
+        if fg_hwnd and fg_hwnd != root_hwnd:
+            fg_tid = user32.GetWindowThreadProcessId(fg_hwnd, None)
+            cur_tid = kernel32.GetCurrentThreadId()
+            if fg_tid != cur_tid:
+                user32.AttachThreadInput(fg_tid, cur_tid, True)
+                user32.BringWindowToTop(root_hwnd)
+                user32.SetForegroundWindow(root_hwnd)
+                user32.AttachThreadInput(fg_tid, cur_tid, False)
+            else:
+                user32.SetForegroundWindow(root_hwnd)
+        else:
+            user32.SetForegroundWindow(root_hwnd)
+    except Exception:
+        pass
+
+
+class _CLIFocusServer:
+    """Listens on PIPE_CLI_ADDRESS so duplicate launches focus this window instead of spawning another."""
+
+    def __init__(self) -> None:
+        self._running = True
+        self._listener: Optional[Listener] = None
+        self._thread = threading.Thread(target=self._serve, daemon=True)
+        self._thread.start()
+
+    def _serve(self) -> None:
+        if os.name != "nt" and os.path.exists(PIPE_CLI_ADDRESS):
+            try:
+                os.unlink(PIPE_CLI_ADDRESS)
+            except OSError:
+                pass
+        try:
+            with Listener(PIPE_CLI_ADDRESS) as listener:
+                self._listener = listener
+                while self._running:
+                    try:
+                        conn = listener.accept()
+                    except Exception:
+                        break
+                    try:
+                        msg = conn.recv()
+                        if isinstance(msg, dict) and msg.get("cmd") == "focus":
+                            _bring_console_to_front()
+                        conn.send({"ok": True})
+                    except Exception:
+                        pass
+                    finally:
+                        conn.close()
+        except Exception:
+            pass
+
+    def stop(self) -> None:
+        self._running = False
+        if self._listener is not None:
+            try:
+                self._listener.close()
+            except Exception:
+                pass
+        if os.name != "nt" and os.path.exists(PIPE_CLI_ADDRESS):
+            try:
+                os.unlink(PIPE_CLI_ADDRESS)
+            except OSError:
+                pass
 
 
 def build_footer_panel(term_w: int, active_cnt: int, status_msg: str) -> Tuple[Panel, int]:
@@ -617,139 +702,146 @@ class TerminalHub:
         return layout
 
     def run(self) -> None:
-        os.system("")
-        if hasattr(sys.stdout, "reconfigure"):
-            sys.stdout.reconfigure(encoding="utf-8")
-        if WINDOWS:
-            os.system("title ASCII Mate — Terminal Hub")
-
-        if not self.library.assets:
-            self.library.reload()
-        self._poll_active_widgets(force=True)
-
-        if self.prewarm:
-            prewarm_gui_host(self.base_dir)
-
-        if not WINDOWS:
-            self._run_simple_fallback()
+        if focus_existing_cli_hub(timeout=0.35):
             return
 
-        last_size = (self.console.size.width, self.console.size.height)
-        dirty = True
+        cli_server = _CLIFocusServer()
+        try:
+            os.system("")
+            if hasattr(sys.stdout, "reconfigure"):
+                sys.stdout.reconfigure(encoding="utf-8")
+            if WINDOWS:
+                os.system("title ASCII Mate — Terminal Hub")
 
-        with Live(self._build_layout(0.0), console=self.console, refresh_per_second=16, screen=True) as live:
-            while True:
-                now = time.monotonic()
-                cur_size = (self.console.size.width, self.console.size.height)
-                if cur_size != last_size:
-                    last_size = cur_size
-                    dirty = True
+            if not self.library.assets:
+                self.library.reload()
+            self._poll_active_widgets(force=True)
 
-                if self._poll_active_widgets():
-                    dirty = True
+            if self.prewarm:
+                prewarm_gui_host(self.base_dir)
 
-                items = self._current_items()
-                selected = items[self.item_idx] if items and 0 <= self.item_idx < len(items) else None
-                fps = self._preview_fps(selected)
-                dt_anim = 0.0
-                if fps > 0.0:
-                    interval = 1.0 / fps
-                    elapsed = now - self._last_anim_time
-                    if elapsed >= interval:
-                        self._last_anim_time = now
-                        dt_anim = min(0.25, elapsed)
-                        if selected and not selected.procedural and selected.frame_count > 1:
-                            self._preview_frame = (self._preview_frame + 1) % selected.frame_count
+            if not WINDOWS:
+                self._run_simple_fallback()
+                return
+
+            last_size = (self.console.size.width, self.console.size.height)
+            dirty = True
+
+            with Live(self._build_layout(0.0), console=self.console, refresh_per_second=16, screen=True) as live:
+                while True:
+                    now = time.monotonic()
+                    cur_size = (self.console.size.width, self.console.size.height)
+                    if cur_size != last_size:
+                        last_size = cur_size
                         dirty = True
 
-                if msvcrt.kbhit():
-                    ch = msvcrt.getwch()
-                    dirty = True
-                    if ch in ("\x00", "\xe0"):
-                        code = msvcrt.getwch()
-                        if code == "H":  # Up
-                            if items:
-                                self.item_idx = (self.item_idx - 1) % len(items)
+                    if self._poll_active_widgets():
+                        dirty = True
+
+                    items = self._current_items()
+                    selected = items[self.item_idx] if items and 0 <= self.item_idx < len(items) else None
+                    fps = self._preview_fps(selected)
+                    dt_anim = 0.0
+                    if fps > 0.0:
+                        interval = 1.0 / fps
+                        elapsed = now - self._last_anim_time
+                        if elapsed >= interval:
+                            self._last_anim_time = now
+                            dt_anim = min(0.25, elapsed)
+                            if selected and not selected.procedural and selected.frame_count > 1:
+                                self._preview_frame = (self._preview_frame + 1) % selected.frame_count
+                            dirty = True
+
+                    if msvcrt.kbhit():
+                        ch = msvcrt.getwch()
+                        dirty = True
+                        if ch in ("\x00", "\xe0"):
+                            code = msvcrt.getwch()
+                            if code == "H":  # Up
+                                if items:
+                                    self.item_idx = (self.item_idx - 1) % len(items)
+                                    self._preview_frame = 0
+                            elif code == "P":  # Down
+                                if items:
+                                    self.item_idx = (self.item_idx + 1) % len(items)
+                                    self._preview_frame = 0
+                            elif code == "K":  # Left
+                                self.search_query = ""
+                                self.cat_idx = (self.cat_idx - 1) % len(self.categories)
+                                self.item_idx = 0
                                 self._preview_frame = 0
-                        elif code == "P":  # Down
-                            if items:
-                                self.item_idx = (self.item_idx + 1) % len(items)
+                            elif code == "M":  # Right
+                                self.search_query = ""
+                                self.cat_idx = (self.cat_idx + 1) % len(self.categories)
+                                self.item_idx = 0
                                 self._preview_frame = 0
-                        elif code == "K":  # Left
-                            self.search_query = ""
-                            self.cat_idx = (self.cat_idx - 1) % len(self.categories)
-                            self.item_idx = 0
-                            self._preview_frame = 0
-                        elif code == "M":  # Right
-                            self.search_query = ""
-                            self.cat_idx = (self.cat_idx + 1) % len(self.categories)
-                            self.item_idx = 0
-                            self._preview_frame = 0
-                    elif ch in ("\r", "\n"):
-                        if items:
-                            chosen = items[self.item_idx]
-                            self.status_msg = f"'{chosen.name}' masaüstüne başlatılıyor..."
-                            live.update(self._build_layout(0.0))
-                            ok, msg = spawn_asset_via_host(self.base_dir, chosen.id, color_theme=self._current_theme_key())
-                            self.status_msg = msg
+                        elif ch in ("\r", "\n"):
+                            if items:
+                                chosen = items[self.item_idx]
+                                self.status_msg = f"'{chosen.name}' masaüstüne başlatılıyor..."
+                                live.update(self._build_layout(0.0))
+                                ok, msg = spawn_asset_via_host(self.base_dir, chosen.id, color_theme=self._current_theme_key())
+                                self.status_msg = msg
+                                self._poll_active_widgets(force=True)
+                        elif ch in ("1", "2", "3", "4", "5", "6", "7"):
+                            idx_num = int(ch) - 1
+                            if 0 <= idx_num < len(self.categories):
+                                self.search_query = ""
+                                self.cat_idx = idx_num
+                                self.item_idx = 0
+                                self._preview_frame = 0
+                        elif ch in ("f", "F"):
+                            if items:
+                                chosen = items[self.item_idx]
+                                added = self.config_mgr.toggle_favorite(chosen.id)
+                                self.status_msg = f"'{chosen.name}' favorilere eklendi (★)." if added else f"'{chosen.name}' favorilerden çıkarıldı."
+                                self._invalidate_panel_caches()
+                        elif ch in ("c", "C"):
+                            if self.theme_keys:
+                                self.theme_idx = (self.theme_idx + 1) % len(self.theme_keys)
+                                tk = self._current_theme_key()
+                                t_lbl = "Önerilen HD" if tk == "auto" else str(self.theme_lib.get(tk).get("name", tk))
+                                self.status_msg = f"Önizleme & fırlatma teması: {t_lbl}"
+                                self._invalidate_panel_caches()
+                        elif ch == "/":
+                            live.stop()
+                            self._prompt_search()
+                            self._invalidate_panel_caches()
+                            live.start()
+                        elif ch in ("w", "W"):
+                            live.stop()
+                            self._manage_active_widgets()
                             self._poll_active_widgets(force=True)
-                    elif ch in ("1", "2", "3", "4", "5", "6", "7"):
-                        idx_num = int(ch) - 1
-                        if 0 <= idx_num < len(self.categories):
+                            self._invalidate_panel_caches()
+                            live.start()
+                        elif ch in ("i", "I"):
+                            live.stop()
+                            self._import_community_prompt()
+                            self._invalidate_panel_caches()
+                            live.start()
+                        elif ch in ("r", "R"):
+                            self.library.reload()
+                            send_ipc({"cmd": "reload"}, timeout=0.3)
+                            self._invalidate_panel_caches()
+                            self.status_msg = f"Kütüphane yenilendi ({len(self.library.assets)} animasyon)."
+                        elif ch == "\x1b":  # Esc clears search
                             self.search_query = ""
-                            self.cat_idx = idx_num
                             self.item_idx = 0
-                            self._preview_frame = 0
-                    elif ch in ("f", "F"):
-                        if items:
-                            chosen = items[self.item_idx]
-                            added = self.config_mgr.toggle_favorite(chosen.id)
-                            self.status_msg = f"'{chosen.name}' favorilere eklendi (★)." if added else f"'{chosen.name}' favorilerden çıkarıldı."
-                            self._invalidate_panel_caches()
-                    elif ch in ("c", "C"):
-                        if self.theme_keys:
-                            self.theme_idx = (self.theme_idx + 1) % len(self.theme_keys)
-                            tk = self._current_theme_key()
-                            t_lbl = "Önerilen HD" if tk == "auto" else str(self.theme_lib.get(tk).get("name", tk))
-                            self.status_msg = f"Önizleme & fırlatma teması: {t_lbl}"
-                            self._invalidate_panel_caches()
-                    elif ch == "/":
-                        live.stop()
-                        self._prompt_search()
-                        self._invalidate_panel_caches()
-                        live.start()
-                    elif ch in ("w", "W"):
-                        live.stop()
-                        self._manage_active_widgets()
-                        self._poll_active_widgets(force=True)
-                        self._invalidate_panel_caches()
-                        live.start()
-                    elif ch in ("i", "I"):
-                        live.stop()
-                        self._import_community_prompt()
-                        self._invalidate_panel_caches()
-                        live.start()
-                    elif ch in ("r", "R"):
-                        self.library.reload()
-                        send_ipc({"cmd": "reload"}, timeout=0.3)
-                        self._invalidate_panel_caches()
-                        self.status_msg = f"Kütüphane yenilendi ({len(self.library.assets)} animasyon)."
-                    elif ch == "\x1b":  # Esc clears search
-                        self.search_query = ""
-                        self.item_idx = 0
-                    elif ch in ("q", "Q"):
-                        break
+                        elif ch in ("q", "Q"):
+                            break
 
-                if dirty:
-                    live.update(self._build_layout(dt_anim))
-                    dirty = False
+                    if dirty:
+                        live.update(self._build_layout(dt_anim))
+                        dirty = False
 
-                time.sleep(0.03)
+                    time.sleep(0.03)
 
-        self.console.clear()
-        self.console.print("[bold cyan]ASCII Mate Terminal Hub kapatıldı.[/bold cyan]")
-        if self._active_widgets_cache:
-            self.console.print("[dim]Not: Açık masaüstü widget'larınız arka planda çalışmaya devam ediyor (Sistem Tepsisinden yönetebilirsiniz).[/dim]")
+            self.console.clear()
+            self.console.print("[bold cyan]ASCII Mate Terminal Hub kapatıldı.[/bold cyan]")
+            if self._active_widgets_cache:
+                self.console.print("[dim]Not: Açık masaüstü widget'larınız arka planda çalışmaya devam ediyor (Sistem Tepsisinden yönetebilirsiniz).[/dim]")
+        finally:
+            cli_server.stop()
 
     def _prompt_search(self) -> None:
         self.console.clear()

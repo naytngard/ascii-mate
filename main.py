@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -12,6 +13,49 @@ if str(BASE_ROOT) not in sys.path:
 
 from src.core.config_manager import ConfigManager
 from src.core.library import AnimationLibrary, ThemeLibrary
+
+_HOST_MUTEX_HANDLE = None
+
+
+def _set_windows_app_id() -> None:
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("asciimate.companion.app")
+    except Exception:
+        pass
+
+
+def _acquire_host_mutex() -> bool:
+    """Returns True if this process is the sole GUI Host instance, False if another host already holds the mutex."""
+    global _HOST_MUTEX_HANDLE
+    if os.name != "nt":
+        return True
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.CreateMutexW(None, True, "Local\\ASCII_Mate_Host_Mutex")
+        last_err = kernel32.GetLastError()
+        if handle and last_err == 183:  # ERROR_ALREADY_EXISTS
+            kernel32.CloseHandle(handle)
+            return False
+        _HOST_MUTEX_HANDLE = handle
+        return True
+    except Exception:
+        return True
+
+
+def _release_host_mutex() -> None:
+    global _HOST_MUTEX_HANDLE
+    if _HOST_MUTEX_HANDLE and os.name == "nt":
+        try:
+            import ctypes
+            ctypes.windll.kernel32.ReleaseMutex(_HOST_MUTEX_HANDLE)
+            ctypes.windll.kernel32.CloseHandle(_HOST_MUTEX_HANDLE)
+        except Exception:
+            pass
+        _HOST_MUTEX_HANDLE = None
 
 
 def resolve_paths() -> tuple[Path, Path]:
@@ -30,6 +74,16 @@ def resolve_paths() -> tuple[Path, Path]:
 
 
 def run_host(initial_widget_id: str | None = None, initial_theme: str | None = None) -> int:
+    _set_windows_app_id()
+    if not _acquire_host_mutex():
+        if initial_widget_id:
+            from src.cli.terminal_hub import send_ipc
+            payload = {"cmd": "spawn", "asset_id": initial_widget_id}
+            if initial_theme:
+                payload["color_theme"] = initial_theme
+            send_ipc(payload, timeout=0.6)
+        return 0
+
     from PyQt6.QtWidgets import QApplication
     from src.gui.tray_manager import WidgetHostManager
 
@@ -61,10 +115,19 @@ def run_host(initial_widget_id: str | None = None, initial_theme: str | None = N
             print(f"[HATA] '{initial_widget_id}' ID'li animasyon bulunamadı.")
     elif config_mgr.get_global("restore_last_session", False):
         manager.restore_last_session_widgets()
-    return app.exec()
+    try:
+        return app.exec()
+    finally:
+        _release_host_mutex()
 
 
 def run_cli(prewarm: bool = True) -> int:
+    _set_windows_app_id()
+    from src.gui.tray_manager import focus_existing_cli_hub
+
+    if focus_existing_cli_hub(timeout=0.35):
+        return 0
+
     from src.cli.terminal_hub import TerminalHub
 
     res_dir, write_dir = resolve_paths()

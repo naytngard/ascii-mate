@@ -330,15 +330,17 @@ class CompanionWidget(QWidget):
 
     def _recalculate_size(self) -> None:
         char_w, line_h, _ = self._get_font_metrics()
+        fm = QFontMetricsF(self._build_font())
         lines = self._current_lines or ["(Boş)"]
         cols = max((len(l) for l in lines), default=10)
+        max_px = max(cols * char_w, max((fm.horizontalAdvance(l) for l in lines), default=0.0))
         rows = len(lines)
 
         pad_x = 24
         pad_y = 22
         extra_timer_h = int(math.ceil(line_h * 1.1)) if (self._timer_active and self.state.show_timer_below) else 0
 
-        w = int(math.ceil(cols * char_w)) + pad_x
+        w = int(math.ceil(max_px)) + pad_x
         h = int(math.ceil(rows * line_h)) + pad_y + extra_timer_h
         new_w, new_h = max(90, w), max(60, h)
         if new_w != self.width() or new_h != self.height():
@@ -352,7 +354,7 @@ class CompanionWidget(QWidget):
         if nx < -0.25:
             pairs = (("( o.o )", "(o.o  )"), ("( O.O )", "(O.O  )"), ("( o_o )", "(o_o  )"), ("( -.- )", "(-.-  )"), ("( ^.^ )", "(^.^  )"))
         elif nx > 0.25:
-            pairs = (("( o.o )", "(  o.o)"), ("( O.O )", "(  O.O)"), ("( o_o )", "(  o_o)"), ("( -.- )", "(  -.-)"), ("( ^.^ )", "(  ^.^ )"))
+            pairs = (("( o.o )", "(  o.o)"), ("( O.O )", "(  O.O)"), ("( o_o )", "(  o_o)"), ("( -.- )", "(  -.-)"), ("( ^.^ )", "(  ^.^)"))
         else:
             return lines
         out = []
@@ -593,6 +595,7 @@ class CompanionWidget(QWidget):
 
         font = self._build_font()
         painter.setFont(font)
+        fm = QFontMetricsF(font)
         char_w, line_h, ascent = self._get_font_metrics()
 
         alpha = max(0.0, min(1.0, self.state.opacity * self._fade_factor))
@@ -656,7 +659,8 @@ class CompanionWidget(QWidget):
                         qcol = QColor(rgb[0], rgb[1], rgb[2], alpha_255)
                         pen_cache[rgb] = qcol
                     painter.setPen(qcol)
-                    painter.drawText(QPointF(start_x + run_start * char_w, y), line[run_start:col_idx])
+                    x_pos = start_x + fm.horizontalAdvance(line[:run_start])
+                    painter.drawText(QPointF(x_pos, y), line[run_start:col_idx])
         else:
             fg_col = QColor(primary.red(), primary.green(), primary.blue(), alpha_255)
             painter.setPen(fg_col)

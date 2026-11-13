@@ -27,6 +27,41 @@ def check_pure_ascii_lines(lines: list[str], label: str) -> tuple[bool, str]:
     return True, "OK"
 
 
+def check_box_alignment(frames: list[str], label: str) -> tuple[bool, str]:
+    """Ensure multi-row rectangular ASCII frames don't slip by 1-3 columns or vary frame height/width."""
+    dims = set()
+    for fi, fr in enumerate(frames):
+        lines = fr.split("\n")
+        dims.add((len(lines), max((len(ln) for ln in lines), default=0)))
+        pipe_rows = []
+        for r, ln in enumerate(lines):
+            s = ln.rstrip()
+            st = s.lstrip()
+            if not st:
+                continue
+            lcol = len(s) - len(st)
+            rcol = len(s) - 1
+            if (st[0] in "|+" and st[-1] in "|+") or (
+                st[0] in ".`'" and st[-1] in ".`'\\/" and ("---" in st or "===" in st or "___" in st)
+            ):
+                if rcol - lcol >= 10:
+                    pipe_rows.append((r, lcol, rcol, st[:3], st[-3:]))
+        if len(pipe_rows) >= 2:
+            for a, b in zip(pipe_rows, pipe_rows[1:]):
+                if b[0] - a[0] <= 2:
+                    dl = abs(b[1] - a[1])
+                    dr = abs(b[2] - a[2])
+                    if (dl == 0 and dr in (1, 2, 3)) or (dr == 0 and dl in (1, 2, 3)):
+                        if a[3][0] in "|+." and b[3][0] in "|+'." and a[4][-1] in "|+.'" and b[4][-1] in "|+.'":
+                            return False, (
+                                f"{label}#frame{fi}: Kutu/kenar hizasi kayik "
+                                f"(satir {a[0]} [{a[1]}..{a[2]}] vs satir {b[0]} [{b[1]}..{b[2]}])"
+                            )
+    if len(dims) > 1:
+        return False, f"{label}: Kare boyutlari uyusmuyor: {sorted(dims)}"
+    return True, "OK"
+
+
 def main() -> int:
     anim_dir = BASE_DIR / "assets" / "animations"
     json_files = sorted(anim_dir.rglob("*.ascii.json"))
@@ -106,6 +141,11 @@ def main() -> int:
                     f"[FAIL] {rel}: Statik model cok kucuk ({len(first_lines)} satir, {non_blank_rows} dolu satir). "
                     f"Minimum 12 satir ve 8 dolu satir gerekli."
                 )
+                failed += 1
+                continue
+            align_ok, align_msg = check_box_alignment(data["frames"], str(rel))
+            if not align_ok:
+                print(f"[FAIL] {align_msg}")
                 failed += 1
                 continue
 
