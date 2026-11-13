@@ -139,6 +139,10 @@ def check_hd_asset(json_path: Path, data: dict) -> tuple[bool, str]:
 
 
 def main() -> int:
+    # CI / Turkish Windows consoles may use cp1252/cp1254; never crash on output.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     anim_dir = BASE_DIR / "assets" / "animations"
     json_files = sorted(anim_dir.rglob("*.ascii.json"))
 
