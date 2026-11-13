@@ -1,0 +1,22 @@
+{
+  "schema_version": "3.0",
+  "hd": true,
+  "id": "hd_poppy_field",
+  "name": "HD Gelincik Tarlası (Rüzgârlı)",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "gelincik",
+    "çimen",
+    "rüzgar",
+    "hd"
+  ],
+  "default_fps": 10.0,
+  "recommended_color": "auto_hd",
+  "hd_file": "hd_poppy_field.ascii.hd",
+  "cols": 190,
+  "rows": 44,
+  "frame_count": 24,
+  "bg_mode": "transparent",
+  "frames": []
+}
