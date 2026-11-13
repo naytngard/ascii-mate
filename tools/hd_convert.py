@@ -21,7 +21,8 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+if os.name != "nt":  # Windows'ta gerçek platform: offscreen eklentisinde sistem yazı tipleri yok (glifler kutu çıkar → rampa bozulur)
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 BASE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE))
 
@@ -32,6 +33,8 @@ from PyQt6.QtGui import QGuiApplication, QImage, QImageReader  # noqa: E402
 from src.core.hd_format import write_hd  # noqa: E402
 from src.gui.hd_renderer import build_atlas  # noqa: E402
 
+# Dolgu karakterleri: yönsüz "leke" sembolleri. / \ | ( ) [ ] gibi yönlü karakterler yalnızca kenarlara ayrılır.
+SYMBOL_CHARSET = ".,:;'`^\"~-=+*o%#&@$"
 IMG_EXT = {".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tga", ".tif", ".tiff"}
 _APP: Optional[QGuiApplication] = None
 
@@ -39,7 +42,9 @@ _APP: Optional[QGuiApplication] = None
 def ensure_qt() -> None:
     global _APP
     if QGuiApplication.instance() is None:
-        _APP = QGuiApplication(sys.argv[:1])
+        from PyQt6.QtWidgets import QApplication  # widget içeren süreçlerle uyumlu olsun diye QApplication
+
+        _APP = QApplication(sys.argv[:1])
 
 
 # --------------------------------------------------------------------------- ramp (gerçek mürekkep yoğunluğu)
@@ -60,12 +65,15 @@ def build_ramp(spec: str = "auto", levels: int = 22) -> List[Tuple[str, float]]:
             raise SystemExit("--ramp geçerli ASCII karakter içermiyor")
         pairs = sorted(((c, ink[c]) for c in chars), key=lambda x: x[1])
     else:
-        top = max(ink.values())
+        # Yalnızca sembol karakterleri: harf/rakam kalabalığı "yazı" gibi görünüp şekli bozar
+        cand = {c: v for c, v in ink.items() if c in SYMBOL_CHARSET}
+        top = max(cand.values())
+        levels = min(levels, len(cand))
         pairs = []
         used = set()
         for k in range(1, levels + 1):
             target = top * k / levels
-            best = min((c for c in ink if c not in used), key=lambda c: abs(ink[c] - target))
+            best = min((c for c in cand if c not in used), key=lambda c: abs(cand[c] - target))
             used.add(best)
             pairs.append((best, ink[best]))
         pairs.sort(key=lambda x: x[1])
@@ -113,6 +121,7 @@ def convert_rgba(
     bg_threshold: float = 0.06,
     color_bits: int = 5,
     color_lift: float = 0.5,
+    invert: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """RGBA (H,W,4 float) → (chars (rows,cols) uint8, colors (rows,cols,3) uint8)."""
     big = resize_rgba(arr, cols * 2, rows * 2)  # kenar/ton için 2× örnekleme
@@ -127,11 +136,14 @@ def convert_rgba(
     rgb = pool(rgb2 * w) / np.maximum(pool(w), 1e-4)
     lum = pool(lum2 * a2) / np.maximum(alpha, 1e-4)
     tone = np.clip(lum, 0, 1) ** (1.0 / max(gamma, 1e-3))
+    if invert:  # açık zemin önünde koyu özne (gökyüzü önünde siluet): yoğunluk koyuluktan gelsin
+        tone = 1.0 - tone
 
     inks = np.array([r[1] for r in ramp], np.float32)
     inks = inks / max(inks.max(), 1e-6)
     ramp_chars = np.array([ord(r[0]) for r in ramp], np.uint8)
     idx = np.clip(np.round(tone * (len(ramp) - 1)).astype(int), 0, len(ramp) - 1)
+    idx = np.where(alpha[..., 0] >= 0.35 if alpha.ndim == 3 else alpha >= 0.35, np.maximum(idx, 1), idx)  # koyu özne en az '.' olsun
     chars = ramp_chars[idx]
 
     # kenarlar (Sobel, 2× ızgarada) → | - / \
