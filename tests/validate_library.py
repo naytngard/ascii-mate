@@ -66,6 +66,14 @@ def main() -> int:
         if not frame_ok:
             continue
 
+        # Enforce pure ASCII inside particles.chars
+        p_chars = (data.get("particles") or {}).get("chars") or []
+        p_char_ok, p_char_msg = check_pure_ascii_lines(["".join(str(x) for x in p_chars)], f"{rel}#particles")
+        if not p_char_ok:
+            print(f"[FAIL] {p_char_msg}")
+            failed += 1
+            continue
+
         aid = data["id"]
         if aid in seen_ids:
             print(f"[FAIL] {rel}: Çakışan ID '{aid}' (ilk görülen: {seen_ids[aid]})")
@@ -89,11 +97,22 @@ def main() -> int:
                 print(f"[FAIL] {p_msg}")
                 failed += 1
                 continue
+        else:
+            # Enforce detailed static artwork minimum height >= 12 and >= 8 non-blank lines
+            first_lines = data["frames"][0].split("\n")
+            non_blank_rows = sum(1 for ln in first_lines if ln.strip())
+            if len(first_lines) < 12 or non_blank_rows < 8:
+                print(
+                    f"[FAIL] {rel}: Statik model cok kucuk ({len(first_lines)} satir, {non_blank_rows} dolu satir). "
+                    f"Minimum 12 satir ve 8 dolu satir gerekli."
+                )
+                failed += 1
+                continue
 
         seen_ids[aid] = str(rel)
         passed += 1
 
-    # Explicitly verify ALL procedural shaders in PROCEDURAL_REGISTRY
+    # Explicitly verify ALL procedural shaders in PROCEDURAL_REGISTRY (dynamic grid + orbit + cursor + hourglass progress)
     proc_passed = 0
     for proc_id in sorted(PROCEDURAL_REGISTRY):
         renderer = create_procedural_renderer(proc_id)
@@ -102,7 +121,7 @@ def main() -> int:
             failed += 1
             continue
         ok_all = True
-        for step_i in range(3):
+        for step_i in range(2):
             pf = renderer.step(0.15)
             p_ok, p_msg = check_pure_ascii_lines(pf.lines, f"shader:{proc_id}@step{step_i}")
             if not p_ok:
@@ -110,6 +129,29 @@ def main() -> int:
                 failed += 1
                 ok_all = False
                 break
+
+        if ok_all:
+            renderer.set_grid_size(64, 30)
+            renderer.yaw_offset = 0.45
+            renderer.pitch_offset = -0.25
+            renderer.cursor_look = (0.7, -0.4)
+            if proc_id == "hourglass_3d":
+                renderer.progress = 0.35
+            pf_hd = renderer.render_at(1.2)
+            if len(pf_hd.lines) != 30 or len(pf_hd.lines[0]) != 64:
+                print(
+                    f"[FAIL] shader:{proc_id}: set_grid_size(64, 30) beklenen boyutu vermedi "
+                    f"({len(pf_hd.lines[0]) if pf_hd.lines else 0}x{len(pf_hd.lines)})"
+                )
+                failed += 1
+                ok_all = False
+            else:
+                p_ok, p_msg = check_pure_ascii_lines(pf_hd.lines, f"shader:{proc_id}@64x30")
+                if not p_ok:
+                    print(f"[FAIL] {p_msg}")
+                    failed += 1
+                    ok_all = False
+
         if ok_all:
             proc_passed += 1
 
