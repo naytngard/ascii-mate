@@ -1,4 +1,4 @@
-﻿"""Örnek HD varlıkları ÜRETİR (hepsi bu betikle, kendi ürettiğimiz parametrik/procedural kaynaklardan; harici görsel/mesh yok).
+"""Örnek HD varlıkları ÜRETİR (hepsi bu betikle, kendi ürettiğimiz parametrik/procedural kaynaklardan; harici görsel/mesh yok).
 
   1. hd_torus_knot_spin   : parametrik torus düğümü (OBJ üretilir → tools/hd_convert.py ile 48 karelik döner döngü)
   2. hd_poppy_field       : procedural, rüzgârla sallanan çimen + gelincik tarlası (24 karelik döngü, 10 FPS)
