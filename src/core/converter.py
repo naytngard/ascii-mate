@@ -103,10 +103,40 @@ def txt_to_ascii_json(
     }
 
 
+def validate_hd_meta(data: Dict[str, Any]) -> Tuple[bool, str]:
+    """HD (schema 3.0) üst verisi: kareler ayrı `.ascii.hd` dosyasındadır, burada yalnızca bildirim doğrulanır."""
+    for req in ("id", "name", "hd_file", "cols", "rows", "frame_count"):
+        if req not in data:
+            return False, f"HD zorunlu alan eksik: '{req}'"
+    if str(data.get("schema_version")) != "3.0":
+        return False, "HD varlıklar schema_version '3.0' olmalıdır."
+    if not isinstance(data["id"], str) or not data["id"].strip() or not isinstance(data["name"], str) or not data["name"].strip():
+        return False, "'id' ve 'name' boş olmayan metin olmalıdır."
+    hf = data["hd_file"]
+    if not isinstance(hf, str) or not hf.endswith(".ascii.hd") or "/" in hf or "\\" in hf or ".." in hf:
+        return False, "'hd_file' yalnızca aynı klasördeki bir '*.ascii.hd' dosya adı olabilir."
+    for k, hi in (("cols", 600), ("rows", 300), ("frame_count", 5000)):
+        v = data[k]
+        if isinstance(v, bool) or not isinstance(v, int) or not (1 <= v <= hi):
+            return False, f"'{k}' 1..{hi} aralığında tam sayı olmalıdır."
+    try:
+        fps = float(data.get("default_fps", 10.0))
+    except (TypeError, ValueError):
+        return False, "'default_fps' sayı olmalıdır."
+    if not (0.1 <= fps <= 30.0):
+        return False, "'default_fps' 0.1..30 aralığında olmalıdır."
+    if data.get("bg_mode", "transparent") not in ("transparent", "solid"):
+        return False, "'bg_mode' 'transparent' veya 'solid' olmalıdır."
+    return True, "OK"
+
+
 def validate_ascii_json_dict(data: Any) -> Tuple[bool, str]:
     """Validates schema and alignment of a parsed .ascii.json payload (v1.0 & v2.0 HD)."""
     if not isinstance(data, dict):
         return False, "JSON kök nesnesi dict olmalıdır."
+
+    if data.get("hd"):
+        return validate_hd_meta(data)
 
     for req in ("id", "name", "frames"):
         if req not in data:
@@ -185,6 +215,8 @@ def import_file_to_community(
             data = json.loads(raw_text)
         except Exception as e:
             return None, f"Geçersiz JSON formatı: {e}"
+        if isinstance(data, dict) and data.get("hd"):
+            return None, "HD varlıklar iki dosyadır (.ascii.json + .ascii.hd): ikisini birlikte assets/animations/community/ klasörüne kopyalayın."
         if isinstance(data, dict) and isinstance(data.get("frames"), list) and data["frames"]:
             data["frames"] = normalize_frames([str(f) for f in data["frames"]])
             data.setdefault("schema_version", "1.0")

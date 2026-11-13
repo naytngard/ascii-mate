@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, asdict
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 
@@ -105,6 +106,13 @@ class AnimationAsset:
     supports_eye_blink: bool = False
     supports_sleep_zzz: bool = False
     blink_patterns: List[List[str]] = field(default_factory=list)  # [[ara, yerine], ...]
+    # v3.0 HD (yüksek çözünürlüklü, karakter başına renkli) varlık: kareler ayrı .ascii.hd dosyasında, tembel yüklenir
+    hd: bool = False
+    hd_file: Optional[str] = None
+    hd_cols: int = 0
+    hd_rows: int = 0
+    hd_frame_count: int = 0
+    bg_mode: str = "transparent"  # transparent | solid
     # v2.0 HD & Procedural 3D support
     procedural: Optional[str] = None
     procedural_params: Dict[str, Any] = field(default_factory=dict)
@@ -114,7 +122,18 @@ class AnimationAsset:
 
     @property
     def frame_count(self) -> int:
-        return len(self.frames)
+        return self.hd_frame_count if self.hd else len(self.frames)
+
+    @property
+    def is_hd(self) -> bool:
+        return bool(self.hd)
+
+    def hd_path(self) -> Optional[Path]:
+        """HD kare dosyasının yolu (meta JSON'un yanında)."""
+        if not (self.hd and self.hd_file):
+            return None
+        base = Path(self.source_path).parent if self.source_path else Path(".")
+        return base / self.hd_file
 
     @property
     def is_procedural(self) -> bool:
@@ -122,7 +141,7 @@ class AnimationAsset:
 
     @property
     def has_multicolor(self) -> bool:
-        return bool(self.procedural or (self.palette_map and self.color_frames))
+        return bool(self.hd or self.procedural or (self.palette_map and self.color_frames))
 
     def get_rgb_palette(self) -> Dict[str, Tuple[int, int, int]]:
         if self._rgb_palette_cache is None:
@@ -147,6 +166,8 @@ class AnimationAsset:
     @property
     def dimensions(self) -> tuple[int, int]:
         """Returns (max_width, max_height) across all frames."""
+        if self.hd and self.hd_cols > 0 and self.hd_rows > 0:
+            return (self.hd_cols, self.hd_rows)
         if self.procedural and self.procedural_params:
             pw = self.procedural_params.get("width")
             ph = self.procedural_params.get("height")
@@ -200,6 +221,12 @@ class AnimationAsset:
             supports_eye_blink=bool(data.get("supports_eye_blink", False)),
             supports_sleep_zzz=bool(data.get("supports_sleep_zzz", False)),
             blink_patterns=_parse_blink_patterns(data.get("blink_patterns")),
+            hd=bool(data.get("hd", False)),
+            hd_file=str(data["hd_file"]) if data.get("hd_file") else None,
+            hd_cols=_clamp_int(data.get("cols"), 0, 600, 0),
+            hd_rows=_clamp_int(data.get("rows"), 0, 300, 0),
+            hd_frame_count=_clamp_int(data.get("frame_count"), 0, 5000, 0),
+            bg_mode=str(data.get("bg_mode", "transparent")) if str(data.get("bg_mode", "transparent")) in ("transparent", "solid") else "transparent",
             procedural=str(proc) if proc else None,
             procedural_params=dict(proc_params) if isinstance(proc_params, dict) else {},
             palette_map=palette_map,
@@ -219,6 +246,9 @@ class AnimationAsset:
             "particles": self.particles.to_dict(),
             "frames": self.frames,
         }
+        if self.hd:
+            d.update({"hd": True, "hd_file": self.hd_file, "cols": self.hd_cols, "rows": self.hd_rows,
+                      "frame_count": self.hd_frame_count, "bg_mode": self.bg_mode})
         if self.procedural:
             d["procedural"] = self.procedural
         if self.procedural_params:
@@ -266,6 +296,9 @@ class WidgetState:
     behind_text_enabled: bool = False
     behind_text_sensitivity: float = 0.5  # 0..1
     behind_text_fade: float = 0.2  # soluk alfa çarpanı 0.08..0.6
+    # v3.0 HD kalite
+    hd_quality: str = "medium"  # low | medium | high
+    hd_fps_cap: Optional[float] = None  # None = kaliteye göre
 
     @classmethod
     def from_dict(cls, asset_id: str, data: Optional[Dict[str, Any]]) -> "WidgetState":
@@ -311,6 +344,8 @@ class WidgetState:
             behind_text_enabled=bool(data.get("behind_text_enabled", False)),
             behind_text_sensitivity=_clamp_float(data.get("behind_text_sensitivity"), 0.0, 1.0, 0.5),
             behind_text_fade=_clamp_float(data.get("behind_text_fade"), 0.08, 0.6, 0.2),
+            hd_quality=str(data.get("hd_quality")) if str(data.get("hd_quality")) in ("low", "medium", "high") else "medium",
+            hd_fps_cap=_clamp_float(data.get("hd_fps_cap"), 1.0, 15.0, None),
         )
 
     def to_dict(self) -> Dict[str, Any]:

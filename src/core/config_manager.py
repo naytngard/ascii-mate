@@ -140,7 +140,7 @@ class ConfigManager:
         if not self.config_path.exists():
             return None
         try:
-            with self.config_path.open("r", encoding="utf-8") as f:
+            with self.config_path.open("r", encoding="utf-8-sig") as f:  # Not Defteri'nin BOM'una dayanıklı
                 loaded = json.load(f)
             if not isinstance(loaded, dict):
                 raise ValueError("kök nesne dict değil")

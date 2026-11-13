@@ -30,7 +30,7 @@ FOLDER_TO_CATEGORY = {
     "community": "Topluluk / Özel Eklenenler",
 }
 
-INDEX_FORMAT_VERSION = 3
+INDEX_FORMAT_VERSION = 4
 
 
 class ThemeLibrary:
