@@ -1,6 +1,6 @@
 # ✨ ASCII Mate (Yüzen Masaüstü ASCII Arkadaşı)
 
-Ders çalışırken, kod yazarken veya kitap okurken masaüstünüzde PDF'lerin, VS Code'un ve pencerelerin **tam üzerinde** hiçbir arkaplan veya çerçeve olmadan süzülen, tamamen saydam, sürüklenebilir, büyütülebilir **115+ saf klasik ASCII & canlı 3B Shader animasyonu**.
+Ders çalışırken, kod yazarken veya kitap okurken masaüstünüzde PDF'lerin, VS Code'un ve pencerelerin **tam üzerinde** hiçbir arkaplan veya çerçeve olmadan süzülen, tamamen saydam, sürüklenebilir, büyütülebilir **125+ saf klasik ASCII & canlı 3B Shader animasyonu**.
 
 ---
 
@@ -20,7 +20,7 @@ python main.py
 python main.py --widget sleeping_cat
 python main.py --widget saturn_3d
 
-# Tüm 115+ animasyonu doğrular (saf klasik ASCII + 3B shader testi):
+# Tüm 125+ animasyonu doğrular (saf klasik ASCII + 3B shader testi):
 python tests/validate_library.py
 ```
 
@@ -55,15 +55,19 @@ ascii_mate/
 ## 🎮 Masaüstü Widget Kontrolleri
 
 * **Sol Tık + Sürükle:** Karakteri ekranın istediğiniz köşesine taşıyın (konumu otomatik kaydedilir).
-* **Mouse Tekerleği (Scroll) / `+` `-`:** Karakter boyutunu pürüzsüz büyütüp küçültün (`8 pt` – `42 pt`).
-* **Üzerine Gelme (Hover):** Fare ile üzerine geldiğinizde tutmayı kolaylaştıran zarif noktalı bir çerçeve belirir; fare gidince tekrar tamamen görünmez olur.
+* **Shift + Sol Tık (3B Orbit) / Serbest Bakış:** Canlı 3B modellerin kamera açısını (`pitch` / `yaw`) fareyle istediğiniz yöne çevirin.
+* **Köşe/Kenar Tutmaçları, Mouse Tekerleği (Scroll) / `+` `-`:** Karakter boyutunu pürüzsüz büyütüp küçültün (`6 pt` – `48 pt`). 3B modellerde **Otomatik** çözünürlük modunda widget büyüdükçe ASCII ızgara yoğunluğu (`width × height`) da otomatik artar!
+* **Üzerine Gelme (Hover):** Fare ile üzerine geldiğinizde tutma ve köşe/kenar boyutlandırma tutmaçları belirir; fare gidince tekrar tamamen görünmez olur.
 * **Sağ Tık Menüsü:**
   * 💧 **Saydamlık:** `%15` ile `%100` arası canlı ayar + İnce Ayar Slider Paneli.
-  * ⏱️ **Çalışma Zamanlayıcısı (Pomodoro):** `15 / 25 / 45 / 60 dk` veya özel dakika; süre dolduğunda *"Mola Zamanı! ✨"* mesajı verip zarifçe kapanır.
+  * 🖥️ **3B Izgara Çözünürlüğü:** Kompakt (`38×18`), Standart (`52×24`), HD (`64×30`), Ultra HD (`74×34`) veya Büyütmeye Göre Otomatik.
+  * ⏱️ **Çalışma Zamanlayıcısı (Pomodoro):** `15 / 25 / 45 / 60 dk` veya özel dakika (`3B Kum Saati` kalan süreyle senkron akar!); süre dolduğunda **5 saniyelik canlı 3B Havai Fişek kutlaması** oynatır ve isteğe bağlı **5 dakikalık mola sayacına** geçer.
   * ⚡ **Animasyon Hızı:** `0.25x` – `3x` + manuel FPS.
   * 🎨 **Renk Modları:** Saf Beyaz, Krem, Matrix Yeşili, Amber CRT, Cyberpunk Neon, Pastel Lavanta, Buz Mavisi, Sakura, Altın, Gökkuşağı ve Özel Hex Renk Seçici.
-  * ✨ **Efektler & Parçacıklar:** Kar yağışı, yağmur, şimşekli fırtına, buhar, kalpler, kıvılcımlar, yıldız tozu, uyku `Zzz` baloncukları, göz kırpma, yatay aynalama (`Flip`), yumuşak neon parıltı (`Glow`) ve her zeminde okunabilirlik sağlayan gölge/kontur (`Shadow`).
+  * ✨ **Efektler & Parçacıklar:** Kar yağışı, yağmur, şimşekli fırtına, buhar, kalpler, kıvılcımlar, yıldız tozu, uyku `Zzz` baloncukları, göz kırpma, **👀 Fare İmlecinin Yönüne Bak**, yatay aynalama (`Flip`), yumuşak neon parıltı (`Glow`) ve her zeminde okunabilirlik sağlayan gölge/kontur (`Shadow`).
   * 👻 **Ders / Hayalet Modu (Click-Through):** Açıldığında widget altındaki PDF veya tarayıcıya tıklamanıza izin verir. *(Çıkmak için sağ alttaki **Sistem Tepsisi** ikonuna sağ tıklayıp kapatabilirsiniz.)*
+* **Sistem Tepsisi (Tray):** **📌 Masaüstü Düzeni (Profiller)** ile hazır/özel çoklu widget yerleşimlerini tek tıkla yükleyip kaydedin ve **🔄 Açılışta Son Açık Widget'ları Geri Yükle** seçeneğini yönetin.
+* **Terminal Hub Kısayolları:** `F` tuşuyla **⭐ Favoriler** sekmesine ekleyin, `C` tuşuyla önizleme temasını canlı değiştirip masaüstüne fırlatın.
 * **Sürükle-Bırak (Drag & Drop):** Bilgisayarınızdaki bir `.ascii.json` veya `.txt` dosyasını doğrudan açık olan widget'ın üzerine sürükleyip bırakarak anında kütüphaneye ekleyip çalıştırabilirsiniz!
 
 ---
@@ -106,7 +110,7 @@ Dosyalarınızı `assets/animations/community/` klasörüne `<isim>.ascii.json` 
     "toggle_label": "Buluttan Kar Dökülsün",
     "spawn_area": "bottom",
     "density": "medium",
-    "chars": ["*", "❄", ".", "·"]
+    "chars": ["*", ".", "+", "o"]
   },
   "frames": [
     "   .--.    \n .-(    ). \n(___.__)__)",
