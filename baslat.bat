@@ -15,7 +15,7 @@ if %errorlevel% neq 0 (
     set "PY=py -3"
 )
 
-%PY% -c "import PyQt6, rich" >nul 2>nul
+%PY% -c "import PyQt6, rich, numpy" >nul 2>nul
 if %errorlevel% neq 0 (
     echo [BILGI] Gerekli kutuphaneler kuruluyor...
     %PY% -m pip install -r requirements.txt

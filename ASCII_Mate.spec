@@ -2,7 +2,7 @@
 # Iki exe uretir: ASCII_Mate.exe (konsolsuz GUI/tepsi) ve ASCII_Mate_CLI.exe (Terminal Hub icin konsollu).
 
 EXCLUDES = [
-    'numpy', 'tkinter', '_tkinter', 'unittest', 'pydoc', 'doctest', 'test', 'pytest',
+    'numpy.f2py', 'tkinter', '_tkinter', 'unittest', 'pydoc', 'doctest', 'test', 'pytest',
     'PyQt6.QtWebEngineCore', 'PyQt6.QtWebEngineWidgets', 'PyQt6.QtQml', 'PyQt6.QtQuick',
     'PyQt6.QtMultimedia', 'PyQt6.QtSql', 'PyQt6.QtNetwork', 'PyQt6.QtBluetooth',
     'PyQt6.QtPdf', 'PyQt6.Qt3DCore', 'PyQt6.QtCharts', 'PyQt6.QtSvg',

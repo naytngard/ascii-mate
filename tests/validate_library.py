@@ -112,6 +112,32 @@ def check_frame_jump(frames: list[str], label: str, max_row_delta: int = 2, max_
     return True, "OK"
 
 
+def check_hd_asset(json_path: Path, data: dict) -> tuple[bool, str]:
+    """HD (3.0): .ascii.hd var, başlık meta ile uyumlu, her kare çözülür, yalnızca ASCII 32..126, renkler geçerli."""
+    from src.core.hd_format import HDFormatError, HDReader
+
+    hd_file = json_path.parent / str(data["hd_file"])
+    if not hd_file.exists():
+        return False, f"HD dosyası yok: {hd_file.name}"
+    try:
+        rd = HDReader(hd_file)
+        if (rd.cols, rd.rows, rd.frame_count) != (data["cols"], data["rows"], data["frame_count"]):
+            return False, f"meta ile dosya başlığı uyuşmuyor: {(data['cols'], data['rows'], data['frame_count'])} vs {(rd.cols, rd.rows, rd.frame_count)}"
+        for i in range(rd.frame_count):
+            ch, co = rd.frame(i)
+            if ch.min() < 32 or ch.max() > 126:
+                return False, f"kare {i}: ASCII dışı karakter kodu"
+            if co.shape != (rd.rows, rd.cols, 3):
+                return False, f"kare {i}: renk dizisi boyutu hatalı"
+        if rd.frame_count > 1:
+            c0, _ = rd.frame(0)
+            if not any((rd.frame(i)[0] != c0).any() for i in range(1, rd.frame_count)):
+                return False, "çok kareli HD varlıkta tüm kareler aynı"
+    except HDFormatError as exc:
+        return False, str(exc)
+    return True, "OK"
+
+
 def main() -> int:
     anim_dir = BASE_DIR / "assets" / "animations"
     json_files = sorted(anim_dir.rglob("*.ascii.json"))
@@ -122,6 +148,7 @@ def main() -> int:
 
     passed = 0
     failed = 0
+    hd_count = 0
     seen_ids = {}
 
     for path in json_files:
@@ -137,6 +164,21 @@ def main() -> int:
         if not ok:
             print(f"[FAIL] {rel}: {msg}")
             failed += 1
+            continue
+
+        if data.get("hd"):
+            hd_ok, hd_msg = check_hd_asset(path, data)
+            if not hd_ok:
+                print(f"[FAIL] {rel}: {hd_msg}")
+                failed += 1
+                continue
+            if data["id"] in seen_ids:
+                print(f"[FAIL] {rel}: Çakışan ID '{data['id']}' (ilk görülen: {seen_ids[data['id']]})")
+                failed += 1
+                continue
+            seen_ids[data["id"]] = str(rel)
+            passed += 1
+            hd_count += 1
             continue
 
         # Check pure classic ASCII + zero pixel-art blocks in all frames
@@ -267,6 +309,7 @@ def main() -> int:
     print(f"Doğrulanan Toplam Dosya : {total}")
     print(f"Saf Klasik ASCII Kontrolü: TUMU TEMIZ (0 pixel-art blok)" if failed == 0 else f"Hata Sayısı: {failed}")
     print(f"Canlı 3B/Shader Motorları: {proc_passed} / {len(PROCEDURAL_REGISTRY)} PASS")
+    print(f"HD (3.0) varlıklar      : {hd_count} adet (doğrulandı)")
     print(f"Kütüphane Yüklenen      : {len(lib.assets)}")
     for cat in lib.categories():
         print(f"  • {cat}: {len(lib.by_category(cat))} adet")

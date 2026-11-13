@@ -24,7 +24,31 @@ from src.core.library import AnimationLibrary, ThemeLibrary  # noqa: E402
 from src.gui.companion_widget import CompanionWidget  # noqa: E402
 
 DEFAULT_IDS = ["cat_bust_3d", "owl_bust_3d", "galaxy_vortex_3d", "rainy_window_3d", "coffee_3d", "saturn_3d"]
+HD_IDS = ["hd_portrait_static", "hd_poppy_field", "hd_torus_knot_spin"]
 TICKS = 120
+
+
+def working_set_mb() -> float:
+    """Bu sürecin çalışma kümesi (MB); yalnızca Windows, aksi halde 0."""
+    if os.name != "nt":
+        return 0.0
+    import ctypes
+    from ctypes import wintypes
+
+    class PMC(ctypes.Structure):
+        _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD), ("PeakWorkingSetSize", ctypes.c_size_t),
+                    ("WorkingSetSize", ctypes.c_size_t), ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPagedPoolUsage", ctypes.c_size_t), ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaNonPagedPoolUsage", ctypes.c_size_t), ("PagefileUsage", ctypes.c_size_t),
+                    ("PeakPagefileUsage", ctypes.c_size_t)]
+
+    pmc = PMC()
+    pmc.cb = ctypes.sizeof(PMC)
+    k32, psapi = ctypes.WinDLL("kernel32"), ctypes.WinDLL("psapi")
+    k32.GetCurrentProcess.restype = wintypes.HANDLE
+    psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(PMC), wintypes.DWORD]
+    psapi.GetProcessMemoryInfo(k32.GetCurrentProcess(), ctypes.byref(pmc), pmc.cb)
+    return pmc.WorkingSetSize / 1048576.0
 
 
 def bench_one(app, lib, themes, cfg, asset_id: str, **state_over) -> tuple[float, int]:
@@ -57,7 +81,60 @@ def bench_one(app, lib, themes, cfg, asset_id: str, **state_over) -> tuple[float
     return dt / TICKS * 1000.0, interval_ms
 
 
+def bench_hd(app, lib, themes, cfg, asset_id: str, quality: str = "medium") -> tuple[float, int, float, float]:
+    """(ms/tick, aralık ms, widget'ın RAM'e eklediği MB, ortalama kare güncelleme maliyeti ms). Çizim = w.grab() (paintEvent)."""
+    from PyQt6.QtGui import QPixmap
+
+    asset = lib.get(asset_id)
+    if asset is None:
+        raise SystemExit(f"asset yok: {asset_id}")
+    ram0 = working_set_mb()
+    w = CompanionWidget(f"bench_{asset_id}", asset, lib, themes, cfg)
+    w.state.hd_quality = quality
+    w._recalculate_size()
+    w._update_timer_interval()
+    interval_ms = w._tick_timer.interval()
+    w._tick_timer.stop()
+    w.show()
+    app.processEvents()
+    for _ in range(6):
+        w._last_tick_time -= interval_ms / 1000.0
+        w._on_tick()
+    last = w._hd._last_idx
+    n = TICKS if asset.frame_count > 1 else 20
+    total = 0.0
+    frames_drawn = 0
+    t_paint = 0.0
+    for _ in range(n):
+        w._last_tick_time -= interval_ms / 1000.0
+        t0 = time.perf_counter()
+        w._on_tick()
+        total += time.perf_counter() - t0
+        if w._hd._last_idx != last:
+            last = w._hd._last_idx
+            t1 = time.perf_counter()
+            w.grab()  # paintEvent: tek drawImage
+            t_paint += time.perf_counter() - t1
+            frames_drawn += 1
+    ram = working_set_mb() - ram0
+    per_tick = (total + t_paint) / n * 1000.0
+    w._close_notified = True
+    w.close()
+    return per_tick, interval_ms, ram, (t_paint / frames_drawn * 1000.0 if frames_drawn else 0.0)
+
+
 def main() -> int:
+    if len(sys.argv) > 1 and sys.argv[1] == "--hd":
+        app = QApplication.instance() or QApplication([])
+        lib = AnimationLibrary(BASE / "assets" / "animations")
+        themes = ThemeLibrary(BASE / "assets" / "themes.json")
+        cfg = ConfigManager(Path(tempfile.mkdtemp()) / "bench.json")
+        print(f"{'HD senaryo':30} {'kalite':>7} {'ms/tick':>8} {'aralık':>7} {'~CPU%':>7} {'+RAM MB':>8} {'paint ms':>9}")
+        for aid in HD_IDS:
+            for q in ("low", "medium", "high"):
+                ms, iv, ram, pm = bench_hd(app, lib, themes, cfg, aid, q)
+                print(f"{aid:30} {q:>7} {ms:8.2f} {iv:6d}ms {ms / iv * 100:6.2f}% {ram:8.1f} {pm:9.2f}")
+        return 0
     ids = sys.argv[1:] or DEFAULT_IDS
     app = QApplication.instance() or QApplication([])
     lib = AnimationLibrary(BASE / "assets" / "animations")

@@ -248,3 +248,11 @@ def test_validate_library_script_passes():
     import validate_library
 
     assert validate_library.main() == 0
+
+
+def test_config_tolerates_utf8_bom(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_bytes(b"\xef\xbb\xbf" + json.dumps({"favorites": ["a"], "global": {"x": 1}}).encode("utf-8"))
+    c = ConfigManager(path)
+    assert c.get_favorites() == ["a"] and c.get_global("x") == 1
+    assert not (tmp_path / "config.json.bak").exists()
