@@ -6,7 +6,7 @@ cd /d "%~dp0"
 python -m pip show pyinstaller >nul 2>nul
 if %errorlevel% neq 0 (
     echo [BILGI] PyInstaller kuruluyor...
-    python -m pip install pyinstaller
+    python -m pip install -r requirements-dev.txt
 )
 
 if /i "%~1"=="onefile" (
