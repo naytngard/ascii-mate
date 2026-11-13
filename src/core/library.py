@@ -75,9 +75,16 @@ class ThemeLibrary:
 class AnimationLibrary:
     """Scans assets/animations/ using a fast mtime+count index cache and provides categorized access."""
 
-    def __init__(self, animations_dir: Path | str, extra_community_dir: Optional[Path | str] = None) -> None:
+    def __init__(
+        self,
+        animations_dir: Path | str,
+        extra_community_dir: Optional[Path | str] = None,
+        user_art_dir: Optional[Path | str] = None,
+    ) -> None:
         self.animations_dir = Path(animations_dir)
         self.extra_community_dir = Path(extra_community_dir) if extra_community_dir else None
+        # Kişisel/yerel dönüşümler (ör. %APPDATA%\ASCII_Mate\community): git'in izlemediği, yalnızca bu bilgisayara ait klasör
+        self.user_art_dir = Path(user_art_dir) if user_art_dir else None
         self.assets: Dict[str, AnimationAsset] = {}
         self.load_errors: List[str] = []
         self.warnings: List[str] = []  # yinelenen id vb. (hata değil, yükleme sürer)
@@ -220,8 +227,13 @@ class AnimationLibrary:
                 self._write_index(main_entries, records)
 
         # Scan extra external community dir (used in packaged mode where _MEIPASS != writable_dir)
+        extra_dirs = []
         if self.extra_community_dir and self.extra_community_dir != (self.animations_dir / "community"):
-            for p, _rel, _m, _s in self._scan_dir_files(self.extra_community_dir):
+            extra_dirs.append(self.extra_community_dir)
+        if self.user_art_dir and self.user_art_dir not in extra_dirs:
+            extra_dirs.append(self.user_art_dir)
+        for extra in extra_dirs:
+            for p, _rel, _m, _s in self._scan_dir_files(extra):
                 res = self._load_single_file(p, is_comm=True)
                 if res is not None:
                     asset, _ = res

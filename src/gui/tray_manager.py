@@ -646,6 +646,19 @@ class WidgetHostManager(QObject):
                 }
                 for iid, w in self.widgets.items()
             ]
+        elif cmd == "stats":
+            reply["widgets"] = [
+                {
+                    "asset_id": w.asset.id,
+                    "ticks": w.stat_ticks,
+                    "paints": w.stat_paints,
+                    "interval_ms": w._tick_timer.interval(),
+                    "suspended": w._suspended,
+                    "hd": w._hd is not None,
+                    "cell_path": bool(getattr(w, "_cells_ok", False)),
+                }
+                for w in self.widgets.values()
+            ]
         elif cmd == "close":
             iid = str(msg.get("instance_id", ""))
             reply["closed"] = self.close_widget_by_id(iid)

@@ -1,0 +1,70 @@
+{
+  "offscreen": false,
+  "seconds": 20.0,
+  "cpu_count": 16,
+  "results": [
+    {
+      "single_core_pct": 0.0,
+      "total_pct": 0.0,
+      "rss_mb": 58.07421875,
+      "scenario": "(boşta host)",
+      "net_single_core_pct": 0.0
+    },
+    {
+      "single_core_pct": 13.983947161136628,
+      "total_pct": 0.8739966975710393,
+      "rss_mb": 122.81640625,
+      "scenario": "saturn_3d",
+      "net_single_core_pct": 13.983947161136628
+    },
+    {
+      "single_core_pct": 13.515432540240683,
+      "total_pct": 0.8447145337650427,
+      "rss_mb": 122.09765625,
+      "scenario": "donut_3d",
+      "net_single_core_pct": 13.515432540240683
+    },
+    {
+      "single_core_pct": 12.734097333007725,
+      "total_pct": 0.7958810833129828,
+      "rss_mb": 122.62890625,
+      "scenario": "heart_3d",
+      "net_single_core_pct": 12.734097333007725
+    },
+    {
+      "single_core_pct": 9.687161191537383,
+      "total_pct": 0.6054475744710864,
+      "rss_mb": 124.6328125,
+      "scenario": "christmas_tree_3d",
+      "net_single_core_pct": 9.687161191537383
+    },
+    {
+      "single_core_pct": 10.5464441250253,
+      "total_pct": 0.6591527578140812,
+      "rss_mb": 130.19921875,
+      "scenario": "hd_torus_knot_spin",
+      "net_single_core_pct": 10.5464441250253
+    },
+    {
+      "single_core_pct": 1.8749761034295764,
+      "total_pct": 0.11718600646434853,
+      "rss_mb": 128.59765625,
+      "scenario": "hd_poppy_field",
+      "net_single_core_pct": 1.8749761034295764
+    },
+    {
+      "single_core_pct": 0.0,
+      "total_pct": 0.0,
+      "rss_mb": 114.0625,
+      "scenario": "hd_portrait_static",
+      "net_single_core_pct": 0.0
+    },
+    {
+      "single_core_pct": 48.28005651700295,
+      "total_pct": 3.017503532312684,
+      "rss_mb": 134.5,
+      "scenario": "saturn_3d,donut_3d,heart_3d,hd_poppy_field",
+      "net_single_core_pct": 48.28005651700295
+    }
+  ]
+}

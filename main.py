@@ -70,12 +70,20 @@ def resolve_paths() -> tuple[Path, Path]:
     When packaged with PyInstaller, resource_dir points to _MEIPASS (if present) or exe dir,
     and writable_dir points to exe dir so config.json & community/ remain portable.
     """
+    override = os.environ.get("ASCII_MATE_HOME")  # test/ölçüm için yalıtılmış yazılabilir klasör (config.json vb.)
     if getattr(sys, "frozen", False):
         exe_dir = Path(sys.executable).resolve().parent
         meipass = Path(getattr(sys, "_MEIPASS", exe_dir))
-        return meipass, exe_dir
+        return meipass, (Path(override) if override else exe_dir)
     base = Path(__file__).resolve().parent
-    return base, base
+    return base, (Path(override) if override else base)
+
+
+def user_art_dir() -> Path:
+    """Kişisel referans dönüşümlerinin klasörü (git dışında): %APPDATA%\\ASCII_Mate\\community."""
+    from src.core.app_logging import app_data_dir
+
+    return app_data_dir() / "community"
 
 
 def run_host(initial_widget_id: str | None = None, initial_theme: str | None = None) -> int:
@@ -109,7 +117,7 @@ def run_host(initial_widget_id: str | None = None, initial_theme: str | None = N
 
     comm_dir.mkdir(parents=True, exist_ok=True)
 
-    library = AnimationLibrary(anim_dir, extra_community_dir=comm_dir)
+    library = AnimationLibrary(anim_dir, extra_community_dir=comm_dir, user_art_dir=user_art_dir())
     theme_lib = ThemeLibrary(themes_path)
     config_mgr = ConfigManager(config_path)
 
@@ -150,7 +158,7 @@ def run_cli(prewarm: bool = True) -> int:
     themes_path = res_dir / "assets" / "themes.json"
     comm_dir.mkdir(parents=True, exist_ok=True)
 
-    library = AnimationLibrary(anim_dir, extra_community_dir=comm_dir)
+    library = AnimationLibrary(anim_dir, extra_community_dir=comm_dir, user_art_dir=user_art_dir())
     theme_lib = ThemeLibrary(themes_path)
     hub = TerminalHub(base_dir=write_dir, library=library, theme_lib=theme_lib, prewarm=prewarm)
     hub.run()
