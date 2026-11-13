@@ -36,6 +36,7 @@ from src.core.ipc import PIPE_ADDRESS, PIPE_CLI_ADDRESS, connect, get_authkey, p
 from src.core.library import AnimationLibrary, ThemeLibrary
 from src.gui.companion_widget import CompanionWidget
 from src.gui.context_menu import DARK_GLASS_MENU_QSS
+from src.gui.power import PowerMonitor
 from src.gui.settings_dialog import DARK_GLASS_DIALOG_QSS
 
 log = get_logger("tray")
@@ -248,6 +249,7 @@ class WidgetHostManager(QObject):
         self._restoring: bool = False
 
         self.app.setQuitOnLastWindowClosed(False)
+        PowerMonitor.instance().battery_saver_enabled = bool(self.config_mgr.get_global("battery_saver", True))
         self.icon = create_app_icon(self.base_dir)
         self.app.setWindowIcon(self.icon)
 
@@ -400,6 +402,12 @@ class WidgetHostManager(QObject):
         self.config_mgr.save_profile(name.strip(), items)
         self._rebuild_tray_menu()
 
+    def set_battery_saver(self, enabled: bool) -> None:
+        self.config_mgr.set_global("battery_saver", bool(enabled))
+        mon = PowerMonitor.instance()
+        mon.battery_saver_enabled = bool(enabled)
+        mon.changed.emit()  # widget'lar zamanlayıcı aralığını yeniden hesaplasın
+
     def set_restore_last_session(self, enabled: bool) -> None:
         self.config_mgr.set_global("restore_last_session", bool(enabled))
         self._rebuild_tray_menu()
@@ -549,6 +557,11 @@ class WidgetHostManager(QObject):
         restore_act.setChecked(bool(self.config_mgr.get_global("restore_last_session", False)))
         restore_act.triggered.connect(lambda checked: self.set_restore_last_session(checked))
         menu.addAction(restore_act)
+
+        batt_act = QAction("🔋  Pildeyken FPS'i Otomatik Düşür", menu, checkable=True)
+        batt_act.setChecked(bool(self.config_mgr.get_global("battery_saver", True)))
+        batt_act.triggered.connect(self.set_battery_saver)
+        menu.addAction(batt_act)
 
         menu.addSeparator()
         quit_act = QAction("🚪 Uygulamadan Tamamen Çık", menu)

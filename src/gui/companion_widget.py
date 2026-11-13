@@ -34,8 +34,11 @@ from src.core.procedural_engine import (
     create_procedural_renderer,
 )
 from src.gui.context_menu import build_context_menu
+from src.gui.power import PowerMonitor
 
 RGB = Tuple[int, int, int]
+
+SHADER_DEFAULT_FPS_CAP = 15.0  # 3B shader varsayılan FPS tavanı (kullanıcı özel FPS ile değiştirebilir)
 
 log = get_logger("widget")
 
@@ -82,6 +85,13 @@ MIRROR_CHAR_MAP = str.maketrans({
     "´": "`",
     "`": "´",
 })
+
+
+def _quantize(rgb: RGB, enabled: bool) -> RGB:
+    """Her kanalı 16'lık basamaklara indirir (3B karelerde komşu hücreler aynı rengi paylaşsın)."""
+    if not enabled:
+        return rgb
+    return (rgb[0] & 0xF0 | 8, rgb[1] & 0xF0 | 8, rgb[2] & 0xF0 | 8)
 
 
 class CompanionWidget(QWidget):
@@ -141,6 +151,8 @@ class CompanionWidget(QWidget):
         self._last_timer_sec: int = -1
         self._cursor_look: Tuple[float, float] = (0.0, 0.0)
         self._close_notified: bool = False
+        self._suspended: bool = False
+        self._paused_by_user_hidden: bool = False
 
         # Eye blink state
         self._blink_timer: float = 0.0
@@ -186,6 +198,7 @@ class CompanionWidget(QWidget):
         self._tick_timer = QTimer(self)
         self._tick_timer.timeout.connect(self._on_tick)
         self._update_timer_interval()
+        PowerMonitor.instance().changed.connect(self._evaluate_suspension)
 
     def _compute_target_3d_grid(self) -> Tuple[int, int]:
         res = self.state.grid_resolution
@@ -234,20 +247,55 @@ class CompanionWidget(QWidget):
         total = max(1.0, float(self.state.duration_minutes * 60))
         return max(0.0, min(1.0, self._remaining_seconds / total))
 
+    def _needs_fast_static_tick(self) -> bool:
+        """Statik animasyonda parçacık/gökkuşağı/göz kırpma/imleç takibi varsa ~8 FPS gerekir; yoksa kare hızı yeter."""
+        return bool(
+            self.is_particles_active()
+            or self.state.sleep_zzz_enabled
+            or self.state.eye_blink_enabled
+            or self.state.track_cursor
+            or bool(self._current_theme_info().get("is_rainbow"))
+        )
+
     def _target_tick_ms(self) -> int:
+        """Gerçek ihtiyaca göre tick aralığı. 3B shader: varsayılan ≤18 FPS (ayarlanabilir); statik: 1-8 FPS."""
+        if self._suspended:
+            return 1000  # yalnızca durum değişimini yakalamak için seyrek uyan
+        factor = PowerMonitor.instance().fps_factor()
+        user_fps = self.state.custom_fps
         if self._procedural is not None:
-            fps = self.state.custom_fps if self.state.custom_fps else self.asset.default_fps
-            eff = max(12.0, min(30.0, fps * self.state.speed_multiplier))
-            return max(33, int(round(1000.0 / eff)))
-        fps = self.state.custom_fps if self.state.custom_fps else self.asset.default_fps
-        if fps * self.state.speed_multiplier > 16.0:
-            return 33
-        return 62
+            fps = user_fps if user_fps else min(self.asset.default_fps, SHADER_DEFAULT_FPS_CAP)
+            fps = max(6.0, min(30.0, fps)) * factor
+            return max(33, int(round(1000.0 / max(4.0, fps))))
+        base = (user_fps if user_fps else self.asset.default_fps) * self.state.speed_multiplier
+        eff = max(0.5, base)
+        if self._needs_fast_static_tick():
+            eff = max(eff, 8.0)
+        elif self._timer_active:
+            eff = max(eff, 2.0)  # sayaç saniyede bir güncellenir
+        eff = max(1.0, min(30.0, eff * factor))
+        # Ekran kilidi/kapanış/olay tepkisi için en fazla 250 ms uyku
+        return int(max(33, min(250, round(1000.0 / eff))))
 
     def _update_timer_interval(self) -> None:
         interval = self._target_tick_ms()
         if not self._tick_timer.isActive() or self._tick_timer.interval() != interval:
             self._tick_timer.start(interval)
+
+    def _evaluate_suspension(self) -> None:
+        """Kilit ekranı / tam ekran uygulamanın arkasında kalma durumunda çizimi durdurur, dönünce devam ettirir."""
+        mon = PowerMonitor.instance()
+        suspended = (
+            mon.is_suspended_for(self.frameGeometry(), self.state.always_on_top)
+            or self._paused_by_user_hidden
+        )
+        if suspended != self._suspended:
+            self._suspended = suspended
+            if not suspended:
+                self._last_tick_time = time.monotonic()  # uzun uykudan sonra zıplama olmasın
+                self._invalidate_art()
+        self._tick_timer.stop()
+        self._update_timer_interval()
 
     def _invalidate_art(self) -> None:
         self._art_dirty = True
@@ -402,8 +450,10 @@ class CompanionWidget(QWidget):
         return out
 
     def _on_tick(self) -> None:
+        if self._suspended:
+            return
         now = time.monotonic()
-        dt = min(0.25, max(0.01, now - self._last_tick_time))
+        dt = min(0.5, max(0.01, now - self._last_tick_time))
         self._last_tick_time = now
 
         old_look = self._cursor_look
@@ -585,11 +635,15 @@ class CompanionWidget(QWidget):
 
         old_dims = (len(self._current_lines), max((len(l) for l in self._current_lines), default=0))
         new_dims = (len(lines), max((len(l) for l in lines), default=0))
+        unchanged = lines == self._current_lines and final_colors == self._current_colors
         self._current_lines = lines
         self._current_colors = final_colors
         if old_dims != new_dims:
             self._recalculate_size()
 
+        # Çıktı bir önceki kareyle aynıysa (ör. yavaş shader) yeniden çizme
+        if unchanged and not (blink_changed or timer_changed or self._art_dirty or is_rainbow or self._lightning_flash):
+            return
         if frame_advanced or blink_changed or look_changed or particles_on or is_rainbow or timer_changed or self._art_dirty:
             self._invalidate_art()
             self.update()
@@ -630,7 +684,6 @@ class CompanionWidget(QWidget):
 
         font = self._build_font()
         painter.setFont(font)
-        fm = QFontMetricsF(font)
         char_w, line_h, ascent = self._get_font_metrics()
 
         alpha = max(0.0, min(1.0, self.state.opacity * self._fade_factor))
@@ -641,29 +694,26 @@ class CompanionWidget(QWidget):
         start_y = 10.0 + ascent
         lines = self._current_lines
 
-        # 1. Soft Neon Glow Pass (rendered once into cached offscreen QPixmap)
+        # 1. Glow (opsiyonel, varsayılan kapalı): tek geçiş, hafif köşegen kaydırma
         if self.state.glow_enabled:
-            glow_col = QColor(glow.red(), glow.green(), glow.blue(), int(42 * alpha))
-            painter.setPen(glow_col)
-            for dx, dy in ((-1.3, 0.0), (1.3, 0.0), (0.0, -1.3), (0.0, 1.3)):
-                for i, line in enumerate(lines):
-                    if line.strip():
-                        painter.drawText(QPointF(start_x + dx, start_y + i * line_h + dy), line)
+            painter.setPen(QColor(glow.red(), glow.green(), glow.blue(), int(55 * alpha)))
+            for i, line in enumerate(lines):
+                if line.strip():
+                    painter.drawText(QPointF(start_x + 1.2, start_y + i * line_h + 1.2), line)
 
-        # 2. Readability Drop Shadow / Outline Pass
+        # 2. Okunabilirlik gölgesi: tek geçiş
         if self.state.shadow_enabled:
-            shadow_col = QColor(8, 10, 16, int(195 * alpha))
-            painter.setPen(shadow_col)
-            for dx, dy in ((1.0, 1.0), (-1.0, 0.0), (0.0, 1.0)):
-                for i, line in enumerate(lines):
-                    if line.strip():
-                        painter.drawText(QPointF(start_x + dx, start_y + i * line_h + dy), line)
+            painter.setPen(QColor(8, 10, 16, int(190 * alpha)))
+            for i, line in enumerate(lines):
+                if line.strip():
+                    painter.drawText(QPointF(start_x + 1.0, start_y + i * line_h + 1.0), line)
 
-        # 3. Foreground Pass (Multi-color HD run-batched OR crisp monochrome)
+        # 3. Ön plan: çok renkli (koşu gruplu) ya da tek renk
         if self._is_multicolor_active() and self._current_colors is not None:
             fallback_rgb: RGB = (secondary.red(), secondary.green(), secondary.blue())
             c_rows = self._current_colors
             pen_cache: Dict[RGB, QColor] = {}
+            quant = self._procedural is not None  # 3B kareler: renkleri kuantala → daha uzun koşular, daha az drawText
 
             for i, line in enumerate(lines):
                 if not line.strip():
@@ -678,14 +728,14 @@ class CompanionWidget(QWidget):
                     if ch == " ":
                         col_idx += 1
                         continue
-                    rgb = (c_row[col_idx] if col_idx < c_len else None) or fallback_rgb
+                    rgb = _quantize((c_row[col_idx] if col_idx < c_len else None) or fallback_rgb, quant)
                     run_start = col_idx
                     col_idx += 1
                     while col_idx < n:
                         nch = line[col_idx]
                         if nch == " ":
                             break
-                        nrgb = (c_row[col_idx] if col_idx < c_len else None) or fallback_rgb
+                        nrgb = _quantize((c_row[col_idx] if col_idx < c_len else None) or fallback_rgb, quant)
                         if nrgb != rgb:
                             break
                         col_idx += 1
@@ -694,11 +744,10 @@ class CompanionWidget(QWidget):
                         qcol = QColor(rgb[0], rgb[1], rgb[2], alpha_255)
                         pen_cache[rgb] = qcol
                     painter.setPen(qcol)
-                    x_pos = start_x + fm.horizontalAdvance(line[:run_start])
-                    painter.drawText(QPointF(x_pos, y), line[run_start:col_idx])
+                    # Monospace yazı tipi: x konumu = başlangıç + sütun * karakter genişliği (O(1))
+                    painter.drawText(QPointF(start_x + run_start * char_w, y), line[run_start:col_idx])
         else:
-            fg_col = QColor(primary.red(), primary.green(), primary.blue(), alpha_255)
-            painter.setPen(fg_col)
+            painter.setPen(QColor(primary.red(), primary.green(), primary.blue(), alpha_255))
             for i, line in enumerate(lines):
                 if line.strip():
                     painter.drawText(QPointF(start_x, start_y + i * line_h), line)
@@ -990,6 +1039,13 @@ class CompanionWidget(QWidget):
         elif key == Qt.Key.Key_Escape:
             self.close_widget()
 
+    def moveEvent(self, event) -> None:  # noqa: N802
+        # Tam ekran uygulama/kilit varken başka ekrana taşınınca durumu yeniden değerlendir
+        mon = PowerMonitor.instance()
+        if mon.fullscreen_rect is not None or self._suspended:
+            self._evaluate_suspension()
+        super().moveEvent(event)
+
     def contextMenuEvent(self, event) -> None:  # noqa: N802
         menu = build_context_menu(self)
         menu.exec(event.globalPos())
@@ -1090,6 +1146,7 @@ class CompanionWidget(QWidget):
         self._cursor_look = self._compute_cursor_look()
         self._refresh_procedural_immediately()
         self._invalidate_art()
+        self._update_timer_interval()
         self._save_state()
         self.update()
 
@@ -1118,6 +1175,7 @@ class CompanionWidget(QWidget):
     def set_color_theme(self, theme_key: str) -> None:
         self.state.color_theme = theme_key
         self._invalidate_art()
+        self._update_timer_interval()
         self._save_state()
         self.update()
 
@@ -1142,6 +1200,7 @@ class CompanionWidget(QWidget):
     def set_always_on_top(self, enabled: bool) -> None:
         self.state.always_on_top = enabled
         self._apply_window_flags()
+        self._evaluate_suspension()
         self._save_state()
 
     def set_click_through(self, enabled: bool) -> None:
@@ -1157,6 +1216,7 @@ class CompanionWidget(QWidget):
         if not enabled:
             self.particle_engine.clear()
         self._invalidate_art()
+        self._update_timer_interval()
         self._save_state()
         self.update()
 
@@ -1166,6 +1226,7 @@ class CompanionWidget(QWidget):
             self.state.particles_enabled = True
         self.particle_engine.clear()
         self._invalidate_art()
+        self._update_timer_interval()
         self._save_state()
         self.update()
 
@@ -1176,12 +1237,14 @@ class CompanionWidget(QWidget):
     def set_sleep_zzz(self, enabled: bool) -> None:
         self.state.sleep_zzz_enabled = enabled
         self._invalidate_art()
+        self._update_timer_interval()
         self._save_state()
         self.update()
 
     def set_eye_blink(self, enabled: bool) -> None:
         self.state.eye_blink_enabled = enabled
         self._invalidate_art()
+        self._update_timer_interval()
         self._save_state()
         self.update()
 
@@ -1202,6 +1265,7 @@ class CompanionWidget(QWidget):
         self._refresh_procedural_immediately()
         self._recalculate_size()
         self._invalidate_art()
+        self._update_timer_interval()
         self._save_state()
         self.update()
 
