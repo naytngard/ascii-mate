@@ -1,0 +1,42 @@
+{
+  "schema_version": "2.0",
+  "id": "fireworks_3d",
+  "name": "3B Havai Fişek Kutlaması (Shader)",
+  "category": "Retro & Geek",
+  "author": "ASCII Mate",
+  "tags": [
+    "havai fişek",
+    "kutlama",
+    "pomodoro",
+    "3b",
+    "parti"
+  ],
+  "default_fps": 28.0,
+  "recommended_color": "auto_hd",
+  "supports_eye_blink": false,
+  "supports_sleep_zzz": false,
+  "particles": {
+    "enabled_by_default": false,
+    "type": "sparkles",
+    "toggle_label": "Ekstra Parıltı",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      "+",
+      "o",
+      "."
+    ]
+  },
+  "frames": [
+    ". .  +  @ +   @            .      +    +        \n                                                \n                                 *           .  \n.      .    +                         *         \n  .  .     .     @        .        .   .        \n  .   *                   +                     \n .  ++    +               *           +         \n .      @    +@                     .           \n    +                                 .         \n    +  @         .  .              .            \n@                                               \n                                                \n       @                                     *  \n           . +                     *. +   .+    \n   * +     +   .   .                           .\n                                                \n         *.                             .       \n           .                             *    . \n .  +                              .     *      \n+  .              .               +         .   \n                                                \n                                *               ",
+    "+@ .   +  ..    ++    * *                       \n                 .        +    *   *            \n+                                .     .        \n                                                \n                                 +    *         \n                                                \n                    .                 +         \n. .   +                           .             \n  +.@    @                    +       .         \n.+     + .  @    .                              \n    @    .  .                           *       \n                                                \n+       .                                       \n. @             +         +                     \n+@                                              \n        .                                  .    \n@ @ .                 *            .         +  \n          .   +       *           +            *\n  +                              *              \n                                                \n              +                          .      \n                   *                            ",
+    ". * .                   @@...@                  \n.     * .     +     *    ++.+@                  \n  + *            . .         +         *        \n                           +        *           \n+ **                        .                   \n                                          +     \n                                                \n                                                \n +                                              \n     *        .                                 \n.+      .             +                         \n +   *        +  .              .               \n.    +              *          *                \n*.   * .  *                +                    \n    +                                           \n            +                        *          \n+    . + *       .          .                   \n.*  .            .*                             \n  *         *                                   \n                                                \n    .    +     .                                \n * +                                            ",
+    "  +.    + . .    +.+.*     .  . . .   .   +    @\n                     @+.     .+@    .           \n . *          +      .              .   +   @   \n+ * * .          @.+             .      +       \n                   .    .       .   +. .    @   \n  .          . ++ .    +        ..+   @         \n . .   + +  @ * *  . + . . .  .    +.+   +  +   \n     +       @+   .   @  ..        .+        @  \n        *       +           *.  +    @+ @+      \n           @         +   +             @+       \n             @ +          +      @    +         \n     .              @   @                   @   \n           @              @   +                 \n     .      +             .              @      \n.                .                              \n     .    .         *         @                 \n             +                         ^        \n  +                       +    .                \n        .   +  .    *                        .  \n.                  +                            \n  . *       .                      *            \n                    *                         + "
+  ],
+  "procedural": "fireworks_3d",
+  "procedural_params": {
+    "width": 48,
+    "height": 22
+  }
+}

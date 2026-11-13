@@ -1,0 +1,41 @@
+{
+  "schema_version": "2.0",
+  "id": "owl_bust_3d",
+  "name": "3B Bilge Baykuş (Shader)",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "baykuş",
+    "3b",
+    "bilge",
+    "gece",
+    "shader"
+  ],
+  "default_fps": 24.0,
+  "recommended_color": "auto_hd",
+  "supports_eye_blink": true,
+  "supports_sleep_zzz": false,
+  "particles": {
+    "enabled_by_default": false,
+    "type": "stars",
+    "toggle_label": "Gece Yıldızları",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "+"
+    ]
+  },
+  "frames": [
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                ..   .--=  ...                \n                  ..:-===++=                  \n                 .::-==++++++                 \n                .:--==++*****+                \n               ::-=++.***#.###*               \n               vv=v+vvv#v#.v%vv               \n               v-v+vv.#v#vv%vvv               \n               vvvvv#vv%v%v%v%v               \n                vvvv#v%%v%v%v                 \n          =========v#vv%v%v%========          \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              ",
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                ...  .--=  ..                 \n                  ..:-==+++=                  \n                 ..:==+++++++                 \n                .:-==++******+                \n               .-==.++***#####*               \n               :v=v.*vv##v#v%v#               \n               v-v++vv#vv%v%v%v               \n               vv=vvv#v%%v%v%%v               \n                vv+v#v%%v%v%v                 \n            =======v#%v%v%v========           \n          ==                                  \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              ",
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                .                             \n                ...  :--=  ..                 \n                  ..--==+++=                  \n                 .::-==++++++                 \n                .:--=+++*****+                \n               :--=++*.**#####*               \n               :vv+v*vvv#v#v#v#               \n               v-=v*vvv#v%v%v%#               \n               :v+vvvv#v%v%v%vv               \n                vv*vv%v%%vv%v                 \n                ==-*v%vvvv%========           \n         =======                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              ",
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                .                             \n                ...  .--=  ..                 \n                  .::-==+++=                  \n                 ..-==+++++++                 \n                .:-==++******+                \n               .-==+.+**.#####*               \n               :vv+vv*vvv#v%v##               \n               v=+v*vvv#vv%v%%v               \n               :vv+vvv#v%v%v%vv               \n                vvvvv%v%%v%%%                 \n                  =*v%vv%v%========           \n         =========                            \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              "
+  ],
+  "procedural": "owl_bust_3d",
+  "procedural_params": {
+    "width": 46,
+    "height": 24
+  }
+}

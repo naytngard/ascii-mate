@@ -1,0 +1,42 @@
+{
+  "schema_version": "2.0",
+  "id": "lantern_3d",
+  "name": "3B Sallanan Fener (Shader)",
+  "category": "Doğa & Hava Durumu",
+  "author": "ASCII Mate",
+  "tags": [
+    "fener",
+    "ateş",
+    "gece",
+    "kamp",
+    "3b"
+  ],
+  "default_fps": 26.0,
+  "recommended_color": "auto_hd",
+  "supports_eye_blink": false,
+  "supports_sleep_zzz": false,
+  "particles": {
+    "enabled_by_default": true,
+    "type": "embers",
+    "toggle_label": "Sıcak Kıvılcımlar",
+    "spawn_area": "around",
+    "density": "low",
+    "chars": [
+      "*",
+      ".",
+      "+",
+      "^"
+    ]
+  },
+  "frames": [
+    "                                            \n                                            \n                                            \n                                            \n                                            \n                                            \n                                            \n                      |                     \n                     ||                     \n                  :::::::                   \n               ************                 \n              ----***-------                \n              ***************               \n               -----------**                \n               *::::::*****                 \n                 ------::                   \n                    ||=                     \n                    *                       \n                                            \n                                            \n                                            \n                                            \n                                            \n                                            ",
+    "                                            \n                                            \n                                            \n                                            \n                                            \n                                            \n                                            \n                      |                     \n                     ||                     \n                 -----:::                   \n              ::::::::::::                  \n             ********-----::                \n              ****-*********                \n              ----------****                \n               :::::::::::-                 \n                 :----:::                   \n                   |=                       \n                   *                        \n                                            \n                                            \n                                            \n                                            \n                                            \n                                            ",
+    "                                            \n                                            \n                                            \n                                            \n                                            \n                                            \n                                            \n                      |                     \n                     ||                     \n                 -----:::                   \n              ************-                 \n              *******-----**                \n              **************                \n              -----------***                \n               ::::::*****-                 \n                 :----:::                   \n                   |=                       \n                   *                        \n                                            \n                                            \n                                            \n                                            \n                                            \n                                            ",
+    "                                            \n                                            \n                                            \n                                            \n                                            \n                                            \n                                            \n                      |                     \n                     ||                     \n                  :::::::                   \n                :*******:::                 \n               -------------                \n              ***************               \n               ------------**               \n                :::::::::::                 \n                  ------:                   \n                    =|=                     \n                     *                      \n                                            \n                                            \n                                            \n                                            \n                                            \n                                            "
+  ],
+  "procedural": "lantern_3d",
+  "procedural_params": {
+    "width": 44,
+    "height": 24
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "schema_version": "2.0",
+  "id": "cat_bust_3d",
+  "name": "3B Dönen Kedi Büstü (Shader)",
+  "category": "Kediler & Evcil Hayvanlar",
+  "author": "ASCII Mate",
+  "tags": [
+    "kedi",
+    "3b",
+    "büst",
+    "shader",
+    "göz kırpma"
+  ],
+  "default_fps": 24.0,
+  "recommended_color": "auto_hd",
+  "supports_eye_blink": true,
+  "supports_sleep_zzz": false,
+  "particles": {
+    "enabled_by_default": false,
+    "type": "hearts",
+    "toggle_label": "Mini Kalpler & Yıldızlar",
+    "spawn_area": "top",
+    "density": "low",
+    "chars": [
+      "*",
+      "+",
+      ".",
+      "<3"
+    ]
+  },
+  "frames": [
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                 **        =*                 \n                :=*** .. .:***                \n                :=.:--===++=**                \n                ..:-=++**#****                \n               .:-==+**##%#%%##               \n               .--=+**##%%%%%%#               \n              ---=+**##%%@@@@%-               \n                 -+*##%%@@@@%                 \n                 .-=+*##%%%%#                 \n                .:=++*##%%%%%#                \n               .:-=+*.##%%%%%%#               \n               :-==+*###%%%%%%%               \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              ",
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                 =*-       =*                 \n                .-=** ..  -=**                \n                .-.::-===++=**                \n                ..--=++**##***                \n               .:-==+**##%%%%%*               \n               .--=+**##%%%%%%#               \n             ----=+*##%%%@@@@%                \n                 =+*##%%@@@@%                 \n                 .-=**##%%%%#                 \n                .-=+**#.#%%%%#                \n               .-=++**#.#%%%%%#               \n               :-=+***# #%%%%%%               \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              ",
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                 -+*       +*                 \n                .-+** ..  -+*                 \n                .-.::--===+=**                \n                .:-=+-+***##**                \n               .:-=+*.*##%%%%%                \n               .:=++*###%%%%%%                \n            -- --=+**#%%%@@@@%                \n                 -+*##%%%@@@%                 \n                 .-=+*##%%%%#                 \n                .:-=+*##%%%%%*                \n               .:-=+**##%%%%%#                \n               :-==+*.##.%%%%%#               \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              ",
+    "                                              \n                                              \n                                              \n                                              \n                                              \n                                              \n                 -+*                          \n                .-+***.. .-+*                 \n                ...:--===++=**                \n                .:-==++**##***                \n               .:-=++**##%#%%%                \n               .--=+**##%%%%%%                \n            --- -=+*##%%@@@@@%                \n                 =+*#%%%@@@@%                 \n                 .-+**##%%%%                  \n                .-=+**##%%%%%#                \n               .-=+***###%%%%%                \n               :-=+* *#.#%%%%%#               \n                                              \n                                              \n                                              \n                                              \n                                              \n                                              "
+  ],
+  "procedural": "cat_bust_3d",
+  "procedural_params": {
+    "width": 46,
+    "height": 24
+  }
+}
