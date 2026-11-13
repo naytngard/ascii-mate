@@ -61,10 +61,13 @@ def txt_to_ascii_json(
 ) -> Dict[str, Any]:
     """Converts plain text ASCII (separated by ===FRAME=== or similar) to .ascii.json dict."""
     text = txt_content.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"\A(?:[ \t]*\n)+", "", text)  # dosya başındaki boş satırlar biçimlendirmedir, kareye ait değil
 
     sep_match = re.search(r"^(?:===FRAME===|---FRAME---|###FRAME###)\s*$", text, re.MULTILINE)
     if sep_match:
         raw_frames = re.split(r"^(?:===FRAME===|---FRAME---|###FRAME###)\s*$", text, flags=re.MULTILINE)
+        # Ayırıcı satırının kendi satır sonu bir sonraki kareye boş satır olarak sızmasın
+        raw_frames = [rf[1:] if i > 0 and rf.startswith("\n") else rf for i, rf in enumerate(raw_frames)]
     else:
         if "\n\n\n" in text:
             raw_frames = text.split("\n\n\n")
