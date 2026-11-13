@@ -149,7 +149,7 @@ class QuickPickerDialog(QDialog):
     def _populate(self, query: str) -> None:
         self.list_widget.clear()
         for asset in self.library.search(query):
-            badge = " [3B]" if asset.is_procedural else (" [HD]" if asset.has_multicolor else "")
+            badge = " [HD]" if asset.is_hd else (" [3B]" if asset.is_procedural else (" [HD-renk]" if asset.has_multicolor else ""))
             item = QListWidgetItem(f"{asset.name}{badge}  [{asset.category}]")
             item.setData(Qt.ItemDataRole.UserRole, asset.id)
             self.list_widget.addItem(item)
@@ -269,12 +269,15 @@ class WidgetHostManager(QObject):
         asset_id: str,
         color_theme: Optional[str] = None,
         overrides: Optional[Dict[str, object]] = None,
+        interactive: bool = True,
     ) -> Optional[CompanionWidget]:
         asset = self.library.get(asset_id)
         if not asset:
             self.library.reload()
             asset = self.library.get(asset_id)
         if not asset:
+            return None
+        if asset.is_hd and not self._hd_allowed(interactive):
             return None
 
         # Aynı animasyonun kopyaları ayrı ayar/konum tutsun: en küçük boş örnek sırası (slot)
@@ -321,6 +324,32 @@ class WidgetHostManager(QObject):
             self._persist_active_list()
         self._rebuild_tray_menu()
         return w
+
+    MAX_HD_WIDGETS = 2
+
+    def _hd_allowed(self, interactive: bool = True) -> bool:
+        """HD mod: en fazla 2 eşzamanlı HD widget; ilk kullanımda CPU/RAM uyarısı ve onay (varsayılan kapalı).
+        interactive=False (IPC/CLI): iletişim kutusu AÇILMAZ (ana döngüyü kilitlemesin), yalnızca reddedilir."""
+        if sum(1 for w in self.widgets.values() if w.asset.is_hd) >= self.MAX_HD_WIDGETS:
+            if not interactive:
+                return False
+            QMessageBox.warning(
+                None, "HD sınırı",
+                f"Aynı anda en fazla {self.MAX_HD_WIDGETS} HD widget açılabilir (CPU/pil tasarrufu için).\nÖnce birini kapatın.",
+            )
+            return False
+        if not self.config_mgr.get_global("hd_enabled", False):
+            if not interactive:
+                return False
+            ans = QMessageBox.question(
+                None, "HD mod",
+                "HD mod yüksek çözünürlüklü (yüzlerce sütun) renkli ASCII çizer ve normal widget'lardan DAHA FAZLA CPU/RAM kullanır.\n"
+                "Ders çalışırken pil/performans için dikkatli kullanın (sağ tık → HD kalite).\n\nHD modu etkinleştirilsin mi?",
+            )
+            if ans != QMessageBox.StandardButton.Yes:
+                return False
+            self.config_mgr.set_global("hd_enabled", True)
+        return True
 
     def restore_last_session_widgets(self) -> int:
         saved_ids = self.config_mgr.get_last_open_widgets()
@@ -400,6 +429,16 @@ class WidgetHostManager(QObject):
             for w in self.widgets.values()
         ]
         self.config_mgr.save_profile(name.strip(), items)
+        self._rebuild_tray_menu()
+
+    def set_hd_enabled(self, enabled: bool) -> None:
+        if enabled:
+            ans = QMessageBox.question(
+                None, "HD mod",
+                "HD mod yüksek çözünürlüklü renkli ASCII çizer ve normal widget'lardan DAHA FAZLA CPU/RAM kullanır.\nEtkinleştirilsin mi?",
+            )
+            enabled = ans == QMessageBox.StandardButton.Yes
+        self.config_mgr.set_global("hd_enabled", bool(enabled))
         self._rebuild_tray_menu()
 
     def set_battery_saver(self, enabled: bool) -> None:
@@ -558,6 +597,11 @@ class WidgetHostManager(QObject):
         restore_act.triggered.connect(lambda checked: self.set_restore_last_session(checked))
         menu.addAction(restore_act)
 
+        hd_act = QAction("🖼️  HD Mod (daha fazla CPU/RAM kullanır)", menu, checkable=True)
+        hd_act.setChecked(bool(self.config_mgr.get_global("hd_enabled", False)))
+        hd_act.triggered.connect(self.set_hd_enabled)
+        menu.addAction(hd_act)
+
         batt_act = QAction("🔋  Pildeyken FPS'i Otomatik Düşür", menu, checkable=True)
         batt_act.setChecked(bool(self.config_mgr.get_global("battery_saver", True)))
         batt_act.triggered.connect(self.set_battery_saver)
@@ -579,12 +623,17 @@ class WidgetHostManager(QObject):
         elif cmd == "spawn":
             asset_id = str(msg.get("asset_id", ""))
             theme_arg = msg.get("color_theme")
-            w = self.spawn_widget(asset_id, color_theme=str(theme_arg) if theme_arg else None)
+            w = self.spawn_widget(asset_id, color_theme=str(theme_arg) if theme_arg else None, interactive=False)
             if w:
                 reply["instance_id"] = w.instance_id
                 reply["name"] = w.asset.name
             else:
-                reply = {"ok": False, "error": f"Karakter bulunamadı: {asset_id}"}
+                a_chk = self.library.get(asset_id)
+                if a_chk is not None and a_chk.is_hd:
+                    reply = {"ok": False, "error": "HD widget açılamadı: en fazla 2 HD widget açılabilir ve HD mod tepsi menüsünden "
+                                                   "('HD Mod (daha fazla CPU/RAM)') bir kez etkinleştirilmelidir."}
+                else:
+                    reply = {"ok": False, "error": f"Karakter bulunamadı: {asset_id}"}
         elif cmd == "list":
             reply["widgets"] = [
                 {

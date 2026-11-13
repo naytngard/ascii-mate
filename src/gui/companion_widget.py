@@ -34,6 +34,7 @@ from src.core.procedural_engine import (
     create_procedural_renderer,
 )
 from src.gui.context_menu import build_context_menu
+from src.gui.hd_renderer import HD_ABS_FPS_CAP, HD_QUALITY, HDPlayer
 from src.gui.power import PowerMonitor
 from src.gui.readability import ReadabilityAnalyzer, capture_excluded, is_supported, set_display_affinity
 
@@ -181,6 +182,15 @@ class CompanionWidget(QWidget):
         # Initial frame
         self._current_lines: List[str] = []
         self._current_colors: Optional[List[List[Optional[RGB]]]] = None
+        # HD (3.0) varlık: ayrı, NumPy glyph atlaslı hızlı yol
+        self._hd: Optional[HDPlayer] = None
+        self._hd_frame: int = 0
+        self._hd_accum: float = 0.0
+        if asset.is_hd:
+            try:
+                self._hd = HDPlayer(asset)
+            except Exception:
+                log.exception("HD varlık açılamadı: %s", asset.id)
         self._init_first_frame()
 
         # Window setup
@@ -227,7 +237,71 @@ class CompanionWidget(QWidget):
         ny = max(-1.0, min(1.0, (cur.y() - center.y()) / 220.0))
         return (nx, ny)
 
+    # --- HD yol yardımcıları ---
+
+    def _hd_cell_px(self) -> Tuple[int, int]:
+        """Yazı boyutundan HD hücre pikseli (1:2 en-boy)."""
+        cw = max(2, int(round(self.state.font_size * 0.36)))
+        return cw, cw * 2
+
+    def _hd_fps(self) -> float:
+        cap = self.state.hd_fps_cap or HD_QUALITY[self.state.hd_quality][1]
+        fps = self.state.custom_fps or self.asset.default_fps
+        return max(1.0, min(fps, cap, HD_ABS_FPS_CAP))
+
+    def _hd_configure(self) -> None:
+        hd = self._hd
+        if hd is None:
+            return
+        cw, ch = self._hd_cell_px()
+        hd.configure(cw, ch, HD_QUALITY[self.state.hd_quality][0], self.state.opacity * self._fade_factor)
+        self._current_lines = [" " * hd.dcols] * hd.drows
+        self._hd_sync_mask()
+        if hd._full_dirty:
+            try:
+                hd.render(self._hd_frame)
+            except Exception:
+                log.exception("HD kare çizilemedi")
+            self.update()
+
+    def _hd_sync_mask(self) -> None:
+        hd = self._hd
+        if hd is None:
+            return
+        rd = self._readability
+        if self.state.behind_text_enabled and rd is not None and rd.running and rd.levels:
+            import numpy as np
+
+            lv = np.asarray(rd.levels, dtype=np.int8)
+            lt = np.asarray(rd.light, dtype=bool)
+            hd.set_mask(lv, lt, max(0.08, min(0.6, self.state.behind_text_fade)))
+        else:
+            hd.set_mask(None, None, self.state.behind_text_fade)
+
+    def _on_tick_hd(self) -> None:
+        hd = self._hd
+        assert hd is not None
+        now = time.monotonic()
+        dt = min(0.5, max(0.01, now - self._last_tick_time))
+        self._last_tick_time = now
+        n = self.asset.frame_count
+        if n > 1 and not self._paused:
+            self._hd_accum += dt * self._hd_fps() * self.state.speed_multiplier
+            if self._hd_accum >= 1.0:
+                steps = int(self._hd_accum)
+                self._hd_accum -= steps
+                self._hd_frame = (self._hd_frame + steps) % n
+        if hd._last_idx != self._hd_frame or hd._full_dirty:
+            try:
+                if hd.render(self._hd_frame):
+                    self.update()
+            except Exception:
+                log.exception("HD kare çizilemedi")
+
     def _init_first_frame(self) -> None:
+        if self._hd is not None:
+            self._hd_configure()
+            return
         if self._procedural is not None:
             self._sync_procedural_grid()
             pf = self._procedural.step(
@@ -265,6 +339,10 @@ class CompanionWidget(QWidget):
             return 1000  # yalnızca durum değişimini yakalamak için seyrek uyan
         factor = PowerMonitor.instance().fps_factor()
         user_fps = self.state.custom_fps
+        if self._hd is not None:
+            if self.asset.frame_count <= 1:
+                return 500  # durağan HD: yalnızca ayar/maske değişimini yakalamak için seyrek uyan
+            return int(max(66, min(1000, round(1000.0 / max(1.0, self._hd_fps() * factor)))))
         if self._procedural is not None:
             fps = user_fps if user_fps else min(self.asset.default_fps, SHADER_DEFAULT_FPS_CAP)
             fps = max(6.0, min(30.0, fps)) * factor
@@ -308,6 +386,10 @@ class CompanionWidget(QWidget):
 
     def readability_region(self) -> Optional[Tuple[QRect, int, int]]:
         """Akıllı okunabilirlik için yakalanacak ekran dikdörtgeni (global piksel) ve karakter ızgarası boyutu."""
+        if self._hd is not None:
+            hd = self._hd
+            origin = self.mapToGlobal(QPoint(12, 10))
+            return QRect(origin.x(), origin.y(), hd.dcols * hd.cw, hd.drows * hd.ch), hd.dcols, hd.drows
         lines = self._current_lines
         if not lines:
             return None
@@ -353,6 +435,20 @@ class CompanionWidget(QWidget):
         self._sync_readability()
         self._save_state()
 
+    def set_hd_quality(self, quality: str) -> None:
+        if quality not in HD_QUALITY:
+            quality = "medium"
+        self.state.hd_quality = quality
+        self._recalculate_size()
+        self._update_timer_interval()
+        self._save_state()
+        self.update()
+
+    def set_hd_fps_cap(self, fps: Optional[float]) -> None:
+        self.state.hd_fps_cap = None if not fps else max(1.0, min(HD_ABS_FPS_CAP, float(fps)))
+        self._update_timer_interval()
+        self._save_state()
+
     def set_behind_text_sensitivity(self, value: float) -> None:
         self.state.behind_text_sensitivity = max(0.0, min(1.0, float(value)))
         if self._readability is not None:
@@ -367,6 +463,9 @@ class CompanionWidget(QWidget):
 
     def _invalidate_art(self) -> None:
         self._art_dirty = True
+        if self._hd is not None:
+            self._hd.invalidate()
+            self._hd_configure()
 
     def _apply_window_flags(self, initial: bool = False) -> None:
         flags = Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool
@@ -480,6 +579,13 @@ class CompanionWidget(QWidget):
         return self.state.color_theme in ("auto", "auto_hd")
 
     def _recalculate_size(self) -> None:
+        if self._hd is not None:
+            self._hd_configure()
+            pw, ph = self._hd.pixel_size
+            new_w, new_h = pw + 24, ph + 22
+            if new_w != self.width() or new_h != self.height():
+                self.resize(new_w, new_h)
+            return
         char_w, line_h, _ = self._get_font_metrics()
         fm = QFontMetricsF(self._build_font())
         lines = self._current_lines or ["(Boş)"]
@@ -519,6 +625,9 @@ class CompanionWidget(QWidget):
 
     def _on_tick(self) -> None:
         if self._suspended:
+            return
+        if self._hd is not None:
+            self._on_tick_hd()
             return
         now = time.monotonic()
         dt = min(0.5, max(0.01, now - self._last_tick_time))
@@ -944,6 +1053,12 @@ class CompanionWidget(QWidget):
                     painter.drawLine(r.left() + l, r.top(), r.right() - l, r.top())
                 elif active_mode == "bottom":
                     painter.drawLine(r.left() + l, r.bottom(), r.right() - l, r.bottom())
+
+        if self._hd is not None:
+            img = self._hd.image
+            if img is not None:
+                painter.drawImage(12, 10, img)
+            return
 
         if self._art_dirty or self._art_pixmap is None:
             self._rebuild_art_pixmap()

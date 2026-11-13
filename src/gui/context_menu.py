@@ -119,6 +119,29 @@ def build_context_menu(widget: "CompanionWidget") -> QMenu:
     brk_act.triggered.connect(lambda checked: widget.set_pomodoro_break_enabled(checked))
     timer_menu.addAction(brk_act)
 
+    # HD mod: kalite ve FPS üst sınırı
+    if widget.asset.is_hd:
+        q_labels = {"low": "Düşük (yarı sütun, ≤8 FPS)", "medium": "Orta (tam sütun, ≤12 FPS)", "high": "Yüksek (tam sütun, ≤15 FPS)"}
+        hd_menu = menu.addMenu(f"🖼️  HD Kalite ({q_labels.get(widget.state.hd_quality, 'Orta').split(' ')[0]})")
+        hd_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+        for qk, ql in q_labels.items():
+            qa = QAction(ql, hd_menu, checkable=True)
+            qa.setChecked(widget.state.hd_quality == qk)
+            qa.triggered.connect(lambda _c, k=qk: widget.set_hd_quality(k))
+            hd_menu.addAction(qa)
+        hd_menu.addSeparator()
+        cur_cap = widget.state.hd_fps_cap
+        for cap_lbl, cap in (("HD FPS üst sınırı: Otomatik", None), ("HD FPS üst sınırı: 4", 4.0), ("HD FPS üst sınırı: 8", 8.0),
+                             ("HD FPS üst sınırı: 10", 10.0), ("HD FPS üst sınırı: 15", 15.0)):
+            ca = QAction(cap_lbl, hd_menu, checkable=True)
+            ca.setChecked((cur_cap is None and cap is None) or (cap is not None and cur_cap is not None and abs(cur_cap - cap) < 0.5))
+            ca.triggered.connect(lambda _c, v=cap: widget.set_hd_fps_cap(v))
+            hd_menu.addAction(ca)
+        note = QAction("ℹ️ HD mod normal widget'tan daha fazla CPU/RAM kullanır", hd_menu)
+        note.setEnabled(False)
+        hd_menu.addSeparator()
+        hd_menu.addAction(note)
+
     # 3D Grid Resolution & Orbit Submenu (for live 3D/Shader widgets)
     if widget.asset.is_procedural:
         res_labels = {

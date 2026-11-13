@@ -537,9 +537,25 @@ class TerminalHub:
             self._proc_renderer = create_procedural_renderer(selected.procedural, params)
         return self._proc_renderer
 
+    def _hd_preview(self, selected: AnimationAsset, w: int, h: int):
+        """HD varlığın küçültülmüş (en yakın komşu) terminal önizlemesi; yalnızca seçili kareyi çözer."""
+        from src.core.hd_format import HDReader
+
+        key = selected.id
+        rd = getattr(self, "_hd_reader", None)
+        if rd is None or getattr(self, "_hd_reader_id", None) != key:
+            try:
+                rd = HDReader(selected.hd_path())  # type: ignore[arg-type]
+            except Exception:
+                return ["(HD dosyası okunamadı)"], None
+            self._hd_reader, self._hd_reader_id = rd, key
+        return rd.preview(self._preview_frame % max(1, rd.frame_count), w, h)
+
     def _preview_fps(self, selected: Optional[AnimationAsset]) -> float:
         if not selected:
             return 0.0
+        if selected.is_hd:
+            return min(6.0, max(1.0, selected.default_fps * 0.5)) if selected.frame_count > 1 else 0.0
         if selected.procedural:
             return min(16.0, max(6.0, selected.default_fps * 0.5))
         if selected.frame_count > 1:
@@ -606,7 +622,7 @@ class TerminalHub:
                 is_sel = idx == self.item_idx
                 is_fav = a.id in fav_set
                 fav_prefix = "★ " if is_fav else "  "
-                tag = "[3B]" if a.is_procedural else ""
+                tag = "[HD]" if a.is_hd else ("[3B]" if a.is_procedural else "")
                 num_str = f"[{idx + 1:02d}]"
                 avail_name = max(10, left_inner_w - len(num_str) - len(tag) - 8)
                 disp_name = a.name if len(a.name) <= avail_name else (a.name[: avail_name - 2] + "..")
@@ -671,8 +687,13 @@ class TerminalHub:
             art_h = max(4, body_h - 5)
             right_inner_w = max(28, int(term_w * 0.54) - 4)
 
-            proc = self._get_preview_renderer(selected, right_inner_w, art_h)
-            if proc is not None:
+            proc = None if selected.is_hd else self._get_preview_renderer(selected, right_inner_w, art_h)
+            if selected.is_hd:
+                p_lines, p_colors = self._hd_preview(selected, right_inner_w, art_h)
+                if sel_theme_key != "auto":
+                    p_colors = None
+                mode_info = f"[bold magenta]HD • {selected.frame_count} kare • {selected.default_fps:g} FPS[/bold magenta]"
+            elif proc is not None:
                 pf = proc.step(dt_anim if dt_anim > 0 else 0.08)
                 p_lines, p_colors = pf.lines, (pf.colors if sel_theme_key == "auto" else None)
                 mode_info = "[bold green]Canlı 3B Shader[/bold green]"
