@@ -127,6 +127,16 @@ def validate_hd_meta(data: Dict[str, Any]) -> Tuple[bool, str]:
         return False, "'default_fps' 0.1..30 aralığında olmalıdır."
     if data.get("bg_mode", "transparent") not in ("transparent", "solid"):
         return False, "'bg_mode' 'transparent' veya 'solid' olmalıdır."
+    frames = data.get("frames") or []
+    if frames:
+        # HD kapalıyken kullanılan klasik yedek kareler: klasik kurallarla (geometri, palet, renk haritası) doğrulanır
+        classic = {k: v for k, v in data.items() if k != "hd"}
+        ok, msg = validate_ascii_json_dict(classic)
+        if not ok:
+            return False, f"klasik yedek kareler: {msg}"
+        for f in frames:
+            if any(not (32 <= ord(ch) <= 126) for ch in f.replace("\n", "")):
+                return False, "klasik yedek kareler yalnızca ASCII 32..126 içermelidir."
     return True, "OK"
 
 

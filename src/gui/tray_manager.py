@@ -277,8 +277,14 @@ class WidgetHostManager(QObject):
             asset = self.library.get(asset_id)
         if not asset:
             return None
-        if asset.is_hd and not self._hd_allowed(interactive):
-            return None
+        force_classic = False
+        if asset.is_hd:
+            has_fallback = bool(asset.frames)
+            if not self._hd_allowed(interactive, has_fallback=has_fallback):
+                if not has_fallback:
+                    return None
+                # HD kapalı/sınır dolu: aynı karakterin düşük çözünürlüklü klasik yedeğini aç (favoriler/profiller bozulmaz)
+                force_classic = True
 
         # Aynı animasyonun kopyaları ayrı ayar/konum tutsun: en küçük boş örnek sırası (slot)
         used_slots = {w.slot for w in self.widgets.values() if w.asset.id == asset_id}
@@ -299,6 +305,7 @@ class WidgetHostManager(QObject):
             config_mgr=self.config_mgr,
             manager_callbacks=callbacks,
             slot=slot,
+            force_classic=force_classic,
         )
         if color_theme:
             w.set_color_theme(color_theme)
@@ -327,10 +334,20 @@ class WidgetHostManager(QObject):
 
     MAX_HD_WIDGETS = 2
 
-    def _hd_allowed(self, interactive: bool = True) -> bool:
+    def _notify(self, text: str) -> None:
+        try:
+            self.tray.showMessage("ASCII Mate", text, QSystemTrayIcon.MessageIcon.Information, 4000)
+        except Exception:
+            log.debug("tepsi bildirimi gösterilemedi", exc_info=True)
+
+    def _hd_allowed(self, interactive: bool = True, has_fallback: bool = False) -> bool:
         """HD mod: en fazla 2 eşzamanlı HD widget; ilk kullanımda CPU/RAM uyarısı ve onay (varsayılan kapalı).
-        interactive=False (IPC/CLI): iletişim kutusu AÇILMAZ (ana döngüyü kilitlemesin), yalnızca reddedilir."""
-        if sum(1 for w in self.widgets.values() if w.asset.is_hd) >= self.MAX_HD_WIDGETS:
+        interactive=False (IPC/CLI): iletişim kutusu AÇILMAZ (ana döngüyü kilitlemesin), yalnızca reddedilir.
+        has_fallback: varlığın klasik yedeği var → engelleyici uyarı yerine bildirim, onay yalnızca bir kez sorulur."""
+        if sum(1 for w in self.widgets.values() if w._hd is not None) >= self.MAX_HD_WIDGETS:
+            if has_fallback:
+                self._notify(f"En fazla {self.MAX_HD_WIDGETS} HD widget açık olabilir; klasik (düşük çözünürlüklü) sürüm açıldı.")
+                return False
             if not interactive:
                 return False
             QMessageBox.warning(
@@ -339,12 +356,15 @@ class WidgetHostManager(QObject):
             )
             return False
         if not self.config_mgr.get_global("hd_enabled", False):
-            if not interactive:
+            if not interactive or (has_fallback and self.config_mgr.get_global("hd_prompted", False)):
                 return False
+            self.config_mgr.set_global("hd_prompted", True)
             ans = QMessageBox.question(
                 None, "HD mod",
                 "HD mod yüksek çözünürlüklü (yüzlerce sütun) renkli ASCII çizer ve normal widget'lardan DAHA FAZLA CPU/RAM kullanır.\n"
-                "Ders çalışırken pil/performans için dikkatli kullanın (sağ tık → HD kalite).\n\nHD modu etkinleştirilsin mi?",
+                "Ders çalışırken pil/performans için dikkatli kullanın (sağ tık → HD kalite).\n"
+                "Hayır derseniz karakterlerin klasik (düşük çözünürlüklü) sürümü açılır; tepsi menüsünden sonra açabilirsiniz.\n\n"
+                "HD modu etkinleştirilsin mi?",
             )
             if ans != QMessageBox.StandardButton.Yes:
                 return False

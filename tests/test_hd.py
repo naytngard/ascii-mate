@@ -1,4 +1,4 @@
-﻿"""HD (schema 3.0) testleri: format gidiş-dönüş, doğrulayıcı, geriye uyumluluk, bellek tavanı, çizici, dönüştürücü."""
+"""HD (schema 3.0) testleri: format gidiş-dönüş, doğrulayıcı, geriye uyumluluk, bellek tavanı, çizici, dönüştürücü."""
 
 from __future__ import annotations
 
@@ -111,12 +111,12 @@ def test_hd_import_via_dragdrop_is_rejected_with_hint(tmp_path):
 def test_legacy_assets_load_unchanged():
     lib = AnimationLibrary(ANIM)
     legacy = [a for a in lib.all_assets() if not a.is_hd]
-    assert len(legacy) >= 134
+    assert len(legacy) >= 123  # 11 elipsoit modeli bilinçli olarak HD'ye yenilendi (test_hd_content.py)
     for a in legacy:
         assert not a.hd and a.hd_file is None and a.hd_frame_count == 0
         assert a.frames or a.procedural
         assert a.schema_version in ("1.0", "2.0")
-    for aid in ("saturn_3d", "heart_3d", "donut_3d", "christmas_tree_3d", "cat_bust_3d"):
+    for aid in ("saturn_3d", "heart_3d", "donut_3d", "christmas_tree_3d", "galaxy_vortex_3d"):
         assert lib.get(aid) is not None and lib.get(aid).is_procedural
 
 

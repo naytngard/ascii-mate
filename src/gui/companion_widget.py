@@ -111,6 +111,7 @@ class CompanionWidget(QWidget):
         config_mgr: ConfigManager,
         manager_callbacks: Optional[Dict[str, Callable]] = None,
         slot: int = 0,
+        force_classic: bool = False,
     ) -> None:
         super().__init__()
         self.instance_id = instance_id
@@ -191,7 +192,7 @@ class CompanionWidget(QWidget):
         self._hd: Optional[HDPlayer] = None
         self._hd_frame: int = 0
         self._hd_accum: float = 0.0
-        if asset.is_hd:
+        if asset.is_hd and not force_classic:
             try:
                 self._hd = HDPlayer(asset)
             except Exception:
@@ -352,6 +353,8 @@ class CompanionWidget(QWidget):
             fps = user_fps if user_fps else min(self.asset.default_fps, SHADER_DEFAULT_FPS_CAP)
             fps = max(6.0, min(30.0, fps)) * factor
             return max(33, int(round(1000.0 / max(4.0, fps))))
+        if len(self.asset.frames) <= 1 and not self._needs_fast_static_tick() and not self._timer_active:
+            return 1000  # tek kareli durağan çizim: değişecek bir şey yok, seyrek uyan
         base = (user_fps if user_fps else self.asset.default_fps) * self.state.speed_multiplier
         eff = max(0.5, base)
         if self._needs_fast_static_tick():
@@ -762,14 +765,14 @@ class CompanionWidget(QWidget):
                 base_colors = self._current_colors
         else:
             old_idx = self._frame_idx
-            if not self._paused and self.asset.frame_count > 1:
+            if not self._paused and len(self.asset.frames) > 1:
                 base_fps = self.state.custom_fps if self.state.custom_fps else self.asset.default_fps
                 effective_fps = max(0.2, base_fps * self.state.speed_multiplier)
                 self._frame_accum += dt * effective_fps
                 if self._frame_accum >= 1.0:
                     steps = int(self._frame_accum)
                     self._frame_accum -= steps
-                    self._frame_idx = (self._frame_idx + steps) % self.asset.frame_count
+                    self._frame_idx = (self._frame_idx + steps) % len(self.asset.frames)
             frame_advanced = self._frame_idx != old_idx
             if not (frame_advanced or blink_changed or look_changed or particles_on or is_rainbow or timer_changed or self._art_dirty):
                 return
