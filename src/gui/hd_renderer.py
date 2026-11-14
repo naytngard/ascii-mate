@@ -29,6 +29,7 @@ HD_QUALITY: Dict[str, Tuple[int, float]] = {
     "high": (1, 15.0),
 }
 HD_ABS_FPS_CAP = 15.0
+BLOCK_CACHE = 1536  # önceden birleştirilmiş (karakter, renk) hücre blokları
 
 
 def build_atlas(cw: int, ch: int) -> np.ndarray:
@@ -89,6 +90,10 @@ class HDPlayer:
         self._atlas_op: Optional[np.ndarray] = None  # opaklık uygulanmış atlas (maskesiz hızlı yol)
         self._full_dirty = True
         self._last_idx = -1
+        self.last_dirty: Optional[Tuple[int, int, int, int]] = None
+        self._blocks: Optional[np.ndarray] = None
+        self._slot: Dict[int, int] = {}
+        self._n_blocks = 0
 
     # --- yapılandırma
     def configure(self, cell_w: int, cell_h: int, decim: int, opacity: float) -> None:
@@ -109,6 +114,9 @@ class HDPlayer:
         if self._atlas_op is None or self._full_dirty:
             assert self._atlas is not None
             self._atlas_op = ((self._atlas.astype(np.uint16) * int(self.opacity * 256)) >> 8).astype(np.uint8)
+            self._blocks = None  # (karakter, renk) blok önbelleği geçersiz
+            self._slot = {}
+            self._n_blocks = 0
 
     @property
     def pixel_size(self) -> Tuple[int, int]:
@@ -173,12 +181,60 @@ class HDPlayer:
         self._full_dirty = False
         self._last_idx = idx
         if rr.size == 0:
+            self.last_dirty = None
             return False
+        self.last_dirty = (int(rr.min()), int(cc.min()), int(rr.max()), int(cc.max()))
 
         idxs = chars[rr, cc].astype(np.intp) - 32
         col = colors[rr, cc]  # (k, 3) uint8 RGB
+        view = self._buf.reshape(self.drows, self.ch, self.dcols, self.cw, 4).transpose(0, 2, 1, 3, 4)
+        use_cache = levels is None and not self.solid_bg and rr.size > 0
+        if use_cache:
+            q0 = (col >> 3).astype(np.uint32)
+            k0 = (idxs.astype(np.uint32) << 15) | (q0[:, 0] << 10) | (q0[:, 1] << 5) | q0[:, 2]
+            use_cache = np.unique(k0).size <= BLOCK_CACHE // 2  # çok çeşitli kare (ör. dönen gökkuşağı): doğrudan birleştir
+        if use_cache:
+            # En hızlı yol: (karakter, 5-bit renk) → önceden birleştirilmiş BGRA blok; yalnızca yeni anahtarlar hesaplanır.
+            # Dönen sahnelerde hemen her hücre değişir ama (karakter, renk) çiftleri çok tekrar eder.
+            npx = self.ch * self.cw
+            q = (col >> 3).astype(np.uint32)
+            key = (idxs.astype(np.uint32) << 15) | (q[:, 0] << 10) | (q[:, 1] << 5) | q[:, 2]
+            uk, inv = np.unique(key, return_inverse=True)
+            if getattr(self, "_blocks", None) is None or self._blocks.shape[1] != npx:
+                self._blocks = np.zeros((BLOCK_CACHE, npx, 4), np.uint8)
+                self._slot = {}
+                self._n_blocks = 0
+            ukl = uk.tolist()
+            slots = [self._slot.get(k_, -1) for k_ in ukl]
+            miss = [i for i, s_ in enumerate(slots) if s_ < 0]
+            if miss:
+                if self._n_blocks + len(miss) > BLOCK_CACHE:
+                    self._slot = {}
+                    self._n_blocks = 0
+                    miss = list(range(len(ukl)))
+                mk = uk[miss]
+                m_idx = (mk >> 15).astype(np.intp)
+                m_col = np.stack([((mk >> s_) & 31) << 3 | 4 for s_ in (10, 5, 0)], axis=1).astype(np.uint16)
+                a8m = self._atlas_op[m_idx].reshape(len(miss), npx)
+                a16m = a8m.astype(np.uint16)
+                blk = np.empty((len(miss), npx, 4), np.uint8)
+                tmpm = np.empty(a16m.shape, np.uint16)
+                for dst, src in ((0, 2), (1, 1), (2, 0)):
+                    np.multiply(a16m, m_col[:, src : src + 1], out=tmpm)
+                    tmpm >>= 8
+                    blk[:, :, dst] = tmpm
+                blk[:, :, 3] = a8m
+                start = self._n_blocks
+                self._blocks[start : start + len(miss)] = blk
+                for j, i in enumerate(miss):
+                    self._slot[ukl[i]] = start + j
+                    slots[i] = start + j
+                self._n_blocks += len(miss)
+            sl = np.asarray(slots, np.intp)[inv.reshape(-1)]
+            view[rr, cc] = self._blocks[sl].reshape(rr.size, self.ch, self.cw, 4)
+            return True
         if levels is None and not self.solid_bg:
-            # Hızlı yol: alfa = opaklık uygulanmış atlas; tek çarpma + kaydırma
+            # Doğrudan yol: alfa = opaklık uygulanmış atlas; kanal başına bitişik çarpma
             a8 = self._atlas_op[idxs].reshape(rr.size, self.ch * self.cw)  # (k, piksel)
             a16 = a8.astype(np.uint16)
             out = np.empty((rr.size, self.ch * self.cw, 4), np.uint8)
@@ -214,7 +270,5 @@ class HDPlayer:
             out[..., 1] = rgb[..., 1]
             out[..., 2] = rgb[..., 0]
             out[..., 3] = a
-        # (satır, sütun) blokları için bitişik hedef görünümü
-        view = self._buf.reshape(self.drows, self.ch, self.dcols, self.cw, 4).transpose(0, 2, 1, 3, 4)
         view[rr, cc] = out
         return True

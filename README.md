@@ -1,6 +1,6 @@
 # ✨ ASCII Mate (Yüzen Masaüstü ASCII Arkadaşı)
 
-Ders çalışırken, kod yazarken veya kitap okurken masaüstünüzde PDF'lerin, VS Code'un ve pencerelerin **tam üzerinde** hiçbir arkaplan veya çerçeve olmadan süzülen, tamamen saydam, sürüklenebilir, büyütülebilir **137 animasyon**: 134 saf klasik ASCII / canlı 3B Shader (35 canlı 3B model) + 3 opsiyonel **HD renkli ASCII** örneği (tüm karakterler ve zamanlayıcı etiketi saf ASCII'dir).
+Ders çalışırken, kod yazarken veya kitap okurken masaüstünüzde PDF'lerin, VS Code'un ve pencerelerin **tam üzerinde** hiçbir arkaplan veya çerçeve olmadan süzülen, tamamen saydam, sürüklenebilir, büyütülebilir **141 animasyon**: 123 saf klasik ASCII / matematiksel 3B shader (Satürn, simit, kalp, yılbaşı ağacı...) + 18 **HD renkli ASCII** (11 yenilenmiş hayvan/karakter, 4 sahne, 3 örnek). Tüm karakterler ve zamanlayıcı etiketi saf ASCII'dir.
 
 > **Platform:** ASCII Mate **yalnızca Windows 10/11** için tasarlandı (saydam tepsi widget'ı, named-pipe IPC, ekran kilidi/tam ekran algısı, akıllı okunabilirlik Windows API'lerine dayanır).
 
@@ -22,7 +22,7 @@ python main.py
 python main.py --widget sleeping_cat
 python main.py --widget saturn_3d
 
-# Tüm 137 animasyonu (3 HD dahil) doğrular (saf klasik ASCII, hizalama, kare zıplaması, 3B shader testi):
+# Tüm 141 animasyonu (18 HD dahil) doğrular (saf klasik ASCII, hizalama, kare zıplaması, 3B shader testi):
 python tests/validate_library.py
 
 # Birim testleri (pytest; requirements-dev.txt):
@@ -33,6 +33,7 @@ python tests/preview_art.py cat_bust_3d --w 64 --h 30 --color
 python tests/contact_sheet.py
 python tests/bench_render.py          # klasik 3B
 python tests/bench_render.py --hd     # HD senaryoları (CPU + RAM)
+python tests/bench_cpu_real.py --repeat 3   # GERÇEK süreç CPU ölçümü (gerçek host + widget'lar)
 
 # Kendi görselinizi/GIF'inizi/OBJ'nizi HD varlığa çevirin (aşağıya bakın):
 python tools/hd_convert.py foto.png --out assets/animations/community --id portre --cols 180
@@ -60,6 +61,8 @@ ascii_mate/
 ├── tools/generate_model_assets.py  # 3B model JSON'larını üretir
 ├── tools/hd_convert.py         # görüntü/GIF/klasör/OBJ → HD (3.0) varlık
 ├── tools/make_hd_samples.py    # 3 örnek HD varlığı üretir (kendi ürettiğimiz kaynaklar)
+├── tools/scenes/               # offline SDF sahneleri → HD hayvanlar/sahneler (build_assets.py)
+├── tools/import_local_art.py   # KİŞİSEL resim → HD (yalnızca %APPDATA%, repoya yazmaz)
 ├── assets/
 │   ├── animations/             # Kategorilere ayrılmış saf ASCII .ascii.json dosyaları
 │   └── themes.json
@@ -121,6 +124,34 @@ python tools/hd_convert.py model.obj  --out assets/animations/community --id don
 ```
 `--cols`, `--ramp` (`auto` ya da kendi karakterleriniz), `--gamma`, `--edge-boost` (Sobel kenarları `| - / \`), `--bg-threshold`, `--color-lift`, `--fps`, `--frames`. Karakterler yalnızca ASCII'dir; yoğunluk rampası, widget'ın kullandığı yazı tipiyle **ölçülen gerçek mürekkep yoğunluğuna** göre sıralanır. OBJ'ler (köşe renkleri desteklenir) ortografik z-buffer ile döndürülüp aynı hattan geçirilir. Kendi CC0 şövalye/at mesh'inizi veya görüntünüzü doğrudan bu araca verebilirsiniz.
 
+### HD hayvanlar, karakterler ve sahneler (`tools/scenes/`)
+Eski elipsoit modelleri (kedi, baykuş, köpek, tilki, kurt+kamp ateşi, oturan şövalye, ejderha yavrusu, nöbetçi robot,
+astronot, büyücü+kitap, bonsai) **aynı id'lerle** HD sürüme yenilendi; favoriler ve profiller (`cat_bust_3d` vb.) bozulmaz.
+Yeni sahneler: `hd_knight_resting` (gün batımında dinlenen şövalye), `hd_rider_horse` (sepya atlı süvari),
+`hd_meadow_warrior` (rüzgârlı çayırda savaşçı + çiçekler), `hd_skeleton_giant` (dev iskelet + savaşçı, kırmızı sis).
+
+* **Nasıl üretilir:** `python tools/scenes/build_assets.py` — NumPy ile **derleme anında** SDF ray-marching (yumuşak gölge,
+  kenar ışığı, AO) → hücre ızgarası. Siluet/malzeme sınırları yönlü kontur karakterlerine (`| - _ / \`), göz, burun, bıyık,
+  gaga gibi öznitelikler sabit karakterlere (`o @ | v - '`) dönüşür; iç bölge ölçülmüş mürekkep rampasıyla dolar.
+  Hareket (nefes, göz kırpma, kulak/kuyruk, kanat, alev, rüzgârlı çimen, sis) 24 karelik döngü olarak hazır gelir;
+  **çalışma anında render yoktur**, çizici yalnızca değişen hücreleri yazar.
+* **Klasik yedek:** her HD varlıkta 62 sütunluk tek kareli klasik ASCII yedeği (64 renkli palet) bulunur. HD kapalıysa veya
+  2 HD sınırı doluysa aynı karakter bu yedekle açılır (onay penceresi yalnızca bir kez sorulur; sonra tepsiden açılır).
+* **Kaynak/lisans:** tüm geometri bu depodaki parametrik SDF betiklerindedir; harici görsel, mesh veya başkasının çizimi
+  kullanılmamıştır. Referans resimler yalnızca tema/ton fikri olarak kullanıldı (kopya veya iz sürme yok).
+
+### Kişisel resimler: `tools/import_local_art.py` (repoya girmez)
+```bash
+python tools/import_local_art.py "C:\Resimler\tablo.jpg" --preset high --bg solid --anim wind
+python tools/import_local_art.py foto.jpg --cols 180 --crop 0.1,0,0.8,1 --bg auto --bg-side top --anim pulse,embers
+```
+Çıktı **varsayılan olarak `%APPDATA%\ASCII_Mate\community`** klasörüne yazılır (uygulama bu klasörü de tarar); depo içine
+yazmak `--allow-repo` olmadan reddedilir. Başkalarının eserlerinden (tablo, illüstrasyon, film karesi) üretilen
+dönüşümler **yalnızca kişisel kullanım** içindir; repoya, release'e veya paylaşılan klasörlere koymayın.
+Seçenekler: `--preset low|medium|high` (110/160/210 sütun), `--gamma`, `--edges`, `--bg auto|threshold|solid`
+(`auto`: kenarlardan taşan renk maskesiyle gökyüzü/kağıt ayrılır; `solid`: koyu panel), `--crop`, `--invert`,
+`--black-point/--white-point`, `--saturation`, `--anim wind|embers|pulse` (yalnızca alt bölge/partiküller değişir).
+
 ### Örnek varlıklar ve lisans
 Üç örnek **tamamen bu depodaki `tools/make_hd_samples.py` betiğiyle üretilir**; harici görsel, mesh veya başkasının çizimi kullanılmamıştır:
 | Varlık | Kaynak | Özellik |
@@ -145,11 +176,43 @@ python tools/hd_convert.py model.obj  --out assets/animations/community --id don
 
 Karşılaştırma için klasik canlı 3B shader (kedi, 12 FPS): ≈ %8 tek çekirdek. İki HD widget açıkken tepsi sürecinin toplam çalışma kümesi ≈ 147 MB (Qt dahil) ölçüldü. Hız optimizasyonu öncesi (alan başına `drawText`/çoklu çarpma yolu) dönen torus ≈ %14,3'tü; kanal başına bitişik çarpma ve bitişik blok yazımı ile ≈ %8,4'e indi.
 
+### Gerçek CPU ölçümü (önce / sonra)
+`python tests/bench_cpu_real.py` gerçek bir tepsi host'u açar, widget'ları IPC ile başlatır ve **host sürecinin işletim
+sistemi CPU süresini** ölçer (tahmin değil). Tek çekirdek eşdeğeri = CPU süresi / duvar süresi; "toplam" = ÷ 16 mantıksal
+çekirdek (ölçüm makinesi). Gerçek ekran (1,5 DPI), dizüstü. "Önce" = commit 6a64039 (20 sn tek pencere), "sonra" =
+3 × 12 sn pencerenin medyanı; ham değerler `bench_results/*.json`. Dizüstünde tek pencere ±%3 oynayabilir.
+
+| Senaryo | Önce (tek çekirdek) | Sonra (medyan) | Sonra pencereleri | Hedef |
+|---|---|---|---|---|
+| Satürn | %13,98 | **%3,26** | 2,6 / 3,3 / 8,1 | ≤ %4 ✓ |
+| Simit (donut) | %13,52 | **%2,73** | 0,0* / 2,7 / 3,9 | ≤ %4 ✓ |
+| Kalp | %12,73 | **%4,04** | 2,3 / 4,0 / 4,6 | ≤ %4 ≈ |
+| Yılbaşı ağacı | %9,69 | **%3,52** | 3,3 / 3,5 / 4,9 | ≤ %4 ✓ |
+| HD gelincik (hareketli) | %1,87 | **%2,99** | 0,0* / 3,0 / 3,6 | ≤ %3 ≈ |
+| HD kedi (yeni, 8 FPS) | (elipsoit: ölçülmedi) | **%3,52** | 3,0 / 3,5 / 3,9 | ≤ %3 ✗ |
+| HD çayırda savaşçı | — | **%2,08** | 1,6 / 2,1 / 4,4 | ≤ %3 ✓ |
+| HD dönen torus (10,6 FPS) | %10,55 | **%7,2** (ayrı ölçüm) | 2,5 / 7,2 / 9,0 | ≤ %3 ✗ |
+| HD durağan portre | %0,00 | **%0,00** | 0 / 0 / 0 | ≈ %0 ✓ |
+| Satürn + simit + kalp + HD gelincik | %48,28 | **%12,11** | 11,2 / 12,1 / 12,6 | ≤ %10 ✗ |
+
+\* 0,0 pencereler: o anda pencere yöneticisi widget'ı tamamen örtülü saydı ya da ölçüm penceresi kare sınırına denk geldi;
+bu yüzden medyan raporlanır. Torus'un uzun ölçümünde bir pencerede tick'lerin durduğu görüldü (kök neden doğrulanamadı),
+o değer tabloya alınmadı. Toplam (tüm çekirdeklere göre) en kötü durumda ≈ %0,8.
+
+**Neler yapıldı:** klasik widget'larda `drawText` yerine glif atlası + yalnızca değişen hücreler (gölge maskeye pişirilmiş),
+(karakter, renk) blok önbelleği, yalnızca kirli bölgenin yeniden boyanması (katmanlı pencere güncellemesi alanla orantılı),
+Satürn/simit/kalp ışın + z-buffer adımının NumPy'a taşınması (**çıktı birebir aynı**: eşdeğerlik ve altın testler),
+3B shader varsayılan 8 FPS, tamamen örtülen (üstte olmayan) widget'ta tick yok, tek kareli çizimde 1 Hz.
+**Ulaşılamayanlar ve nedeni:** dönen torus her karede neredeyse tüm hücreleri değiştiriyor ve 1500+ farklı (karakter, renk)
+çifti kullanıyor (önbellek işe yaramıyor); maliyet ≈ birleştirme + 750×750 px katmanlı pencere güncellemesi × FPS.
+HD kedi ~%3,5 (hedefin biraz üstünde). Dört ağır widget birlikte ≈ %12 (hedef %10). En kolay kazanım: İnce Ayar → Manuel FPS
+veya HD Kalite → Düşük.
+
 ---
 
 ## 🔋 Performans İpuçları
 
-* 3B shader'lar varsayılan olarak **en çok 15 FPS** (hayvan modelleri 12 FPS) çalışır; **İnce Ayar Paneli → Manuel FPS** ile değiştirin. Daha düşük FPS ve daha küçük ızgara (`Kompakt`) CPU'yu doğrudan azaltır.
+* Matematiksel 3B shader'lar varsayılan olarak **8 FPS**, HD hayvanlar 8 FPS çalışır; **İnce Ayar Paneli → Manuel FPS** ile değiştirin. Daha düşük FPS ve daha küçük ızgara (`Kompakt`) CPU'yu doğrudan azaltır.
 * Gölge tek geçiştir; **Glow varsayılan kapalıdır** (ek çizim geçişi).
 * Ekran **kilitliyken** çizim durur; tam ekran bir uygulama widget'ın bulunduğu ekranı kaplıyorsa ve widget "Her Zaman Üstte" değilse durur. **Pildeyken** FPS otomatik ~%40 düşer (tepsi menüsünden kapatılabilir).
 * Statik animasyonlar yalnızca kare/parçacık/zamanlayıcı gerektiğinde 1–8 FPS'te güncellenir.

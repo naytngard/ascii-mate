@@ -159,7 +159,11 @@ class ClassicCellRenderer:
         col = colors[rr, cc]
         npx = self.chp * self.cwp
         view = self._buf.reshape(rows, self.chp, cols, self.cwp, 4).transpose(0, 2, 1, 3, 4)
+        cacheable = False
         if levels is None:
+            q0 = (col >> 3).astype(np.uint32)
+            cacheable = np.unique((idx.astype(np.uint32) << 15) | (q0[:, 0] << 10) | (q0[:, 1] << 5) | q0[:, 2]).size <= BLOCK_CACHE // 2
+        if levels is None and cacheable:
             # Hızlı yol: (karakter, 5-bit renk) → önceden birleştirilmiş blok; yalnızca yeni anahtarlar hesaplanır
             q = (col >> 3).astype(np.uint32)
             key = (idx.astype(np.uint32) << 15) | (q[:, 0] << 10) | (q[:, 1] << 5) | q[:, 2]

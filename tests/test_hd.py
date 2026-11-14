@@ -337,3 +337,24 @@ def test_hd_widget_ticks_pause_and_rate_limits(tmp_path, qapp):
     for w in (spin, still):
         w._close_notified = True
         w.close()
+
+
+def test_many_unique_cells_do_not_overflow_block_cache(tmp_path, qapp):
+    """Dönen gökkuşağı gibi çok çeşitli kareler blok önbelleğini taşırmamalı (önceden ValueError ile kare atlanıyordu)."""
+    from src.gui.cell_compositor import ClassicCellRenderer
+    from PyQt6.QtGui import QFont
+
+    ch, co = _frames(n=3, rows=60, cols=120, seed=9)  # ~7200 benzersiz (karakter, renk)
+    pl = _player(tmp_path, qapp, ch, co)
+    for i in range(3):
+        assert pl.render(i)
+    assert pl._buf[..., 3].any()
+    cr = ClassicCellRenderer()
+    f = QFont()
+    f.setPointSize(10)
+    cr.configure(f, 7.0, 14.0, 11.0, 16.0, 1.0, 1.0, True)
+    for i in range(3):
+        assert cr.render(ch[i], co[i])
+    # az çeşitli kare: önbellek yolu
+    small = np.full((10, 20), ord("#"), np.uint8)
+    assert cr.render(small, np.full((10, 20, 3), 200, np.uint8))

@@ -1,0 +1,264 @@
+{
+  "offscreen": false,
+  "seconds": 12.0,
+  "cpu_count": 16,
+  "results": [
+    {
+      "single_core_pct": 0.0,
+      "total_pct": 0.0,
+      "rss_mb": 59.51171875,
+      "rates": [],
+      "all_runs_single_core_pct": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scenario": "(boşta host)",
+      "net_single_core_pct": 0.0
+    },
+    {
+      "single_core_pct": 3.2550471813724773,
+      "total_pct": 0.20344044883577983,
+      "rss_mb": 128.359375,
+      "rates": [
+        {
+          "asset_id": "saturn_3d",
+          "tick_hz": 7.499628705882188,
+          "paint_hz": 7.499628705882188,
+          "suspended": false,
+          "cell_path": true,
+          "hd": false
+        }
+      ],
+      "all_runs_single_core_pct": [
+        2.604,
+        3.255,
+        8.073
+      ],
+      "scenario": "saturn_3d",
+      "net_single_core_pct": 3.2550471813724773
+    },
+    {
+      "single_core_pct": 2.7342859534206045,
+      "total_pct": 0.17089287208878778,
+      "rss_mb": 129.9765625,
+      "rates": [
+        {
+          "asset_id": "donut_3d",
+          "tick_hz": 7.583086377486476,
+          "paint_hz": 7.583086377486476,
+          "suspended": false,
+          "cell_path": true,
+          "hd": false
+        }
+      ],
+      "all_runs_single_core_pct": [
+        0.0,
+        2.734,
+        3.906
+      ],
+      "scenario": "donut_3d",
+      "net_single_core_pct": 2.7342859534206045
+    },
+    {
+      "single_core_pct": 4.0363009848667515,
+      "total_pct": 0.25226881155417197,
+      "rss_mb": 128.375,
+      "rates": [
+        {
+          "asset_id": "heart_3d",
+          "tick_hz": 7.583037721246439,
+          "paint_hz": 7.583037721246439,
+          "suspended": false,
+          "cell_path": true,
+          "hd": false
+        }
+      ],
+      "all_runs_single_core_pct": [
+        2.344,
+        4.036,
+        4.557
+      ],
+      "scenario": "heart_3d",
+      "net_single_core_pct": 4.0363009848667515
+    },
+    {
+      "single_core_pct": 3.5154840876794746,
+      "total_pct": 0.21971775547996716,
+      "rss_mb": 130.8515625,
+      "rates": [
+        {
+          "asset_id": "christmas_tree_3d",
+          "tick_hz": 7.416369393860107,
+          "paint_hz": 7.416369393860107,
+          "suspended": false,
+          "cell_path": true,
+          "hd": false
+        }
+      ],
+      "all_runs_single_core_pct": [
+        3.255,
+        3.515,
+        4.948
+      ],
+      "scenario": "christmas_tree_3d",
+      "net_single_core_pct": 3.5154840876794746
+    },
+    {
+      "single_core_pct": 0.051692767888653686,
+      "total_pct": 0.0032307979930408554,
+      "rss_mb": 135.87109375,
+      "rates": [
+        {
+          "asset_id": "hd_torus_knot_spin",
+          "tick_hz": 0.044345795771713124,
+          "paint_hz": 0.045049697291899046,
+          "suspended": false,
+          "cell_path": false,
+          "hd": true
+        }
+      ],
+      "all_runs_single_core_pct": [
+        0.019,
+        0.052,
+        10.416
+      ],
+      "scenario": "hd_torus_knot_spin",
+      "net_single_core_pct": 0.051692767888653686
+    },
+    {
+      "single_core_pct": 2.994624866061628,
+      "total_pct": 0.18716405412885176,
+      "rss_mb": 101.1875,
+      "rates": [
+        {
+          "asset_id": "hd_poppy_field",
+          "tick_hz": 8.74951265214528,
+          "paint_hz": 8.74951265214528,
+          "suspended": false,
+          "cell_path": false,
+          "hd": true
+        }
+      ],
+      "all_runs_single_core_pct": [
+        0.001,
+        2.995,
+        3.646
+      ],
+      "scenario": "hd_poppy_field",
+      "net_single_core_pct": 2.994624866061628
+    },
+    {
+      "single_core_pct": 0.0,
+      "total_pct": 0.0,
+      "rss_mb": 103.52734375,
+      "rates": [
+        {
+          "asset_id": "hd_portrait_static",
+          "tick_hz": 1.9165951616954735,
+          "paint_hz": 0.0,
+          "suspended": false,
+          "cell_path": false,
+          "hd": true
+        }
+      ],
+      "all_runs_single_core_pct": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scenario": "hd_portrait_static",
+      "net_single_core_pct": 0.0
+    },
+    {
+      "single_core_pct": 3.515520003135745,
+      "total_pct": 0.21972000019598406,
+      "rss_mb": 100.01171875,
+      "rates": [
+        {
+          "asset_id": "cat_bust_3d",
+          "tick_hz": 7.749768540245909,
+          "paint_hz": 7.749768540245909,
+          "suspended": false,
+          "cell_path": false,
+          "hd": true
+        }
+      ],
+      "all_runs_single_core_pct": [
+        2.995,
+        3.516,
+        3.906
+      ],
+      "scenario": "cat_bust_3d",
+      "net_single_core_pct": 3.515520003135745
+    },
+    {
+      "single_core_pct": 2.0832411672718965,
+      "total_pct": 0.13020257295449353,
+      "rss_mb": 102.63671875,
+      "rates": [
+        {
+          "asset_id": "hd_meadow_warrior",
+          "tick_hz": 7.749657142251453,
+          "paint_hz": 7.749657142251453,
+          "suspended": false,
+          "cell_path": false,
+          "hd": true
+        }
+      ],
+      "all_runs_single_core_pct": [
+        1.562,
+        2.083,
+        4.427
+      ],
+      "scenario": "hd_meadow_warrior",
+      "net_single_core_pct": 2.0832411672718965
+    },
+    {
+      "single_core_pct": 12.109051890131344,
+      "total_pct": 0.756815743133209,
+      "rss_mb": 126.91796875,
+      "rates": [
+        {
+          "asset_id": "saturn_3d",
+          "tick_hz": 7.333137660776314,
+          "paint_hz": 7.333137660776314,
+          "suspended": false,
+          "cell_path": true,
+          "hd": false
+        },
+        {
+          "asset_id": "donut_3d",
+          "tick_hz": 7.333137660776314,
+          "paint_hz": 7.333137660776314,
+          "suspended": false,
+          "cell_path": true,
+          "hd": false
+        },
+        {
+          "asset_id": "heart_3d",
+          "tick_hz": 7.333137660776314,
+          "paint_hz": 7.333137660776314,
+          "suspended": false,
+          "cell_path": true,
+          "hd": false
+        },
+        {
+          "asset_id": "hd_poppy_field",
+          "tick_hz": 8.499773197718001,
+          "paint_hz": 8.416442087936453,
+          "suspended": false,
+          "cell_path": false,
+          "hd": true
+        }
+      ],
+      "all_runs_single_core_pct": [
+        11.197,
+        12.109,
+        12.63
+      ],
+      "scenario": "saturn_3d,donut_3d,heart_3d,hd_poppy_field",
+      "net_single_core_pct": 12.109051890131344
+    }
+  ]
+}

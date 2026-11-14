@@ -300,7 +300,12 @@ class CompanionWidget(QWidget):
         if hd._last_idx != self._hd_frame or hd._full_dirty:
             try:
                 if hd.render(self._hd_frame):
-                    self.update()
+                    # yalnızca değişen hücre kutusunu yeniden boya (katmanlı pencere güncellemesi alanla orantılı)
+                    if hd.last_dirty is not None:
+                        r0, c0, r1, c1 = hd.last_dirty
+                        self.update(12 + c0 * hd.cw - 1, 10 + r0 * hd.ch - 1, (c1 - c0 + 1) * hd.cw + 3, (r1 - r0 + 1) * hd.ch + 3)
+                    else:
+                        self.update()
             except Exception:
                 log.exception("HD kare çizilemedi")
 

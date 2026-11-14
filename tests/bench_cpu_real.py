@@ -6,6 +6,8 @@ Tahmin değil: işletim sisteminin süreç için tuttuğu kullanıcı+çekirdek 
   * toplam (tüm çekirdekler) = tek çekirdek eşdeğeri / mantıksal çekirdek sayısı
   * net = senaryo − boşta host (widget yokken host'un kendi maliyeti)
 
+Not: dizüstünde (pil/turbo) tek ölçüm %±3 oynayabilir; --repeat 3 ile medyan kullanın.
+
 Kullanım:
     python tests/bench_cpu_real.py                    # gerçek ekran, varsayılan senaryolar, 30 sn
     python tests/bench_cpu_real.py --offscreen        # QT_QPA_PLATFORM=offscreen (ekran birleştirme yok)
@@ -123,6 +125,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--offscreen", action="store_true")
     ap.add_argument("--seconds", type=float, default=30.0)
     ap.add_argument("--warmup", type=float, default=4.0)
+    ap.add_argument("--repeat", type=int, default=1, help="her senaryoda ardışık ölçüm penceresi; MEDYAN raporlanır")
     ap.add_argument("--scenario", action="append", help="virgülle ayrılmış id listesi; boş = boşta host")
     ap.add_argument("--json", default=None)
     args = ap.parse_args(argv)
@@ -145,7 +148,10 @@ def main(argv: Optional[List[str]] = None) -> int:
                 if not r or not r.get("ok"):
                     print(f"[UYARI] açılamadı: {aid}: {r}")
             time.sleep(args.warmup)
-            m = measure(proc.pid, args.seconds)
+            runs = [measure(proc.pid, args.seconds) for _ in range(max(1, args.repeat))]
+            runs.sort(key=lambda x: x["single_core_pct"])
+            m = dict(runs[len(runs) // 2])  # medyan pencere: arka plan gürültüsüne dayanıklı
+            m["all_runs_single_core_pct"] = [round(r["single_core_pct"], 3) for r in runs]
             m["scenario"] = "(boşta host)" if not ids else sc
             if not ids:
                 idle = m["single_core_pct"]
