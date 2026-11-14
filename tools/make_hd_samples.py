@@ -2,7 +2,6 @@
 
   1. hd_torus_knot_spin   : parametrik torus düğümü (OBJ üretilir → tools/hd_convert.py ile 48 karelik döner döngü)
   2. hd_poppy_field       : procedural, rüzgârla sallanan çimen + gelincik tarlası (24 karelik döngü, 10 FPS)
-  3. hd_portrait_static   : QPainter ile çizilmiş stilize portre (durağan)
 
 Lisans: bu betiğin ürettiği tüm veriler proje lisansı altındadır (CC0'a eşdeğer kullanım). Kaynak görsel/mesh yoktur.
 Kullanım: python tools/make_hd_samples.py
@@ -141,93 +140,6 @@ def sample_poppy() -> None:
     print(f"[OK] hd_poppy_field {C}x{R}, {N} kare")
 
 
-# --------------------------------------------------------------------------- 3) durağan portre
-
-def sample_portrait() -> None:
-    from PyQt6.QtCore import QPointF, QRectF, Qt
-    from PyQt6.QtGui import QBrush, QColor, QImage, QPainter, QPainterPath, QPen, QRadialGradient, QLinearGradient
-
-    hc.ensure_qt()
-    W, H = 720, 900
-    img = QImage(W, H, QImage.Format.Format_ARGB32)
-    img.fill(0)
-    p = QPainter(img)
-    p.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-    # omuzlar
-    sh = QLinearGradient(0, 640, 0, 900)
-    sh.setColorAt(0, QColor(36, 98, 120))
-    sh.setColorAt(1, QColor(14, 50, 70))
-    path = QPainterPath()
-    path.moveTo(40, 900)
-    path.cubicTo(60, 720, 250, 700, 360, 700)
-    path.cubicTo(470, 700, 660, 720, 680, 900)
-    path.closeSubpath()
-    p.fillPath(path, QBrush(sh))
-    # boyun
-    p.setPen(Qt.PenStyle.NoPen)
-    neck = QLinearGradient(300, 600, 420, 600)
-    neck.setColorAt(0, QColor(196, 140, 112))
-    neck.setColorAt(0.5, QColor(232, 176, 144))
-    neck.setColorAt(1, QColor(176, 122, 98))
-    p.setBrush(QBrush(neck))
-    p.drawRoundedRect(QRectF(300, 560, 120, 170), 30, 30)
-    # saç (arka)
-    hair = QRadialGradient(QPointF(360, 330), 300)
-    hair.setColorAt(0, QColor(92, 52, 32))
-    hair.setColorAt(1, QColor(30, 16, 12))
-    p.setBrush(QBrush(hair))
-    p.drawEllipse(QRectF(150, 70, 420, 520))
-    # yüz
-    face = QRadialGradient(QPointF(330, 340), 260)
-    face.setColorAt(0, QColor(250, 205, 172))
-    face.setColorAt(0.7, QColor(226, 170, 138))
-    face.setColorAt(1, QColor(176, 118, 92))
-    p.setBrush(QBrush(face))
-    p.drawEllipse(QRectF(210, 160, 300, 400))
-    # saç (ön, kâkül)
-    bang = QPainterPath()
-    bang.moveTo(200, 330)
-    bang.cubicTo(190, 120, 480, 80, 530, 300)
-    bang.cubicTo(470, 210, 340, 190, 250, 260)
-    bang.closeSubpath()
-    p.setBrush(QColor(70, 38, 24))
-    p.drawPath(bang)
-    # gözler
-    for cx in (295, 425):
-        p.setBrush(QColor(250, 246, 240))
-        p.drawEllipse(QRectF(cx - 36, 330, 72, 36))
-        iris = QRadialGradient(QPointF(cx, 348), 20)
-        iris.setColorAt(0, QColor(70, 150, 120))
-        iris.setColorAt(1, QColor(30, 80, 70))
-        p.setBrush(QBrush(iris))
-        p.drawEllipse(QRectF(cx - 17, 331, 34, 34))
-        p.setBrush(QColor(8, 8, 10))
-        p.drawEllipse(QRectF(cx - 7, 341, 14, 14))
-        p.setPen(QPen(QColor(50, 28, 20), 5))
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawArc(QRectF(cx - 40, 316, 80, 40), 20 * 16, 140 * 16)
-        p.drawLine(int(cx - 44), 296, int(cx + 40), 290)
-        p.setPen(Qt.PenStyle.NoPen)
-    # burun gölgesi, dudak, yanak
-    p.setBrush(QColor(190, 130, 104, 150))
-    p.drawEllipse(QRectF(340, 380, 40, 70))
-    p.setBrush(QColor(210, 84, 92))
-    p.drawEllipse(QRectF(318, 478, 84, 30))
-    p.setBrush(QColor(255, 140, 130, 70))
-    p.drawEllipse(QRectF(238, 410, 70, 50))
-    p.drawEllipse(QRectF(412, 410, 70, 50))
-    p.end()
-    arr = hc.qimage_to_rgba(img)
-    ramp = hc.build_ramp("auto")
-    cols = 130
-    rows = hc.grid_rows(W, H, cols)
-    ch, co = hc.convert_rgba(arr, cols, rows, ramp, gamma=0.7, edge_boost=0.3, bg_threshold=0.03, color_lift=0.6)
-    hc.write_asset(ANIM / "study_and_lofi", "hd_portrait_static", "HD Stilize Portre (Durağan)", "Ders & Lo-Fi Odak", [ch], [co], 1.0,
-                   tags=["portre", "durağan"])
-    print(f"[OK] hd_portrait_static {cols}x{rows}")
-
-
 if __name__ == "__main__":
     sample_torus()
     sample_poppy()
-    sample_portrait()

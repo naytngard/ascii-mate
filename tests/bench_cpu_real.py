@@ -42,7 +42,6 @@ DEFAULT_SCENARIOS = [
     "christmas_tree_3d",
     "hd_torus_knot_spin",
     "hd_poppy_field",
-    "hd_portrait_static",
     "saturn_3d,donut_3d,heart_3d,hd_poppy_field",
 ]
 

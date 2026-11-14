@@ -22,7 +22,7 @@ RENEWED = ["cat_bust_3d", "owl_bust_3d", "dog_bust_3d", "fox_bust_3d", "wolf_cam
            "dragon_baby_3d", "sentinel_robot_3d", "astronaut_eva_3d", "wizard_book_3d", "bonsai_tree_3d"]
 NEW_SCENES = ["hd_knight_resting", "hd_rider_horse", "hd_meadow_warrior", "hd_skeleton_giant"]
 # Repoda izin verilen HD varlıkların tamamı (kaynakları bu depodaki betiklerde): bilinmeyen kaynaklı HD dosyası olmamalı
-KNOWN_HD = set(RENEWED + NEW_SCENES + ["hd_torus_knot_spin", "hd_poppy_field", "hd_portrait_static"])
+KNOWN_HD = set(RENEWED + NEW_SCENES + ["hd_torus_knot_spin", "hd_poppy_field"])
 REFERENCE_NAMES = ["belyukin", "fantasy world", "indir", "pinterest", "local_"]
 
 

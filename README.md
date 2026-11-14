@@ -137,28 +137,35 @@ Yeni sahneler: `hd_knight_resting` (gün batımında dinlenen şövalye), `hd_ri
   **çalışma anında render yoktur**, çizici yalnızca değişen hücreleri yazar.
 * **Klasik yedek:** her HD varlıkta 62 sütunluk tek kareli klasik ASCII yedeği (64 renkli palet) bulunur. HD kapalıysa veya
   2 HD sınırı doluysa aynı karakter bu yedekle açılır (onay penceresi yalnızca bir kez sorulur; sonra tepsiden açılır).
+* **Parlaklık:** sahne dönüştürücüsü otomatik pozlama uygular (dolu hücrelerin ortalama renk parlaklığı hedefi ≈ 0,62);
+  `python tools/hd_brightness.py` her HD varlığın ortalamasını yazar, test 125/255'in altını reddeder. Küçük hücrelerde
+  glifler kalın yazı tipiyle atlasa çizilir (daha çok mürekkep → koyu zeminde daha parlak).
 * **Kaynak/lisans:** tüm geometri bu depodaki parametrik SDF betiklerindedir; harici görsel, mesh veya başkasının çizimi
   kullanılmamıştır. Referans resimler yalnızca tema/ton fikri olarak kullanıldı (kopya veya iz sürme yok).
 
 ### Kişisel resimler: `tools/import_local_art.py` (repoya girmez)
 ```bash
-python tools/import_local_art.py "C:\Resimler\tablo.jpg" --preset high --bg solid --anim wind
+# Önerilen (tablolar/fotoğraflar): koyu tonlu hücre zemini + yerel kontrast + özne vurgusu
+python tools/import_local_art.py "C:\Resimler\tablo.jpg" --preset high --bg tinted --look vivid --min-brightness 0.45 --subject-mask auto --bg-dim 0.55 --edge-pct 94 --anim wind
 python tools/import_local_art.py foto.jpg --cols 180 --crop 0.1,0,0.8,1 --bg auto --bg-side top --anim pulse,embers
 ```
 Çıktı **varsayılan olarak `%APPDATA%\ASCII_Mate\community`** klasörüne yazılır (uygulama bu klasörü de tarar); depo içine
 yazmak `--allow-repo` olmadan reddedilir. Başkalarının eserlerinden (tablo, illüstrasyon, film karesi) üretilen
 dönüşümler **yalnızca kişisel kullanım** içindir; repoya, release'e veya paylaşılan klasörlere koymayın.
 Seçenekler: `--preset low|medium|high` (110/160/210 sütun), `--gamma`, `--edges`, `--bg auto|threshold|solid`
-(`auto`: kenarlardan taşan renk maskesiyle gökyüzü/kağıt ayrılır; `solid`: koyu panel), `--crop`, `--invert`,
+(`auto`: kenarlardan taşan renk maskesiyle gökyüzü/kağıt ayrılır; `solid`: koyu panel; `tinted`: her hücrenin zemini
+kendi renginin koyu tonu → resim gibi okunur, en parlak sonuç), `--look vivid|soft|photo` (gamma + yerel kontrast +
+doygunluk önayarı), `--clahe` (NumPy ile sınırlı uyarlamalı histogram eşitleme), `--min-brightness` (koyu zırh/at gibi
+koyu renkleri görünür parlaklığa çeker; ton karakter yoğunluğunda kalır), `--subject-mask auto|center|edge` + `--bg-dim`
+(özne net, zemin soluk; zemin silinmez), `--edge-pct` (kenar karakterini yalnızca en güçlü kenarlarda kullan), `--crop`, `--invert`,
 `--black-point/--white-point`, `--saturation`, `--anim wind|embers|pulse` (yalnızca alt bölge/partiküller değişir).
 
 ### Örnek varlıklar ve lisans
-Üç örnek **tamamen bu depodaki `tools/make_hd_samples.py` betiğiyle üretilir**; harici görsel, mesh veya başkasının çizimi kullanılmamıştır:
+İki örnek **tamamen bu depodaki `tools/make_hd_samples.py` betiğiyle üretilir**; harici görsel, mesh veya başkasının çizimi kullanılmamıştır:
 | Varlık | Kaynak | Özellik |
 |---|---|---|
-| `hd_torus_knot_spin` | parametrik torus düğümü (betik OBJ üretir) → `hd_convert` | 150×75, 48 kare, 15 FPS döner |
-| `hd_poppy_field` | procedural çimen + gelincik (rüzgâr) | 190×44, 24 kare, 10 FPS |
-| `hd_portrait_static` | QPainter ile çizilmiş stilize portre | 130×81, durağan |
+| `hd_torus_knot_spin` | parametrik torus düğümü (betik OBJ üretir) → `hd_convert` | 150×75, 48 kare, 8 FPS döner |
+| `hd_poppy_field` | procedural çimen + gelincik (rüzgâr) | 190×44, 24 kare, 8 FPS |
 
 Üretilen tüm veriler proje lisansı altındadır (CC0'a eşdeğer serbest kullanım). Örnekler motorun kalite çıtasını göstermek içindir; fotoğraf kalitesinde şövalye/at gibi içerik için kendi CC0 kaynağınızı dönüştürün.
 
@@ -167,7 +174,6 @@ Seçenekler: `--preset low|medium|high` (110/160/210 sütun), `--gamma`, `--edge
 
 | Senaryo | Kalite | Aralık | ms/tick | CPU (tek çekirdek) | +RAM (widget) |
 |---|---|---|---|---|---|
-| Durağan portre | herhangi | 500 ms | ≈0 | **%0,0** | ≈4–8 MB |
 | Hafif hareketli çimen/gelincik (10 FPS) | Orta/Yüksek | 100 ms | ≈1,9 | **%1,9** | ≈3–5 MB |
 | Aynı | Düşük (≤8 FPS) | 125 ms | ≈2,5 | %2,0 | ≈4 MB |
 | Dönen torus düğümü | Düşük (≤8 FPS) | 125 ms | ≈5,9 | %4,7 | ≈6 MB |
@@ -192,7 +198,6 @@ sistemi CPU süresini** ölçer (tahmin değil). Tek çekirdek eşdeğeri = CPU 
 | HD kedi (yeni, 8 FPS) | (elipsoit: ölçülmedi) | **%3,52** | 3,0 / 3,5 / 3,9 | ≤ %3 ✗ |
 | HD çayırda savaşçı | — | **%2,08** | 1,6 / 2,1 / 4,4 | ≤ %3 ✓ |
 | HD dönen torus (10,6 FPS) | %10,55 | **%7,2** (ayrı ölçüm) | 2,5 / 7,2 / 9,0 | ≤ %3 ✗ |
-| HD durağan portre | %0,00 | **%0,00** | 0 / 0 / 0 | ≈ %0 ✓ |
 | Satürn + simit + kalp + HD gelincik | %48,28 | **%12,11** | 11,2 / 12,1 / 12,6 | ≤ %10 ✗ |
 
 \* 0,0 pencereler: o anda pencere yöneticisi widget'ı tamamen örtülü saydı ya da ölçüm penceresi kare sınırına denk geldi;

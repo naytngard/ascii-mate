@@ -24,7 +24,7 @@ from src.core.library import AnimationLibrary, ThemeLibrary  # noqa: E402
 from src.gui.companion_widget import CompanionWidget  # noqa: E402
 
 DEFAULT_IDS = ["cat_bust_3d", "owl_bust_3d", "galaxy_vortex_3d", "rainy_window_3d", "coffee_3d", "saturn_3d"]
-HD_IDS = ["hd_portrait_static", "hd_poppy_field", "hd_torus_knot_spin"]
+HD_IDS = ["hd_poppy_field", "hd_torus_knot_spin", "cat_bust_3d"]
 TICKS = 120
 
 

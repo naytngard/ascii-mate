@@ -132,7 +132,8 @@ def test_legacy_json_files_have_no_hd_keys():
 def test_hd_samples_present_and_valid():
     lib = AnimationLibrary(ANIM)
     hd = [a for a in lib.all_assets() if a.is_hd]
-    assert {a.id for a in hd} >= {"hd_torus_knot_spin", "hd_poppy_field", "hd_portrait_static"}
+    assert {a.id for a in hd} >= {"hd_torus_knot_spin", "hd_poppy_field"}
+    assert "hd_portrait_static" not in {a.id for a in lib.all_assets()}  # kullanıcı isteğiyle kaldırıldı
     for a in hd:
         rd = HDReader(a.hd_path())
         assert (rd.cols, rd.rows, rd.frame_count) == (a.hd_cols, a.hd_rows, a.hd_frame_count)
@@ -284,13 +285,13 @@ def test_hd_confirmation_required_then_remembered(tmp_path, qapp, monkeypatch):
     m, cfg = _manager(tmp_path, qapp)
     asked = []
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: asked.append(a[2]) or QMessageBox.StandardButton.No))
-    assert m.spawn_widget("hd_portrait_static") is None  # onay reddedildi → açılmaz
+    assert m.spawn_widget("hd_poppy_field") is None  # onay reddedildi → açılmaz
     assert asked and "DAHA FAZLA CPU" in asked[0]
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes))
-    w = m.spawn_widget("hd_portrait_static")
+    w = m.spawn_widget("hd_poppy_field")
     assert w is not None and cfg.get_global("hd_enabled") is True
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: (_ for _ in ()).throw(AssertionError("tekrar sorulmamalı"))))
-    w2 = m.spawn_widget("hd_portrait_static")
+    w2 = m.spawn_widget("hd_poppy_field")
     assert w2 is not None
     for x in list(m.widgets.values()):
         x.close_widget()
@@ -303,13 +304,13 @@ def test_at_most_two_hd_widgets(tmp_path, qapp, monkeypatch):
     cfg.set_global("hd_enabled", True)
     warned = []
     monkeypatch.setattr(QMessageBox, "warning", staticmethod(lambda *a, **k: warned.append(a[2])))
-    a = m.spawn_widget("hd_portrait_static")
-    b = m.spawn_widget("hd_portrait_static")
+    a = m.spawn_widget("hd_poppy_field")
+    b = m.spawn_widget("hd_poppy_field")
     assert a is not None and b is not None
-    assert m.spawn_widget("hd_poppy_field") is None and warned and "en fazla 2" in warned[0]
-    assert m.spawn_widget("cat_bust_3d") is not None  # HD olmayanlar etkilenmez
+    assert m.spawn_widget("hd_torus_knot_spin") is None and warned and "en fazla 2" in warned[0]
+    assert m.spawn_widget("saturn_3d") is not None  # HD olmayanlar etkilenmez
     a.close_widget()
-    assert m.spawn_widget("hd_poppy_field") is not None  # bir yer açılınca yine açılır
+    assert m.spawn_widget("hd_torus_knot_spin") is not None  # bir yer açılınca yine açılır
     for x in list(m.widgets.values()):
         x.close_widget()
 
@@ -328,7 +329,11 @@ def test_hd_widget_ticks_pause_and_rate_limits(tmp_path, qapp):
     assert spin._hd_fps() <= 15.0
     spin.set_hd_quality("low")
     assert spin._hd_fps() <= 8.0 and spin._hd.decim == 2
-    still = CompanionWidget("t2", lib.get("hd_portrait_static"), lib, th, cfg)
+    ch1, co1 = _frames(n=1, rows=60, cols=110, seed=4)  # sentetik tek kareli (durağan) HD varlık
+    write_hd(tmp_path / "t.ascii.hd", ch1, co1)
+    still_asset = AnimationAsset.from_dict(_meta(cols=110, rows=60, frame_count=1, default_fps=1.0),
+                                           source_path=str(tmp_path / "t.ascii.json"))
+    still = CompanionWidget("t2", still_asset, lib, th, cfg)
     assert still._tick_timer.interval() >= 500  # durağan HD seyrek uyanır
     spin._suspended = True
     before = spin._hd_frame
