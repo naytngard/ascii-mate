@@ -69,7 +69,7 @@ def sample_torus() -> None:
     make_torus_knot_obj(obj)
     hc.main([str(obj), "--out", str(ANIM / "space_and_3d"), "--id", "hd_torus_knot_spin",
              "--name", "HD Dönen Torus Düğümü", "--category", "Uzay & Bilim Kurgu",
-             "--cols", "150", "--frames", "48", "--rotate-y", "360", "--tilt", "22", "--fps", "15",
+             "--cols", "150", "--frames", "48", "--rotate-y", "360", "--tilt", "22", "--fps", "8",
              "--gamma", "0.85", "--edge-boost", "0.6", "--bg-threshold", "0.03"])
 
 
@@ -137,7 +137,7 @@ def sample_poppy() -> None:
         chars_all.append(ch)
         colors_all.append(co)
     hc.write_asset(ANIM / "nature_and_weather", "hd_poppy_field", "HD Gelincik Tarlası (Rüzgârlı)", "Doğa & Hava Durumu",
-                   chars_all, colors_all, 10.0, tags=["gelincik", "çimen", "rüzgar"])
+                   chars_all, colors_all, 8.0, tags=["gelincik", "çimen", "rüzgar"])
     print(f"[OK] hd_poppy_field {C}x{R}, {N} kare")
 
 

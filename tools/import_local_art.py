@@ -34,6 +34,7 @@ import numpy as np  # noqa: E402
 import hd_convert as hc  # noqa: E402
 
 PRESETS = {"low": (110, 8.0), "medium": (160, 10.0), "high": (210, 10.0)}
+ap_defaults: dict = {}
 
 
 def default_out_dir() -> Path:
@@ -117,6 +118,74 @@ def stretch(arr: np.ndarray, black: float, white: float, saturation: float) -> n
     return out
 
 
+def clahe(lum: np.ndarray, tiles: int = 8, clip: float = 2.5) -> np.ndarray:
+    """Sınırlı uyarlamalı histogram eşitleme (CLAHE benzeri, NumPy). lum 0..1 → 0..1.
+    Karolar arası geçiş bilineer enterpolasyonla yumuşatılır (karo sınırı görünmez)."""
+    h, w = lum.shape
+    v = np.clip((lum * 255).astype(np.int32), 0, 255)
+    ty = np.linspace(0, h, tiles + 1).astype(int)
+    tx = np.linspace(0, w, tiles + 1).astype(int)
+    maps = np.zeros((tiles, tiles, 256), np.float32)
+    for i in range(tiles):
+        for j in range(tiles):
+            blk = v[ty[i] : ty[i + 1], tx[j] : tx[j + 1]].ravel()
+            hist = np.bincount(blk, minlength=256).astype(np.float32)
+            limit = clip * max(1.0, blk.size / 256.0)
+            excess = np.maximum(hist - limit, 0).sum()
+            hist = np.minimum(hist, limit) + excess / 256.0
+            cdf = hist.cumsum()
+            maps[i, j] = (cdf - cdf[0]) / max(cdf[-1] - cdf[0], 1e-6)
+    cy = (np.arange(h) + 0.5) / h * tiles - 0.5
+    cx = (np.arange(w) + 0.5) / w * tiles - 0.5
+    y0 = np.clip(np.floor(cy).astype(int), 0, tiles - 1)
+    x0 = np.clip(np.floor(cx).astype(int), 0, tiles - 1)
+    y1 = np.clip(y0 + 1, 0, tiles - 1)
+    x1 = np.clip(x0 + 1, 0, tiles - 1)
+    fy = np.clip(cy - np.floor(cy), 0, 1)[:, None]
+    fx = np.clip(cx - np.floor(cx), 0, 1)[None, :]
+    Y0, X0, Y1, X1 = y0[:, None], x0[None, :], y1[:, None], x1[None, :]
+    a = maps[Y0, X0, v]
+    b = maps[Y0, X1, v]
+    c = maps[Y1, X0, v]
+    d = maps[Y1, X1, v]
+    return (a * (1 - fx) + b * fx) * (1 - fy) + (c * (1 - fx) + d * fx) * fy
+
+
+def subject_weight(rgb: np.ndarray, mode: str, bg_mask: Optional[np.ndarray] = None) -> np.ndarray:
+    """Özne ağırlığı 0..1 (1 = özne). center: merkez öncelikli elips; edge: kenar renklerinden farklılık;
+    auto: ikisinin çarpımı (merkezde ve zeminden farklı olan = özne)."""
+    h, w = rgb.shape[:2]
+    yy, xx = np.mgrid[0:h, 0:w]
+    dy = (yy / max(h - 1, 1) - 0.52) / 0.62
+    dx = (xx / max(w - 1, 1) - 0.5) / 0.55
+    center = np.clip(1.25 - np.sqrt(dx * dx + dy * dy), 0, 1)
+    border = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]])
+    seeds = border[np.linspace(0, len(border) - 1, 48).astype(int)]
+    dist = np.min(np.linalg.norm(rgb[:, :, None, :] - seeds[None, None, :, :], axis=-1), axis=-1)
+    diff = np.clip(dist / max(np.percentile(dist, 90), 1e-3), 0, 1)
+    if bg_mask is not None:
+        diff = np.where(bg_mask, 0.0, np.maximum(diff, 0.5))
+    if mode == "center":
+        wgt = center
+    elif mode == "edge":
+        wgt = diff
+    else:
+        wgt = np.clip(diff * (0.35 + 0.65 * center) * 1.6, 0, 1)
+    # yumuşat (kutu bulanıklığı ×2): maske sınırı titremesin/delik delik olmasın
+    for _ in range(2):
+        p = np.pad(wgt, 3, mode="edge")
+        wgt = sum(p[i : i + h, j : j + w] for i in range(7) for j in range(7)) / 49.0
+    return wgt
+
+
+LOOKS = {
+    # gamma (>1 parlatır), clahe kırpma, doygunluk, orta ton kaldırma, arka plan karartma
+    "vivid": dict(gamma=1.45, clahe=2.8, saturation=1.25, mid=0.80, bg_dim=0.30),
+    "soft": dict(gamma=1.20, clahe=1.8, saturation=1.10, mid=0.90, bg_dim=0.45),
+    "photo": dict(gamma=1.30, clahe=2.2, saturation=1.05, mid=0.85, bg_dim=0.35),
+}
+
+
 # --------------------------------------------------------------------------- ucuz canlılık (hücre uzayında)
 
 def animate(chars: np.ndarray, colors: np.ndarray, kinds: Sequence[str], n: int, region: float = 0.30,
@@ -178,11 +247,32 @@ def convert_one(path: Path, args, ramp) -> Path:
         yi = (np.arange(arr.shape[0]) * small_h // arr.shape[0]).clip(0, small_h - 1)
         xi = (np.arange(arr.shape[1]) * small_w // arr.shape[1]).clip(0, small_w - 1)
         arr[..., 3] = np.where(m[np.ix_(yi, xi)], 0.0, arr[..., 3])
+    look = LOOKS.get(args.look) if args.look else None
+    if look:
+        for k_, v_ in look.items():
+            if getattr(args, k_.replace("-", "_"), None) in (None, ap_defaults.get(k_)):
+                setattr(args, k_, v_)
     arr = stretch(arr, args.black_point, args.white_point, args.saturation)
+    if args.clahe and args.clahe > 0:
+        lum0 = arr[..., :3] @ np.array([0.2126, 0.7152, 0.0722])
+        lum1 = clahe(lum0, tiles=8, clip=args.clahe)
+        lum1 = 0.65 * lum1 + 0.35 * lum0  # yerel kontrast + genel ton dengesi
+        if args.mid and args.mid != 1.0:
+            lum1 = np.clip(lum1, 0, 1) ** args.mid  # orta tonları parlat
+        ratio = (lum1 + 0.02) / (lum0 + 0.02)
+        arr[..., :3] = np.clip(arr[..., :3] * ratio[..., None], 0, 1)
+    if args.subject_mask != "none":
+        # özne net ve parlak kalsın, zemin koyu panelde soluk dursun (silinmez: sahne bütünlüğü korunur)
+        wgt = subject_weight(arr[..., :3], args.subject_mask)
+        dim = args.bg_dim + (1.0 - args.bg_dim) * wgt
+        arr[..., :3] = arr[..., :3] * dim[..., None]
     rows = hc.grid_rows(arr.shape[1], arr.shape[0], cols)
-    bg_thr = args.bg_threshold if args.bg == "threshold" else 0.0  # auto: arka planı maske belirler, koyu özne silinmez
+    bg_thr = args.bg_threshold if args.bg == "threshold" else 0.0
+    if args.bg == "tinted":
+        ch_space = None  # tinted: boş hücre bırakma, her hücre en az nokta  # auto: arka planı maske belirler, koyu özne silinmez
     ch, co = hc.convert_rgba(arr, cols, rows, ramp, gamma=args.gamma, edge_boost=args.edges, bg_threshold=bg_thr,
-                             color_lift=args.color_lift, invert=args.invert)
+                             color_lift=args.color_lift, invert=args.invert, edge_pct=args.edge_pct,
+                             min_brightness=args.min_brightness)
     kinds = [k for k in args.anim.split(",") if k and k != "none"]
     if kinds:
         chars, colors = animate(ch, co, kinds, args.frames, region=args.wind_region)
@@ -194,13 +284,14 @@ def convert_one(path: Path, args, ramp) -> Path:
                          "girmemeli; --out ile depo dışını seçin (ya da kendi eserinizse --allow-repo).")
     asset_id = args.id or ("local_" + slugify(path.stem))
     jp, hp = hc.write_asset(out, asset_id, args.name or path.stem, "Topluluk / Özel Eklenenler", chars, colors, fps,
-                            bg_mode="solid" if args.bg == "solid" else "transparent", tags=["yerel", "kişisel"],
+                            bg_mode=args.bg if args.bg in ("solid", "tinted") else "transparent", tags=["yerel", "kişisel"],
                             author="Yerel (kişisel kullanım)", description=f"Kaynak: {path.name} (yerel, repoya girmez)")
     if not args.no_preview:
         sys.path.insert(0, str(BASE / "tools" / "scenes"))
         import common
 
-        common.preview_png(chars[0], colors[0], out / f"{asset_id}_preview.png", cw=6, ch=12)
+        common.preview_png(chars[0], colors[0], out / f"{asset_id}_preview.png", cw=6, ch=12,
+                           tint=0.24 if args.bg == "tinted" else 0.0)
     print(f"[OK] {jp}  ({cols}x{rows}, {len(chars)} kare, {hp.stat().st_size / 1024:.0f} KB)")
     return jp
 
@@ -214,9 +305,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--name", default=None)
     ap.add_argument("--preset", choices=sorted(PRESETS), default="medium", help="low=110, medium=160, high=210 sütun")
     ap.add_argument("--cols", type=int, default=None)
-    ap.add_argument("--gamma", type=float, default=0.9)
+    ap.add_argument("--gamma", type=float, default=1.25, help=">1 orta tonları ve gölgeleri parlatır (yoğun karakter)")
     ap.add_argument("--edges", type=float, default=0.35, help="Sobel kenar karakteri gücü (0 = kapalı)")
-    ap.add_argument("--bg", choices=("auto", "threshold", "solid"), default="auto")
+    ap.add_argument("--bg", choices=("auto", "threshold", "solid", "tinted"), default="auto",
+                    help="tinted: hücre zemini rengin koyu tonu (resim gibi okunur, en parlak sonuç)")
     ap.add_argument("--bg-tol", type=float, default=0.12, help="auto: kenar rengine benzerlik toleransı")
     ap.add_argument("--bg-side", choices=("top", "all"), default="top", help="auto: tohum kenarları (top = gökyüzü)")
     ap.add_argument("--bg-threshold", type=float, default=0.05)
@@ -226,12 +318,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--color-lift", type=float, default=0.35)
     ap.add_argument("--crop", default=None, help="x,y,w,h (0..1 kesir ya da piksel)")
     ap.add_argument("--invert", action="store_true", help="açık zemin önünde koyu özne: yoğunluğu ters çevir")
+    ap.add_argument("--min-brightness", type=float, default=0.62,
+                    help="karakter renklerinin en düşük parlaklığı (koyu zeminde görünürlük)")
+    ap.add_argument("--look", choices=sorted(LOOKS), default=None, help="görünüm önayarı: vivid | soft | photo")
+    ap.add_argument("--clahe", type=float, default=0.0, help="yerel kontrast eşitleme gücü (0 = kapalı, ~2-3 önerilir)")
+    ap.add_argument("--mid", type=float, default=1.0, help="orta ton eğrisi (<1 parlatır)")
+    ap.add_argument("--subject-mask", choices=("none", "auto", "center", "edge"), default="none",
+                    help="özneyi öne çıkar: zemini --bg-dim oranında karart (silmez)")
+    ap.add_argument("--bg-dim", type=float, default=0.35, help="özne maskesinde zemin parlaklık çarpanı")
+    ap.add_argument("--edge-pct", type=float, default=None, help="kenar karakteri yalnızca bu yüzdelik üstündeki kenarlarda (ör. 92)")
     ap.add_argument("--anim", default="none", help="none | wind | embers | pulse (virgülle birleştirilebilir)")
     ap.add_argument("--wind-region", type=float, default=0.30, help="rüzgârın etkilediği alt bölge oranı")
     ap.add_argument("--frames", type=int, default=24)
     ap.add_argument("--fps", type=float, default=None)
     ap.add_argument("--no-preview", action="store_true")
     args = ap.parse_args(argv)
+    global ap_defaults
+    ap_defaults = {a.dest: a.default for a in ap._actions}
     ramp = hc.build_ramp("auto")
     for inp in args.inputs:
         convert_one(Path(inp), args, ramp)

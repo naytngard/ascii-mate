@@ -160,3 +160,55 @@ def test_widget_uses_classic_fallback_when_forced(tmp_path):
     for w in (hd, classic):
         w._close_notified = True
         w.close()
+
+
+# ------------------------------------------------------------------ denetim düzeltmeleri (parlaklık, yerel dönüştürücü)
+
+@pytest.mark.parametrize("aid", RENEWED + NEW_SCENES)
+def test_hd_assets_bright_enough_for_desktop(aid):
+    """Koyu sahneler masaüstünde kaybolmasın: dolu hücrelerin ortalama renk parlaklığı >= 125 (0..255)."""
+    import hd_brightness
+
+    p = next(ANIM.rglob(f"{aid}.ascii.hd"))
+    assert hd_brightness.mean_brightness(p) >= 125.0, aid
+
+
+def test_clahe_raises_local_contrast_and_stays_in_range():
+    import import_local_art as ila
+
+    y, x = np.mgrid[0:120, 0:160]
+    lum = 0.15 + 0.05 * np.sin(x / 6.0) + 0.6 * (x > 80)  # sol yarı: düşük kontrastlı koyu doku
+    out = ila.clahe(lum, tiles=4, clip=2.5)
+    assert out.min() >= 0.0 and out.max() <= 1.0
+    assert out[:, :70].std() > lum[:, :70].std() * 2  # koyu bölgedeki doku belirginleşti
+
+
+def test_min_brightness_lifts_dark_colors():
+    import hd_convert as hc
+
+    arr = np.zeros((40, 80, 4), np.float32)
+    arr[..., :3] = (0.12, 0.08, 0.06)  # çok koyu zırh rengi
+    arr[..., 3] = 1.0
+    ramp = hc.build_ramp("auto")
+    _, dark = hc.convert_rgba(arr, 40, 10, ramp, bg_threshold=0.0)
+    _, lifted = hc.convert_rgba(arr, 40, 10, ramp, bg_threshold=0.0, min_brightness=0.5)
+    assert lifted.max(axis=-1).mean() >= 120 > dark.max(axis=-1).mean()
+
+
+def test_tinted_bg_mode_validates_and_renders(tmp_path):
+    import hd_convert as hc
+    from src.core.models import AnimationAsset
+    from src.gui.hd_renderer import HDPlayer
+
+    rng = np.random.default_rng(3)
+    ch = [rng.integers(32, 127, (8, 12), dtype=np.uint8) for _ in range(2)]
+    co = [rng.integers(0, 256, (8, 12, 3), dtype=np.uint8) for _ in range(2)]
+    jp, _ = hc.write_asset(tmp_path, "tinted_t", "T", "Topluluk / Özel Eklenenler", ch, co, 5.0, bg_mode="tinted")
+    meta = json.loads(jp.read_text(encoding="utf-8"))
+    assert validate_ascii_json_dict(meta)[0]
+    a = AnimationAsset.from_dict(meta, source_path=str(jp))
+    assert a.bg_mode == "tinted"
+    pl = HDPlayer(a)
+    pl.configure(4, 8, 1, 1.0)
+    assert pl.render(0) and pl.render(1)
+    assert (pl._buf[..., 3] > 0).all()  # tinted: her piksel koyu renkli zemin taşır (boşluk yok)

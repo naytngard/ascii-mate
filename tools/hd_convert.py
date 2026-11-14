@@ -122,6 +122,8 @@ def convert_rgba(
     color_bits: int = 5,
     color_lift: float = 0.5,
     invert: bool = False,
+    edge_pct: Optional[float] = None,
+    min_brightness: float = 0.0,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """RGBA (H,W,4 float) → (chars (rows,cols) uint8, colors (rows,cols,3) uint8)."""
     big = resize_rgba(arr, cols * 2, rows * 2)  # kenar/ton için 2× örnekleme
@@ -160,6 +162,9 @@ def convert_rgba(
         edge_char[(theta >= 67.5) & (theta < 112.5)] = ord("-")
         edge_char[(theta >= 112.5) & (theta < 157.5)] = ord("\\")
         thr = 0.16 / edge_boost
+        if edge_pct is not None and (alpha > 0.35).any():
+            # yalnızca en güçlü kenarlar (ör. üst %8): dokulu arka plan (ağaç, çimen) kenar karakterine boğulmasın
+            thr = max(thr, float(np.percentile(mag[alpha > 0.35], edge_pct)))
         chars = np.where(mag > thr, edge_char, chars)
 
     # arka plan: düşük alfa veya çok koyu hücre → boşluk (saydam)
@@ -167,6 +172,12 @@ def convert_rgba(
     chars = np.where(bg, 32, chars).astype(np.uint8)
 
     col = np.clip(rgb ** 0.9 * 1.12, 0, 1)
+    if min_brightness > 0:
+        # koyu zeminde koyu renkli karakter görünmez: rengin parlaklığını (HSV V) en az bu düzeye çek;
+        # ton bilgisi karakter yoğunluğunda kalır, renk yalnızca tonu/tını taşır
+        v = col.max(axis=-1, keepdims=True)
+        col = np.where(v > 1e-3, col * np.maximum(1.0, min_brightness / np.maximum(v, 1e-3)), col)
+        col = np.clip(col, 0, 1)
     if color_lift > 0:  # koyu bölgelerde (saç, gölge) renk tonunu koru ama okunur parlaklığa çek; yoğunluğu karakter belirler
         mx = np.maximum(col.max(axis=-1, keepdims=True), 0.25)
         col = np.clip(col * (1 - color_lift) + (col / mx) * 0.85 * color_lift, 0, 1)

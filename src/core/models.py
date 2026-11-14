@@ -112,7 +112,7 @@ class AnimationAsset:
     hd_cols: int = 0
     hd_rows: int = 0
     hd_frame_count: int = 0
-    bg_mode: str = "transparent"  # transparent | solid
+    bg_mode: str = "transparent"  # transparent | solid (koyu panel) | tinted (hücre renginin koyu tonu)
     # v2.0 HD & Procedural 3D support
     procedural: Optional[str] = None
     procedural_params: Dict[str, Any] = field(default_factory=dict)
@@ -226,7 +226,7 @@ class AnimationAsset:
             hd_cols=_clamp_int(data.get("cols"), 0, 600, 0),
             hd_rows=_clamp_int(data.get("rows"), 0, 300, 0),
             hd_frame_count=_clamp_int(data.get("frame_count"), 0, 5000, 0),
-            bg_mode=str(data.get("bg_mode", "transparent")) if str(data.get("bg_mode", "transparent")) in ("transparent", "solid") else "transparent",
+            bg_mode=str(data.get("bg_mode", "transparent")) if str(data.get("bg_mode", "transparent")) in ("transparent", "solid", "tinted") else "transparent",
             procedural=str(proc) if proc else None,
             procedural_params=dict(proc_params) if isinstance(proc_params, dict) else {},
             palette_map=palette_map,

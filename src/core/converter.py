@@ -125,8 +125,8 @@ def validate_hd_meta(data: Dict[str, Any]) -> Tuple[bool, str]:
         return False, "'default_fps' sayı olmalıdır."
     if not (0.1 <= fps <= 30.0):
         return False, "'default_fps' 0.1..30 aralığında olmalıdır."
-    if data.get("bg_mode", "transparent") not in ("transparent", "solid"):
-        return False, "'bg_mode' 'transparent' veya 'solid' olmalıdır."
+    if data.get("bg_mode", "transparent") not in ("transparent", "solid", "tinted"):
+        return False, "'bg_mode' 'transparent', 'solid' veya 'tinted' olmalıdır."
     frames = data.get("frames") or []
     if frames:
         # HD kapalıyken kullanılan klasik yedek kareler: klasik kurallarla (geometri, palet, renk haritası) doğrulanır
