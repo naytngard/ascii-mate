@@ -40,7 +40,8 @@ def to_cells(frames_rgba: Sequence[np.ndarray], cols: int, *, gamma: float = 0.8
 
 
 def render_cells(scene, light, cam: dict, cols: int, *, ramp: Optional[list] = None, levels: Optional[Tuple[float, float]] = None,
-                 gamma: float = 0.9, fill_max: float = 0.62, depth_jump: float = 0.18, keep_rgba: bool = False):
+                 gamma: float = 0.9, fill_max: float = 0.62, depth_jump: float = 0.18, keep_rgba: bool = False,
+                 target_mean: float = 0.62):
     """SDF sahnesini doğrudan hücre ızgarasına çevirir (kontur + öznitelik katmanı):
       * zemin (ıskalanan) → boşluk (saydam)
       * öznitelik malzemesi (glyph tanımlı: göz, burun, bıyık...) hücrede varsa → o karakter, saf renk
@@ -71,8 +72,18 @@ def render_cells(scene, light, cam: dict, cols: int, *, ramp: Optional[list] = N
     if levels is None:
         vals = lum[cov > 0.5]
         lo, hi = (float(np.percentile(vals, 2)), float(np.percentile(vals, 99))) if vals.size else (0.0, 1.0)
-        levels = (lo, max(hi, lo + 1e-3))
-    lo, hi = levels
+        # Otomatik pozlama: dolu hücrelerin ortalama renk parlaklığı hedefin altındaysa renk kazancı uygula
+        # (koyu sahneler masaüstünde kaybolmasın). Tüm döngüde aynı kazanç → titreme yok.
+        mean_l = float(lum[cov > 0.5].mean()) if vals.size else target_mean
+        gain = float(np.clip(target_mean / max(mean_l, 1e-3), 1.0, 3.0))
+        levels = (lo, max(hi, lo + 1e-3), gain)
+    lo, hi = levels[0], levels[1]
+    gain = levels[2] if len(levels) > 2 else 1.0
+    if gain != 1.0:
+        # yumuşak tavanlı kazanç: parlak bölgeler patlamasın (x / (1 + x*k) biçimli omuz)
+        g = rgb * gain
+        rgb = g / (1.0 + np.maximum(g - 1.0, 0.0))
+        rgb = np.clip(rgb, 0.0, 1.0)
     tone = np.clip((lum - lo) / (hi - lo), 0.0, 1.0) ** gamma
     n = len(ramp)
     ramp_chars = np.array([ord(c) for c, _ in ramp], np.uint8)
@@ -205,7 +216,8 @@ def write_scene_asset(
     return jp
 
 
-def preview_png(chars: np.ndarray, colors: np.ndarray, path: Path, cw: int = 6, ch: int = 12, bg=(12, 14, 20)) -> Path:
+def preview_png(chars: np.ndarray, colors: np.ndarray, path: Path, cw: int = 6, ch: int = 12, bg=(12, 14, 20),
+                tint: float = 0.0) -> Path:
     """Hücreleri gerçek glif atlasıyla PNG'ye çizer (değerlendirme için; repoya girmez)."""
     from PyQt6.QtGui import QImage
 
@@ -218,7 +230,8 @@ def preview_png(chars: np.ndarray, colors: np.ndarray, path: Path, cw: int = 6, 
     img = np.empty((rows, ch, cols, cw, 3), np.float32)
     bgv = np.asarray(bg, np.float32)
     for k in range(3):
-        img[..., k] = (a * colors[..., k][:, :, None, None] + (1 - a) * bgv[k]).transpose(0, 2, 1, 3)
+        cell_bg = bgv[k] + tint * colors[..., k].astype(np.float32)[:, :, None, None]
+        img[..., k] = (a * colors[..., k][:, :, None, None] + (1 - a) * cell_bg).transpose(0, 2, 1, 3)
     out = np.ascontiguousarray(img.reshape(rows * ch, cols * cw, 3).clip(0, 255).astype(np.uint8))
     path.parent.mkdir(parents=True, exist_ok=True)
     q = QImage(out.data, out.shape[1], out.shape[0], out.shape[1] * 3, QImage.Format.Format_RGB888)

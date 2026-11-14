@@ -11,7 +11,7 @@
     "rüzgar",
     "hd"
   ],
-  "default_fps": 10.0,
+  "default_fps": 8.0,
   "recommended_color": "auto_hd",
   "hd_file": "hd_poppy_field.ascii.hd",
   "cols": 190,

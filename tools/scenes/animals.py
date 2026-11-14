@@ -430,8 +430,8 @@ def build_knight_sunset(ph: float):
     s.group(k=0.2).items += [(ellipsoid((0.0, -1.05, -0.10), (0.95, 0.42, 0.70), None), rock),
                              (ellipsoid((0.65, -1.35, 0.25), (0.75, 0.30, 0.65), None), rock)]
     pulse = 0.9 + 0.1 * math.sin(ph * 2 * math.pi)
-    li = Light(dir=(0.85, 0.25, 0.35), color=(1.15 * pulse, 0.55 * pulse, 0.25), sky=(0.28, 0.14, 0.16),
-               rim_color=(1.0, 0.45, 0.2), ambient=0.30, shadow_k=4.0)
+    li = Light(dir=(0.75, 0.35, 0.55), color=(1.35 * pulse, 0.80 * pulse, 0.45), sky=(0.45, 0.30, 0.32),
+               rim_color=(1.0, 0.55, 0.3), ambient=0.48, shadow_k=4.0)
     return s, li, {"cam": (-2.4, 0.3, 7.3), "target": (0.05, -0.30, 0.0), "fov": 31.0, "aspect": 0.80}
 
 
@@ -642,41 +642,62 @@ def build_bonsai(ph: float):
 
 def build_rider(ph: float):
     s = Scene()
-    sep = lambda k: tuple(int(c * k) for c in (200, 160, 110))  # noqa: E731
-    horse = s.mat((60, 45, 38), spec=0.5, shine=30, rim=0.7, pattern=_fur(22, 0.15))
-    mane = s.mat((30, 24, 22), rim=0.5, pattern=_fur(40, 0.35))
-    coat = s.mat(sep(0.85), rim=0.5, pattern=_fur(26, 0.2))
-    hat = s.mat(sep(0.55), rim=0.4)
-    skin = s.mat(sep(1.05), rim=0.3)
-    leather = s.mat(sep(0.45), rim=0.3)
+    sep = lambda k: tuple(min(255, int(c * k)) for c in (215, 175, 120))  # noqa: E731
+    horse = s.mat((92, 66, 48), spec=0.5, shine=30, rim=0.8, pattern=_fur(22, 0.12))
+    mane = s.mat((45, 34, 30), rim=0.6, pattern=_fur(40, 0.35))
+    hoof = s.mat((40, 34, 32), rim=0.3)
+    coat = s.mat(sep(0.95), rim=0.6, pattern=_fur(26, 0.2))
+    hat = s.mat(sep(0.62), rim=0.5)
+    skin = s.mat(sep(1.10), rim=0.4)
+    leather = s.mat(sep(0.55), rim=0.4)
+    eye = s.mat((235, 225, 210), emissive=0.6, glyph="o", priority=5, glyph_min=1)
     br = 1.0 + 0.015 * math.sin(ph * 6.28)
-    hb = s.group(k=0.18)
-    hb.items += [(ellipsoid((0, -0.20, 0), (1.15, 0.48 * br, 0.42 * br), None), horse),
-                 (round_cone((0.85, 0.05, 0), (1.25, 0.75, 0), 0.30, 0.20), horse),  # boyun
-                 (round_cone((1.25, 0.75, 0), (1.62, 0.42, 0), 0.20, 0.12), horse)]  # baş
-    for x, z, ph0 in ((0.75, 0.22, 0.0), (0.70, -0.22, 0.5), (-0.70, 0.22, 0.25), (-0.78, -0.22, 0.75)):
-        hb.items.append((capsule((x, -0.45, z), (x + 0.04, -1.05, z), 0.11), horse))
-        hb.items.append((capsule((x + 0.04, -1.05, z), (x + 0.06, -1.52, z), 0.07), horse))
-    s.group().items.append((round_cone((1.18, 0.95, 0.06), (1.22, 1.08, 0.08), 0.05, 0.01), horse))  # kulak
+    nod = 4 * math.sin(ph * 6.28)
+    hb = s.group(k=0.22)
+    # gövde: göğüs (önde dolgun) + karın + sağrı (arkada yuvarlak) → doğal at sırtı eğrisi
+    hb.items += [(ellipsoid((0.62, -0.10, 0), (0.48, 0.50 * br, 0.38 * br), rot(0, 0, -10)), horse),
+                 (ellipsoid((0.0, -0.18, 0), (0.70, 0.42 * br, 0.38 * br), None), horse),
+                 (ellipsoid((-0.62, -0.08, 0), (0.50, 0.50, 0.40), rot(0, 0, 8)), horse)]
+    # boyun: göğüsten yukarı-öne kalınlaşarak; baş: ayrı grup, hafif baş sallama
+    hb.items += [(round_cone((0.80, 0.05, 0), (1.18, 0.78, 0), 0.30, 0.17), horse)]
+    hR = rot(0, 0, -38 + nod)
+    hd = s.group(k=0.10)
+    hd.items += [(round_cone((1.18, 0.80, 0), (1.18 + 0.52 * math.cos(math.radians(-38 + nod)),
+                                               0.80 + 0.52 * math.sin(math.radians(-38 + nod)), 0), 0.17, 0.10), horse),
+                 (round_cone((1.12, 0.92, 0.07), (1.08, 1.12, 0.09), 0.05, 0.01), horse),
+                 (round_cone((1.12, 0.92, -0.07), (1.08, 1.12, -0.09), 0.05, 0.01), horse)]
+    s.group().items.append((sphere((1.32, 0.75, 0.13), 0.035), eye))
     mn = s.group(k=0.05)
-    mn.items += [(capsule((0.88, 0.25, 0.0), (1.20, 0.92, 0.0), 0.10), mane)]
+    mn.items += [(capsule((0.86, 0.30, 0.0), (1.12, 0.92, 0.0), 0.08), mane)]
+    # bacaklar: üstte kaslı (yuvarlak koni), dizden aşağı ince, bileklikli toynak; bir ön bacak hafif bükük (adım)
+    legs = s.group(k=0.08)
+    for x, z, bend in ((0.70, 0.20, 0.18), (0.62, -0.20, 0.0), (-0.66, 0.20, 0.0), (-0.72, -0.20, -0.10)):
+        knee = (x + 0.02 + bend * 0.6, -0.78, z)
+        foot = (x + bend, -1.42, z)
+        legs.items += [(round_cone((x, -0.35, z), knee, 0.15, 0.075), horse),
+                       (round_cone(knee, foot, 0.07, 0.055), horse)]
+        s.group().items.append((round_box((foot[0] + 0.02, -1.48, z), (0.07, 0.05, 0.07), 0.02), hoof))
     tw = 0.12 * math.sin(ph * 6.28)
     tail = s.group(k=0.06)
-    tail.items += [(round_cone((-1.12, 0.05, 0), (-1.38, -0.50, tw), 0.10, 0.07), mane),
-                   (round_cone((-1.38, -0.50, tw), (-1.40, -1.05, tw * 1.5), 0.07, 0.04), mane)]
+    tail.items += [(round_cone((-1.08, 0.12, 0), (-1.30, -0.40, tw), 0.10, 0.08), mane),
+                   (round_cone((-1.30, -0.40, tw), (-1.30, -0.95, tw * 1.6), 0.08, 0.04), mane)]
+    # binici
     rd = s.group(k=0.08)
-    rd.items += [(round_box((-0.05, 0.35, 0), (0.30, 0.30, 0.28), 0.05), leather),  # eyer
-                 (ellipsoid((0.0, 0.88, 0), (0.30, 0.42, 0.26), None), coat),  # gövde
-                 (capsule((0.05, 0.55, 0.26), (0.15, -0.15, 0.42), 0.10), coat),  # bacak
-                 (capsule((0.05, 0.55, -0.26), (0.15, -0.15, -0.42), 0.10), coat),
-                 (capsule((0.20, 1.10, 0.25), (0.62, 0.78, 0.18), 0.08), coat),  # kollar (dizgin)
-                 (capsule((0.20, 1.10, -0.25), (0.62, 0.78, -0.10), 0.08), coat)]
-    s.group(k=0.03).items += [(sphere((0.04, 1.45, 0), 0.17), skin)]
-    s.group(k=0.02).items += [(torus((0.04, 1.58, 0), 0.30, 0.03), hat),
-                              (round_cone((0.04, 1.56, 0), (0.04, 1.80, 0), 0.17, 0.13), hat)]
-    li = Light(dir=(-0.6, 0.55, 0.6), color=(1.0, 0.86, 0.62), sky=(0.30, 0.25, 0.18), rim_color=(1.0, 0.85, 0.55),
-               ambient=0.32, shadow_k=5.0)
-    return s, li, {"cam": (0.6, 0.4, 8.6), "target": (0.05, 0.10, 0.0), "fov": 30.0, "aspect": 0.82}
+    rd.items += [(round_box((-0.05, 0.28, 0), (0.32, 0.10, 0.34), 0.05), leather),  # eyer
+                 (ellipsoid((-0.02, 0.80, 0), (0.24, 0.40, 0.22), None), coat),  # gövde
+                 (round_cone((0.0, 0.42, 0.24), (0.20, -0.05, 0.36), 0.11, 0.08), coat),  # uyluk
+                 (round_cone((0.20, -0.05, 0.36), (0.12, -0.45, 0.38), 0.08, 0.06), leather),  # çizme
+                 (round_cone((0.0, 0.42, -0.24), (0.20, -0.05, -0.36), 0.11, 0.08), coat),
+                 (round_cone((0.20, -0.05, -0.36), (0.12, -0.45, -0.38), 0.08, 0.06), leather),
+                 (capsule((0.10, 1.05, 0.22), (0.55, 0.78, 0.12), 0.07), coat),  # kollar (dizgin)
+                 (capsule((0.10, 1.05, -0.22), (0.55, 0.78, -0.06), 0.07), coat)]
+    s.group(k=0.03).items += [(sphere((0.02, 1.36, 0), 0.15), skin)]
+    s.group(k=0.02).items += [(torus((0.02, 1.47, 0), 0.30, 0.03), hat),
+                              (round_cone((0.02, 1.45, 0), (0.02, 1.68, 0), 0.16, 0.12), hat)]
+    s.group().items.append((capsule((0.55, 0.78, 0.05), (1.30, 0.62, 0.05), 0.012), leather))  # dizgin
+    li = Light(dir=(-0.5, 0.6, 0.65), color=(1.15, 1.0, 0.78), sky=(0.45, 0.40, 0.30), rim_color=(1.0, 0.88, 0.6),
+               ambient=0.48, shadow_k=4.0)
+    return s, li, {"cam": (0.5, 0.35, 8.6), "target": (0.05, 0.05, 0.0), "fov": 30.0, "aspect": 0.82}
 
 
 # =========================================================================== DEV İSKELET + SAVAŞÇI (kırmızı sis)
@@ -728,7 +749,7 @@ def build_skeleton(ph: float):
                 (round_cone((-1.25, -0.95, 1.52), (-1.25, -1.65, 1.48), 0.16, 0.24), cape),
                 (capsule((-1.32, -1.30, 1.6), (-1.34, -1.75, 1.6), 0.05), armor),
                 (capsule((-1.18, -1.30, 1.6), (-1.16, -1.75, 1.6), 0.05), armor)]
-    li = Light(dir=(-0.3, 0.6, 0.7), color=(0.75, 0.80, 0.95), sky=(0.25, 0.30, 0.45), rim_color=(1.0, 0.35, 0.3),
-               ambient=0.30, shadow_k=4.0)
+    li = Light(dir=(-0.3, 0.6, 0.7), color=(1.0, 1.0, 1.1), sky=(0.40, 0.42, 0.55), rim_color=(1.0, 0.40, 0.35),
+               ambient=0.48, shadow_k=4.0)
     return s, li, {"cam": (-0.8, 0.0, 7.2), "target": (0.0, -0.20, -1.0), "fov": 40.0, "aspect": 0.70,
                    "overlay": _fog_overlay()}
