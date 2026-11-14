@@ -19,7 +19,7 @@ from src.core.models import AnimationAsset
 
 log = get_logger("hd")
 
-GLYPH_GAIN = 1.4  # küçük hücrelerde glif kapsama alanı düşük kalır; hafif kazanç parlaklığı korur
+GLYPH_GAIN = 1.6  # küçük hücrelerde glif kapsama alanı düşük kalır; hafif kazanç parlaklığı korur
 _ATLAS_CACHE: Dict[Tuple[int, int], np.ndarray] = {}
 
 # Kaliteye göre (ondalık küçültme, FPS üst sınırı)
@@ -29,7 +29,7 @@ HD_QUALITY: Dict[str, Tuple[int, float]] = {
     "high": (1, 15.0),
 }
 HD_ABS_FPS_CAP = 15.0
-BLOCK_CACHE = 1536  # önceden birleştirilmiş (karakter, renk) hücre blokları
+BLOCK_CACHE = 2048  # önceden birleştirilmiş (karakter, renk) hücre blokları
 
 
 def build_atlas(cw: int, ch: int) -> np.ndarray:
@@ -43,6 +43,7 @@ def build_atlas(cw: int, ch: int) -> np.ndarray:
     font.setStyleHint(QFont.StyleHint.Monospace)
     font.setPixelSize(max(3, int(ch * 0.82)))
     font.setHintingPreference(QFont.HintingPreference.PreferNoHinting)
+    font.setWeight(QFont.Weight.Bold)  # küçük hücrelerde kalın glif: daha çok mürekkep → koyu zeminde daha parlak resim
     atlas = np.zeros((95, ch, cw), np.uint8)
     for code in range(33, 127):
         img = QImage(cw, ch, QImage.Format.Format_ARGB32)
@@ -75,7 +76,8 @@ class HDPlayer:
         self.cw = 5
         self.ch = 10
         self.opacity = 0.94
-        self.solid_bg = asset.bg_mode == "solid"
+        self.solid_bg = asset.bg_mode in ("solid", "tinted")
+        self.tinted_bg = asset.bg_mode == "tinted"  # hücre zemini, hücre renginin koyu tonu (resim gibi okunur)
         self.dcols = self.reader.cols
         self.drows = self.reader.rows
         self._buf: Optional[np.ndarray] = None
@@ -94,6 +96,7 @@ class HDPlayer:
         self._blocks: Optional[np.ndarray] = None
         self._slot: Dict[int, int] = {}
         self._n_blocks = 0
+        self._cache_bits = 5
 
     # --- yapılandırma
     def configure(self, cell_w: int, cell_h: int, decim: int, opacity: float) -> None:
@@ -189,15 +192,28 @@ class HDPlayer:
         col = colors[rr, cc]  # (k, 3) uint8 RGB
         view = self._buf.reshape(self.drows, self.ch, self.dcols, self.cw, 4).transpose(0, 2, 1, 3, 4)
         use_cache = levels is None and not self.solid_bg and rr.size > 0
+        cbits = 5
         if use_cache:
-            q0 = (col >> 3).astype(np.uint32)
-            k0 = (idxs.astype(np.uint32) << 15) | (q0[:, 0] << 10) | (q0[:, 1] << 5) | q0[:, 2]
-            use_cache = np.unique(k0).size <= BLOCK_CACHE // 2  # çok çeşitli kare (ör. dönen gökkuşağı): doğrudan birleştir
+            # Uyarlamalı renk kuantalama: 5 bit/kanal fazla çeşit üretiyorsa (dönen gökkuşağı) 4 bit dene;
+            # o da sığmazsa doğrudan birleştir. Kararlılık için bir kez 4 bite düşen oyuncu 4 bitte kalır.
+            for bits in ((4,) if self._cache_bits == 4 else (5, 4)):
+                sh = 8 - bits
+                q0 = (col >> sh).astype(np.uint32)
+                k0 = (idxs.astype(np.uint32) << 15) | (q0[:, 0] << 10) | (q0[:, 1] << 5) | q0[:, 2]
+                if np.unique(k0).size <= BLOCK_CACHE // 2:
+                    cbits = bits
+                    break
+            else:
+                use_cache = False
+            if use_cache and cbits != self._cache_bits:
+                self._cache_bits = cbits
+                self._blocks = None  # anahtar anlamı değişti
+        sh = 8 - cbits
         if use_cache:
             # En hızlı yol: (karakter, 5-bit renk) → önceden birleştirilmiş BGRA blok; yalnızca yeni anahtarlar hesaplanır.
             # Dönen sahnelerde hemen her hücre değişir ama (karakter, renk) çiftleri çok tekrar eder.
             npx = self.ch * self.cw
-            q = (col >> 3).astype(np.uint32)
+            q = (col >> sh).astype(np.uint32)
             key = (idxs.astype(np.uint32) << 15) | (q[:, 0] << 10) | (q[:, 1] << 5) | q[:, 2]
             uk, inv = np.unique(key, return_inverse=True)
             if getattr(self, "_blocks", None) is None or self._blocks.shape[1] != npx:
@@ -214,7 +230,7 @@ class HDPlayer:
                     miss = list(range(len(ukl)))
                 mk = uk[miss]
                 m_idx = (mk >> 15).astype(np.intp)
-                m_col = np.stack([((mk >> s_) & 31) << 3 | 4 for s_ in (10, 5, 0)], axis=1).astype(np.uint16)
+                m_col = np.stack([((mk >> s_) & 31) << sh | (1 << (sh - 1)) for s_ in (10, 5, 0)], axis=1).astype(np.uint16)
                 a8m = self._atlas_op[m_idx].reshape(len(miss), npx)
                 a16m = a8m.astype(np.uint16)
                 blk = np.empty((len(miss), npx, 4), np.uint8)
@@ -262,7 +278,10 @@ class HDPlayer:
             if self.solid_bg:  # "solid" zemin: hücrenin altına opak koyu zemin birleştir
                 a_bg = int(255 * self.opacity)
                 inv = (255 - a.astype(np.int32))[..., None]
-                bg = np.array([14, 12, 10], np.int32) * a_bg // 255
+                if self.tinted_bg:
+                    bg = (14 + colw[:, None, None, :] * 0.24).astype(np.int32) * a_bg // 255
+                else:
+                    bg = np.array([14, 12, 10], np.int32) * a_bg // 255
                 rgb = (rgb.astype(np.int32) + bg * inv // 255).astype(np.uint16)
                 a = (a.astype(np.int32) + a_bg * inv[..., 0] // 255).astype(np.uint16)
             out = np.empty((rr.size, self.ch, self.cw, 4), np.uint8)
