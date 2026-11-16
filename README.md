@@ -130,11 +130,21 @@ astronot, büyücü+kitap, bonsai) **aynı id'lerle** HD sürüme yenilendi; fav
 Yeni sahneler: `hd_knight_resting` (gün batımında dinlenen şövalye), `hd_rider_horse` (sepya atlı süvari),
 `hd_meadow_warrior` (rüzgârlı çayırda savaşçı + çiçekler), `hd_skeleton_giant` (dev iskelet + savaşçı, kırmızı sis).
 
-* **Nasıl üretilir:** `python tools/scenes/build_assets.py` — NumPy ile **derleme anında** SDF ray-marching (yumuşak gölge,
-  kenar ışığı, AO) → hücre ızgarası. Siluet/malzeme sınırları yönlü kontur karakterlerine (`| - _ / \`), göz, burun, bıyık,
-  gaga gibi öznitelikler sabit karakterlere (`o @ | v - '`) dönüşür; iç bölge ölçülmüş mürekkep rampasıyla dolar.
-  Hareket (nefes, göz kırpma, kulak/kuyruk, kanat, alev, rüzgârlı çimen, sis) 24 karelik döngü olarak hazır gelir;
-  **çalışma anında render yoktur**, çizici yalnızca değişen hücreleri yazar.
+* **Nasıl üretilir:** `python tools/scenes/build_assets.py` — NumPy ile **derleme anında** SDF ray-marching (yönlü anahtar
+  ışık, yumuşak gölge, gök dolgusu, AO, speküler) → hücre ızgarası.
+* **Gerçekçi stil (Kasım 2026):** çizgi film görünümü veren kontur karakterleri (`| - _ / \`) ve sabit yüz karakterleri
+  (`o @ v`) kaldırıldı. Biçim artık Satürn/kalp shader'larındaki gibi yalnızca ışık-gölge geçişiyle anlatılır: her hücre
+  2×4 alt pikselle örneklenir (kenar yumuşatma), yarı dolu kenar hücreleri daha seyrek karakter alır, rampa `.:;+*%#$@`
+  (yatay karakterler yok → "tarama çizgisi" görünümü yok). Kedi, köpek, tilki, baykuş ve kurt gerçek oranlarla yeniden
+  modellendi (küçük kafa/badem göz, tüy pürüzü, dikey tekir çizgileri, benekli tüy, ateş ışığı + yükselen kıvılcımlar).
+* **Akıcılık:** hareket (nefes, göz kırpma, kulak/kuyruk, baş çevirme, alev, rüzgârlı çimen, sis) **48 karelik** döngü,
+  8 FPS (önce 24 kare / 8 FPS): kare başına hareket yarıya indi, döngü 6 sn. **Çalışma anında render yoktur**, çizici
+  yalnızca değişen hücreleri yazar. Renkler kanal başına 5 bite indirildiği için nefes gibi çok küçük gölge değişimleri
+  hücreyi yeniden çizdirmez: kare başına değişen hücre sayısı eski sürümün yaklaşık yarısıdır (kedi 1374 → 758,
+  tilki 1102 → 566, baykuş 806 → 424; istisna: ateş ışığı titreyen kurt sahnesi 253 → 715). Gerçek süreç CPU'su
+  (aşağıdaki tablo) yeni varlıklarla yeniden **ölçülmedi**.
+* **Derleme süresi/yükü:** varsayılan hafif moddur (3 süreç, düşük öncelik, süreç başına tek iş parçacığı): 15 sahne
+  16 mantıksal çekirdekli dizüstünde ≈ 22 dk. Hızlı mod: `--workers=8 --normal-priority`.
 * **Klasik yedek:** her HD varlıkta 62 sütunluk tek kareli klasik ASCII yedeği (64 renkli palet) bulunur. HD kapalıysa veya
   2 HD sınırı doluysa aynı karakter bu yedekle açılır (onay penceresi yalnızca bir kez sorulur; sonra tepsiden açılır).
 * **Parlaklık:** sahne dönüştürücüsü otomatik pozlama uygular (dolu hücrelerin ortalama renk parlaklığı hedefi ≈ 0,62);
@@ -195,7 +205,7 @@ sistemi CPU süresini** ölçer (tahmin değil). Tek çekirdek eşdeğeri = CPU 
 | Kalp | %12,73 | **%4,04** | 2,3 / 4,0 / 4,6 | ≤ %4 ≈ |
 | Yılbaşı ağacı | %9,69 | **%3,52** | 3,3 / 3,5 / 4,9 | ≤ %4 ✓ |
 | HD gelincik (hareketli) | %1,87 | **%2,99** | 0,0* / 3,0 / 3,6 | ≤ %3 ≈ |
-| HD kedi (yeni, 8 FPS) | (elipsoit: ölçülmedi) | **%3,52** | 3,0 / 3,5 / 3,9 | ≤ %3 ✗ |
+| HD kedi (önceki kontur sürümü, 8 FPS) | (elipsoit: ölçülmedi) | **%3,52** | 3,0 / 3,5 / 3,9 | ≤ %3 ✗ |
 | HD çayırda savaşçı | — | **%2,08** | 1,6 / 2,1 / 4,4 | ≤ %3 ✓ |
 | HD dönen torus (10,6 FPS) | %10,55 | **%7,2** (ayrı ölçüm) | 2,5 / 7,2 / 9,0 | ≤ %3 ✗ |
 | Satürn + simit + kalp + HD gelincik | %48,28 | **%12,11** | 11,2 / 12,1 / 12,6 | ≤ %10 ✗ |
@@ -217,7 +227,7 @@ veya HD Kalite → Düşük.
 
 ## 🔋 Performans İpuçları
 
-* Matematiksel 3B shader'lar varsayılan olarak **8 FPS**, HD hayvanlar 8 FPS çalışır; **İnce Ayar Paneli → Manuel FPS** ile değiştirin. Daha düşük FPS ve daha küçük ızgara (`Kompakt`) CPU'yu doğrudan azaltır.
+* Matematiksel 3B shader'lar varsayılan olarak **8 FPS**, HD hayvanlar 8 FPS (48 karelik akıcı döngü) çalışır; **İnce Ayar Paneli → Manuel FPS** ile değiştirin. Daha düşük FPS ve daha küçük ızgara (`Kompakt`) CPU'yu doğrudan azaltır.
 * Gölge tek geçiştir; **Glow varsayılan kapalıdır** (ek çizim geçişi).
 * Ekran **kilitliyken** çizim durur; tam ekran bir uygulama widget'ın bulunduğu ekranı kaplıyorsa ve widget "Her Zaman Üstte" değilse durur. **Pildeyken** FPS otomatik ~%40 düşer (tepsi menüsünden kapatılabilir).
 * Statik animasyonlar yalnızca kare/parçacık/zamanlayıcı gerektiğinde 1–8 FPS'te güncellenir.

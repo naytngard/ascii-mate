@@ -2,20 +2,21 @@
   "schema_version": "3.0",
   "hd": true,
   "id": "dog_bust_3d",
-  "name": "HD Neşeli Köpek (dil çıkaran)",
+  "name": "HD Golden Retriever (soluyan)",
   "category": "Kediler & Evcil Hayvanlar",
   "author": "ASCII Mate",
   "tags": [
     "köpek",
+    "golden",
     "evcil",
     "hd"
   ],
   "default_fps": 8.0,
   "recommended_color": "auto_hd",
   "hd_file": "dog_bust_3d.ascii.hd",
-  "cols": 110,
-  "rows": 52,
-  "frame_count": 24,
+  "cols": 130,
+  "rows": 60,
+  "frame_count": 48,
   "bg_mode": "transparent",
   "source": "tools/scenes (kendi ürettiğimiz SDF sahnesi; harici görsel yok)",
   "particles": {
@@ -31,7 +32,7 @@
     ]
   },
   "frames": [
-    "                                                              \n                                                              \n                                                              \n                                                              \n                                                              \n                         __---------_                         \n                      _-|*******++++++--                      \n                     -*+++++::+:::::::++|_                    \n                    /+---+++++++@@@|++++:\\_                   \n                   /-|@@@@@@@%%*\\@--++::\\-:\\                  \n                  /|-+-@@@@@@+*****+:::-|+::\\                 \n                  |--\\/%*+++****+++::--\\\\:::\\\\                \n                 /+:-\\******+++::::::--\\::::-|                \n                 |::---+::::::----::---\\-::--|                \n                 |::-.\\\\\\-uuuu--------|/-----|                \n                  --.///+uuuuu--------|.|----                 \n                   ---//*---\\-::::::--\\\\-                     \n                    /--**%%*+::::::+:::--\\                    \n                   -***%%%%%*++++++++++:::-                   \n                  /***%%%%%%%%%******+++:::\\                  \n                 /****%%%%%%%%*%*****+++::::\\                 \n                /*****%%%*%**********+++:::::\\                \n                |***+***************++++:::::|                \n                |+++++***********+++++::-:::-|                \n                \\-+++++********++++++::--:---/                \n                 \\++++++++++++++++::::------/                 \n                  --:::::::+++:::::---------                  \n                    --::::::-:----------|-                    \n                      \\\\/::----------///                      "
+    "                                                              \n                                                              \n                                                              \n                                                              \n                                                              \n                      ;**%%%*%;;                              \n                   +%%%######$$$$$#*                          \n                 :**%%%%*#%###$$#$$$$%                        \n                :+****%****%%##%#$$$$$%                       \n                :++;;+***;***%*%%#$@@@@#;                     \n               ++++;*;**;;;*;**%%#$$$$@@@@@$+..               \n              ::++:+++;;;;;;;;;#%%##$$@@@@@$....              \n              :::+++;;;;;;;;:+++;*%%#$$$$$$$#;:               \n              .:+::++;;+***%%*:.:+;*%###%%***;                \n              .::+:+++;;;%%%#*...:.:++;;;++::                 \n              ..+.:::::+++;*%*:.........+;*;                  \n               :..:::+;%***;;+:.....::    +;:                 \n              :+::::;;:*%*#%#%%;+::::+%;                      \n             ::+::%*+%*;%;#%##%#$#%+:+%#;                     \n           :+::+;;**####$#$#%$$#$$$%***##                     \n          :::++;+%;**%%#%#$$$@$$$$$$#%#$#*;                   \n          +++++;;%*%$%##$##@$$@$$$#$$$@$$##                   \n         +*+;****%%$%##%#$#$$$$$$$$$$$@@$##%                  \n         :+;++;;%%*$$#%####@$%$@$$$@@@$$$###                  \n         +:+;+;****%#$$####$$@@$@$$$$$$$$$##                  \n        :+++++;;;;#*;$##$#%$#$##@@$$$#$$@##%*                 \n        :+::;+;**;*##%%#$#%%%##$$$$##$@$$$#%%                 \n        ::++++;;*;%%*$#$#$$%###$$$$#$$$$$%%#;                 \n        .:++;++;;%%%**%%%##$##*%$@##%#$$##%#                  "
   ],
   "palette_map": {
     "0": "#000000",
@@ -100,7 +101,7 @@
     "#": "#FFFFFF"
   },
   "color_frames": [
-    "                                                              \n                                                              \n                                                              \n                                                              \n                                                              \n                         @@@@fffff@@@                         \n                      @@fzzzzzvvvvvvvv@@                      \n                     @vvvvvvvvvfffffffvvf@                    \n                    @vbbbvvvvvvvLL1bvvvvfbv                   \n                   @ffHLLggLL@@@f0Lbvvffbbvv                  \n                  @ffvfLLLLLLg@@@@wvfffLbvvfv                 \n                  fbbfg@@ggg@@@wwggffbbKbvfbLf                \n                 zvvbf@@@@@wwwfffffffLLKvfbbbL                \n                 vvvbKbffffffbbbbbbfbLLKbffbbK                \n                 vfbbKKbLLw#wwLLLbbbbbLbfbbbaK                \n                  KbKGbbvww#wsLbKbbbbbLGbbbKb                 \n                   bLbbfzfbbLLfffbfbbbLGG                     \n                    @bf@@@@@wffffffgfffLK@                    \n                   @@@@@#@##@wgfggwwwggfffv                   \n                  fzzz@@@@@@@@@@@@@@wwwgfffb                  \n                 fzzz@@@@@@@@@@@@@@@@wwgffffb                 \n                @zzzv@@@@@@@@@@@@@@wwwggfffffv                \n                fvvvvv@@@@@@@@@@@@wwwggffffffb                \n                fvvvvv@@@@@@@@@@wwwwgfffbbfbbb                \n                @fvvvvvww@@wwwwwwggffffbbbbbLv                \n                 @vvvvvvvwwwwwwgfffffbbbbbbbv                 \n                  @bvfvffffffffffffbbbbbbbLv                  \n                    vbfffffbbbbbbbLbLbbbLf                    \n                      vvLbbbbbbbbbbLbLff                      "
+    "                                                              \n                                                              \n                                                              \n                                                              \n                                                              \n                      vvvvvvv@@@                              \n                   fvfvvvvvvvzzzz@@@                          \n                 bffvvvvfvvvvvzzvzzzz@                        \n                bbffffvffffvvvvvvzzzvz@                       \n                Labbbbfffffffvvvvv@@@@@@@                     \n               bbbbbvbvvbbbfbffvvw@@@@@@@@@@LLL               \n              KaabKababbbbfbbbfvfvvw@@@@@@@@LLLL              \n              KaKababbbbbbbbLLLLbffvw@@@@@@@vfL               \n              KaaaababbbfffvvfLLLLbffwwwvfffff                \n              KKKbabbbbbbvvvvfKLLLLLLbbbbbLLL                 \n              KKaKKKKaLbbLbfvfLLLLLLLLLLbbww                  \n               LKKKKKLfvffffbbLLLLLLLL    bsb                 \n              LLLLLLffLfvfvvvvvfbLLLLLv@                      \n             LLLLLffLvffvfvvvvvvwvfbLLfvz                     \n           LLLLLbbffvwvvwv@ff@@w@@@ffffvv                     \n          bLLLbbLvbfffvvvv@@@@@@@@@@wfv@vf@                   \n          LLbLLbbfff@fww@wv@@@@@@@w@@@@@zvv                   \n         bfbbffffff@vvwfw@ww@@@@@@@@@@@@@vvv                  \n         LLfbbfbfff@@wfvwww@@f@@@@@@@@@@@vvv                  \n         LLLbLbfffffw@@wvww@@@@@@@@@@@@@@@vv                  \n        LLbbbbbbbfffb@ww@wf@w@ww@@@@@ww@@wvvv                 \n        LLLLbbfffbfvfffv@wffvvw@@@@ww@@@@zvvv                 \n        LLbbLbbffffff@w@w@@fwvw@@@@w@@@@@vvvv                 \n        LLbbbLLbbffvffvvfvwwwwff@@wwfw@@vvvv                  "
   ],
   "supports_eye_blink": false,
   "fallback_note": "HD kapalıysa/sınır dolduysa klasik yedek kareler kullanılır"

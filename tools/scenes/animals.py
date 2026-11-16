@@ -12,24 +12,16 @@ import numpy as np
 from sdf import Light, Scene, capsule, ellipsoid, rot, round_box, round_cone, sphere, torus, value_noise
 
 
-# ASCII için düz/yumuşak ışık: ton büyük ölçüde malzeme renginden gelsin, gölgeler hücreleri karartıp şekli yutmasın
-ASCII_LIGHT = Light(dir=(-0.45, 0.6, 0.75), color=(0.75, 0.70, 0.62), sky=(0.32, 0.34, 0.40), rim_color=(1.0, 0.85, 0.6),
-                    ambient=0.42, shadow_k=4.0)
+# Gerçekçi stüdyo ışığı: yönlü anahtar ışık + yumuşak gölge + hafif gök dolgusu. Kontur olmadığından biçimi
+# (kalp/satürn shader'larındaki gibi) yalnızca ışık-gölge geçişi anlatır; ortam ışığı düşük tutulur.
+ASCII_LIGHT = Light(dir=(-0.50, 0.50, 0.70), color=(1.0, 0.95, 0.86), sky=(0.30, 0.32, 0.38), rim_color=(0.9, 0.85, 0.75),
+                    ambient=0.22, shadow_k=5.0)
 
 
 def _blink(ph: float, at: float = 0.78, width: float = 0.05) -> float:
     """0 = açık, 1 = kapalı (kısa göz kırpma)."""
     d = abs(((ph - at + 0.5) % 1.0) - 0.5)
     return max(0.0, 1.0 - d / width)
-
-
-def _tabby(base, stripe_scale=11.0, depth=0.18, seed=1):
-    def pat(p, n):
-        s = 0.5 + 0.5 * np.sin(p[:, 1] * stripe_scale + 2.2 * value_noise(p, 2.5, seed) * 3.0 + p[:, 0] * 1.5)
-        fur = 0.93 + 0.14 * value_noise(p, 28.0, seed + 7)
-        return (1.0 - depth * (s > 0.62)) * fur
-
-    return pat
 
 
 def _fur(scale=26.0, amp=0.28, seed=3):
@@ -39,85 +31,132 @@ def _fur(scale=26.0, amp=0.28, seed=3):
     return pat
 
 
-# =========================================================================== KEDİ (oturan, 3/4)
+def _tabby_v(stripes=9.0, depth=0.22, seed=1, center=(0.0, 0.0)):
+    """Gerçekçi tekir deseni: gövdeyi saran dikey/eğik çizgiler (yatay bant değil) + ince tüy gürültüsü."""
+    cx, cz = center
+
+    def pat(p, n):
+        ang = np.arctan2(p[:, 2] - cz, p[:, 0] - cx)
+        warp = 2.6 * value_noise(p, 3.0, seed) + 1.2 * p[:, 1]
+        s = 0.5 + 0.5 * np.sin(ang * stripes + warp * 2.0)
+        fur = 0.92 + 0.16 * value_noise(p, 46.0, seed + 7)
+        return (1.0 - depth * np.clip((s - 0.55) * 4.0, 0.0, 1.0)) * fur
+
+    return pat
+
+
+def _furry(f, amount=0.012, scale=38.0, seed=2):
+    """Yüzeye ince, düzensiz tüy pürüzü (gerçekçi doku; çizgi film pürüzsüzlüğü yerine)."""
+    return lambda p: f(p) + amount * _fur_noise(p, scale, seed)
+
+
+_NOISE_CACHE: dict = {}  # (ölçek, tohum) → gürültü; yalnızca son nokta dizisi için geçerli
+
+
+def _fur_noise(p, scale: float, seed: int):
+    """İki oktavlı tüy gürültüsü, nokta dizisi başına BİR kez hesaplanır. Bir sahnede onlarca parça aynı (ölçek, tohum)
+    çiftini kullanır; her parça için yeniden hesaplamak derleme süresinin büyük kısmıydı (kedi: kare başına 78 sn)."""
+    if _NOISE_CACHE.get("p") is not p:
+        _NOISE_CACHE.clear()
+        _NOISE_CACHE["p"] = p
+    key = (scale, seed)
+    n = _NOISE_CACHE.get(key)
+    if n is None:
+        n = (value_noise(p, scale, seed) - 0.5) + 0.5 * (value_noise(p, scale * 2.3, seed + 1) - 0.5)
+        _NOISE_CACHE[key] = n
+    return n
+
+
+def _chain(points, r0, r1):
+    """Noktalar boyunca incelen kapsül zinciri (kuyruk, boyun vb.)."""
+    out = []
+    n = len(points) - 1
+    for i, (a, b) in enumerate(zip(points, points[1:])):
+        ra = r0 + (r1 - r0) * i / n
+        rb = r0 + (r1 - r0) * (i + 1) / n
+        out.append(round_cone(a, b, ra, rb))
+    return out
+
+
+# =========================================================================== KEDİ (gerçekçi, tam boy oturan, 3/4)
 
 def build_cat(ph: float) -> tuple[Scene, Light, dict]:
+    """Gerçek oranlı tekir kedi: küçük kafa, badem gözler, üçgen kulaklar, oturan gövde, öne dolanan kuyruk."""
     s = Scene()
-    fur = s.mat((235, 150, 70), rim=0.45, pattern=_tabby(None))
-    cream = s.mat((250, 232, 205), rim=0.3, pattern=_fur(30, 0.2), outline=False)
-    pink = s.mat((240, 140, 160), rim=0.2)
-    nose = s.mat((255, 150, 175), rim=0.2, glyph="v", priority=5, glyph_min=3)
-    eye = s.mat((150, 245, 120), spec=0.9, shine=60, rim=0.1, emissive=0.7, glyph="o", priority=1, glyph_min=6)
-    pupil = s.mat((30, 60, 34), spec=0.6, shine=80, rim=0.0, glyph="|", priority=6, glyph_min=2)
-    dark = s.mat((120, 70, 60), rim=0.1, glyph="-", priority=4)
-    whisk_h = s.mat((250, 248, 240), rim=0.0, emissive=0.8, glyph="-", priority=2, outline=False)
-    whisk_l = s.mat((250, 248, 240), rim=0.0, emissive=0.8, glyph="/", priority=2, outline=False)
-    whisk_r = s.mat((250, 248, 240), rim=0.0, emissive=0.8, glyph="\\", priority=2, outline=False)
+    w = 2 * math.pi * ph
+    fur = s.mat((200, 130, 68), rim=0.25, pattern=_tabby_v(10.0, 0.26))
+    pale = s.mat((236, 214, 182), rim=0.2, pattern=_fur(44, 0.16))
+    inner = s.mat((205, 140, 130), rim=0.1)
+    nose = s.mat((200, 120, 120), spec=0.3, shine=30, rim=0.05)
+    eye = s.mat((175, 210, 80), spec=1.0, shine=120, rim=0.0, emissive=0.30)  # kedi gözü ışığı geri yansıtır
+    pupil = s.mat((18, 18, 16), spec=0.9, shine=90, rim=0.0)
+    lid = s.mat((120, 78, 45), rim=0.05)
 
-    breath = 1.0 + 0.018 * math.sin(ph * 2 * math.pi)
-    turn = rot(0, -22, 0)  # 3/4 duruş: tüm kedi hafif sola döner
-    yaw_head = -10 + 6 * math.sin(ph * 2 * math.pi)
+    breath = 1.0 + 0.012 * math.sin(w)
+    turn = rot(0, -28, 0)
 
-    def T(p):  # gövde koordinatı → dünya
-        return tuple((np.asarray(p) @ turn.T).tolist())
+    def T(p):
+        return tuple((np.asarray(p, np.float64) @ turn.T).tolist())
 
-    body = s.group(k=0.16)
+    body = s.group(k=0.10)
     body.items += [
-        (ellipsoid(T((0.0, -0.38, -0.05)), (0.55 * breath, 0.66, 0.50 * breath), turn), fur),  # göğüs/gövde
-        (ellipsoid(T((0.0, -0.95, -0.25)), (0.78, 0.38, 0.62), turn), fur),  # kalça (oturan)
-        (capsule(T((-0.22, -0.55, 0.32)), T((-0.24, -1.12, 0.42)), 0.11), fur),  # ön bacaklar
-        (capsule(T((0.22, -0.55, 0.32)), T((0.24, -1.12, 0.42)), 0.11), fur),
-        (ellipsoid(T((-0.24, -1.17, 0.50)), (0.14, 0.07, 0.17), turn), cream),  # patiler
-        (ellipsoid(T((0.24, -1.17, 0.50)), (0.14, 0.07, 0.17), turn), cream),
-        (ellipsoid(T((0.0, -0.25, 0.38)), (0.30, 0.42, 0.18), turn), cream),  # göğüs beyazı
+        (_furry(ellipsoid(T((0, 1.00, 0.10)), (0.27 * breath, 0.42, 0.27 * breath), turn)), fur),   # göğüs
+        (_furry(ellipsoid(T((0, 0.48, -0.18)), (0.36, 0.34, 0.44), turn)), fur),                    # kalça/gövde
+        (_furry(ellipsoid(T((0.27, 0.36, -0.08)), (0.15, 0.27, 0.30), turn)), fur),                 # arka bacak (sağ)
+        (_furry(ellipsoid(T((-0.27, 0.36, -0.08)), (0.15, 0.27, 0.30), turn)), fur),                # arka bacak (sol)
+        (_furry(ellipsoid(T((0, 0.98, 0.26)), (0.17, 0.30, 0.10), turn), 0.008), pale),             # göğüs beyazı
+        (_furry(capsule(T((0, 1.22, 0.12)), T((0, 1.46, 0.18)), 0.16)), fur),                      # boyun
     ]
-    # kuyruk: arkadan dolanıp öne kıvrılan, ucu salınan
-    tail = s.group(k=0.06)
-    sway = 0.18 * math.sin(ph * 2 * math.pi + 0.7)
-    pts = [(0.55, -1.15, -0.55), (0.95, -1.12, -0.05), (0.85, -1.10, 0.45), (0.45 + sway * 0.4, -1.05, 0.70),
-           (0.05 + sway, -0.98, 0.78)]
-    for a, b in zip(pts, pts[1:]):
-        tail.items.append((capsule(T(a), T(b), 0.10), fur))
+    for sx in (-1, 1):
+        body.items += [
+            (_furry(round_cone(T((0.11 * sx, 0.95, 0.24)), T((0.12 * sx, 0.12, 0.36)), 0.075, 0.058), 0.008), fur),  # ön bacak
+            (ellipsoid(T((0.12 * sx, 0.055, 0.42)), (0.068, 0.045, 0.095), turn), pale),           # ön pati
+            (ellipsoid(T((0.30 * sx, 0.05, 0.20)), (0.07, 0.045, 0.13), turn), fur),              # arka pati
+        ]
+    sway = 0.10 * math.sin(w + 0.6)
+    tail_pts = [T((0.28, 0.16, -0.50)), T((0.52, 0.09, -0.12)), T((0.50, 0.07, 0.28)),
+                T((0.30 + 0.5 * sway, 0.07, 0.52)), T((0.02 + sway, 0.08 + 0.03 * max(0.0, math.sin(w)), 0.60))]
+    tail = s.group(k=0.04)
+    tail.items += [(_furry(f, 0.008), fur) for f in _chain(tail_pts, 0.062, 0.042)]
 
-    # baş (ayrı dönüşle hafif sağa-sola bakar)
-    hr = turn @ rot(-6, yaw_head, 0)
-    hc = np.array((0.0, 0.66, 0.15))
+    # baş: gövdeden bağımsız, izleyiciye dönük; hafif eğilip yavaşça bakınır
+    hr = rot(-4 + 2 * math.sin(w * 2), -6 + 10 * math.sin(w), 3 * math.sin(w + 1.0))
+    hc = np.array(T((0, 1.58, 0.22)))
 
     def H(p):
-        return tuple((hc @ turn.T + (np.asarray(p) @ hr.T)).tolist())
+        return tuple((hc + np.asarray(p, np.float64) @ hr.T).tolist())
 
-    head = s.group(k=0.10)
+    head = s.group(k=0.06)
     head.items += [
-        (ellipsoid(H((0, 0, 0)), (0.64, 0.53, 0.56), hr), fur),
-        (ellipsoid(H((-0.19, -0.16, 0.40)), (0.21, 0.16, 0.18), hr), cream),  # yanak/ağız çevresi
-        (ellipsoid(H((0.19, -0.16, 0.40)), (0.21, 0.16, 0.18), hr), cream),
-        (ellipsoid(H((0.0, -0.22, 0.30)), (0.12, 0.08, 0.10), hr), cream),  # çene
+        (_furry(ellipsoid(H((0, 0.02, -0.02)), (0.235, 0.205, 0.215), hr), 0.007), fur),            # kafatası
+        (_furry(ellipsoid(H((0.115, -0.07, 0.10)), (0.12, 0.10, 0.11), hr), 0.006), fur),          # yanaklar
+        (_furry(ellipsoid(H((-0.115, -0.07, 0.10)), (0.12, 0.10, 0.11), hr), 0.006), fur),
+        (ellipsoid(H((0.04, -0.085, 0.185)), (0.052, 0.042, 0.050), hr), pale),                     # bıyık yastıkları
+        (ellipsoid(H((-0.04, -0.085, 0.185)), (0.052, 0.042, 0.050), hr), pale),
+        (ellipsoid(H((0, -0.125, 0.160)), (0.042, 0.028, 0.040), hr), pale),                        # çene
+        (capsule(H((0, 0.035, 0.175)), H((0, -0.035, 0.215)), 0.032), fur),                         # burun köprüsü
     ]
-    ears = s.group(k=0.03)
-    twitch = 18.0 * max(0.0, math.sin((ph - 0.30) * 2 * math.pi * 3)) if 0.30 < ph < 0.47 else 0.0
-    for sx, tw in ((-1, twitch), (1, 0.0)):
-        base = H((0.30 * sx, 0.30, -0.02))
-        tip = H((0.42 * sx, 0.78, -0.08 + 0.05 * (tw / 18.0)))
-        ears.items.append((round_cone(base, tip, 0.20, 0.025), fur))
-        ears.items.append((round_cone(H((0.29 * sx, 0.34, 0.07)), H((0.39 * sx, 0.70, 0.02)), 0.11, 0.015), pink))
-    face = s.group(k=0.0)
-    bl = _blink(ph)
+    s.group().items.append((ellipsoid(H((0, -0.045, 0.232)), (0.024, 0.016, 0.014), hr), nose))
+    ears = s.group(k=0.015)
+    twitch = 14.0 * max(0.0, math.sin((ph - 0.30) * 2 * math.pi * 4)) if 0.30 < ph < 0.42 else 0.0
     for sx in (-1, 1):
-        ec = H((0.21 * sx, 0.07, 0.47))
-        face.items.append((ellipsoid(ec, (0.13, 0.135 * (1 - 0.88 * bl) + 0.008, 0.075), hr), eye if bl < 0.5 else dark))
-        if bl < 0.5:
-            face.items.append((ellipsoid(H((0.21 * sx, 0.07, 0.535)), (0.014, 0.095, 0.03), hr), pupil))  # dikey göz bebeği
-    face.items.append((round_cone(H((0, -0.07, 0.585)), H((0, -0.11, 0.60)), 0.045, 0.025), nose))  # burun
-    face.items.append((capsule(H((0, -0.15, 0.59)), H((0, -0.22, 0.575)), 0.016), dark))  # ağız çizgisi
-    face.items.append((capsule(H((0, -0.22, 0.575)), H((-0.08, -0.26, 0.55)), 0.015), dark))
-    face.items.append((capsule(H((0, -0.22, 0.575)), H((0.08, -0.26, 0.55)), 0.015), dark))
-    for sx in (-1, 1):  # bıyıklar
-        for dy, m in ((0.02, whisk_h), (-0.07, whisk_h)):
-            a = H((0.20 * sx, -0.15, 0.55))
-            b = H((0.84 * sx, -0.12 + dy, 0.46))
-            face.items.append((capsule(a, b, 0.006), m))
-    light = ASCII_LIGHT
-    return s, light, {"cam": (0.0, 0.72, 4.3), "target": (0.0, 0.62, 0.0), "fov": 27.0, "aspect": 0.92}
+        er = hr @ rot(-8, 0, -14 * sx + (twitch if sx < 0 else 0.0) * 0.6)
+        base = H((0.125 * sx, 0.150, 0.00))
+        tip = H((0.175 * sx, 0.345, -0.03))
+        ears.items.append((round_cone(base, tip, 0.085, 0.012), fur))
+        ears.items.append((round_cone(H((0.123 * sx, 0.165, 0.035)), H((0.165 * sx, 0.315, 0.005)), 0.050, 0.008), inner))
+        del er
+    bl = _blink(ph, 0.72, 0.035)
+    eyes = s.group(k=0.0)
+    for sx in (-1, 1):
+        c = H((0.090 * sx, 0.010, 0.186))
+        er = hr @ rot(0, 22 * sx, 12 * sx)  # badem göz: dış köşe hafif yukarı, yüz eğrisine oturur
+        if bl > 0.5:
+            eyes.items.append((ellipsoid(c, (0.054, 0.011, 0.030), er), lid))
+        else:
+            eyes.items.append((ellipsoid(c, (0.054, 0.038 * (1 - 0.6 * bl), 0.030), er), eye))
+            eyes.items.append((ellipsoid(H((0.090 * sx, 0.010, 0.208)), (0.010, 0.031 * (1 - 0.6 * bl), 0.014), hr), pupil))
+    return s, ASCII_LIGHT, {"cam": (0.32, 1.72, 2.25), "target": (0.02, 1.47, 0.10), "fov": 30.0, "aspect": 0.95}
 
 
 # =========================================================================== ortak yardımcılar
@@ -158,176 +197,334 @@ def _eyes(s, H, R, xs, y, z, r, iris, pupil_glyph="o", pupil_r=0.5, blink=0.0, s
     return g
 
 
-# =========================================================================== BAYKUŞ
+def _mottled(base_amp=0.30, scale=14.0, seed=5, bars=0.0):
+    """Benekli tüy deseni (baykuş/kurt): iki ölçekli gürültü + isteğe bağlı ince yatay çizgiler (göğüs)."""
+    def pat(p, n):
+        a = value_noise(p, scale, seed)
+        b = value_noise(p, scale * 3.1, seed + 3)
+        v = 1.0 - base_amp * np.clip((a - 0.45) * 2.5, 0, 1) - 0.12 * (b > 0.6)
+        if bars:
+            v = v - bars * (np.sin(p[:, 1] * 70 + 4 * a) > 0.75)
+        return v
+
+    return pat
+
+
+# =========================================================================== BAYKUŞ (gerçekçi puhu, dalda)
 
 def build_owl(ph: float):
+    """Puhu (büyük boynuzlu baykuş): kulak tüyleri, pas rengi yüz diski, beyaz gerdan, benekli/çizgili göğüs,
+    sarı-turuncu gözler; başını yavaşça sağa sola çevirir ve göz kırpar."""
     s = Scene()
-    brown = s.mat((150, 100, 60), rim=0.4, pattern=_feather(30, 0.25))
-    dark = s.mat((95, 62, 38), rim=0.3, pattern=_feather(24, 0.3))
-    disc = s.mat((236, 214, 178), rim=0.25, outline=True, pattern=_fur(40, 0.15))
-    belly = s.mat((228, 205, 165), rim=0.3, pattern=_feather(36, 0.35), outline=False)
-    beak = s.mat((245, 175, 60), spec=0.5, rim=0.1, glyph="v", priority=5, glyph_min=2)
-    branch = s.mat((110, 75, 45), rim=0.2, pattern=_fur(12, 0.4))
-    claw = s.mat((70, 60, 55), glyph="m", priority=3, glyph_min=3)
-    breath = 1.0 + 0.015 * math.sin(ph * 2 * math.pi)
-    tilt = 8 * math.sin(ph * 2 * math.pi)
-    body = s.group(k=0.12)
+    w = 2 * math.pi * ph
+    brown = s.mat((138, 100, 66), rim=0.2, pattern=_mottled(0.35, 12.0, 5))
+    wing = s.mat((105, 74, 48), rim=0.15, pattern=_mottled(0.40, 10.0, 8))
+    breast = s.mat((200, 172, 132), rim=0.2, pattern=_mottled(0.25, 16.0, 6, bars=0.22))
+    disc = s.mat((190, 128, 76), rim=0.15, pattern=_fur(50, 0.18))
+    rimd = s.mat((60, 42, 30), rim=0.05)
+    throat = s.mat((232, 222, 200), rim=0.15)
+    beak = s.mat((52, 48, 46), spec=0.6, shine=50)
+    eye = s.mat((250, 175, 30), spec=1.0, shine=140, emissive=0.35)
+    pupil = s.mat((10, 10, 10), spec=1.0, shine=140)
+    branch = s.mat((92, 68, 48), rim=0.1, pattern=_mottled(0.45, 9.0, 11))
+    talon = s.mat((70, 64, 58), spec=0.4)
+    breath = 1.0 + 0.012 * math.sin(w)
+
+    body = s.group(k=0.10)
     body.items += [
-        (ellipsoid((0, -0.45, 0), (0.78 * breath, 0.95, 0.62), None), brown),
-        (ellipsoid((0, -0.55, 0.30), (0.52, 0.70, 0.36), None), belly),
-        (ellipsoid((-0.70, -0.45, -0.05), (0.22, 0.72, 0.40), rot(0, 0, -8)), dark),
-        (ellipsoid((0.70, -0.45, -0.05), (0.22, 0.72, 0.40), rot(0, 0, 8)), dark),
+        (_furry(ellipsoid((0, 0.80, 0.0), (0.40 * breath, 0.60, 0.36 * breath), None), 0.014, 30), brown),
+        (_furry(ellipsoid((0, 0.72, 0.17), (0.30, 0.48, 0.22), None), 0.014, 30), breast),
+        (_furry(ellipsoid((-0.34, 0.78, -0.06), (0.15, 0.52, 0.30), rot(0, 0, -6)), 0.012, 26), wing),
+        (_furry(ellipsoid((0.34, 0.78, -0.06), (0.15, 0.52, 0.30), rot(0, 0, 6)), 0.012, 26), wing),
+        (ellipsoid((0, 0.22, -0.20), (0.16, 0.14, 0.10), rot(30, 0, 0)), wing),                     # kuyruk ucu
     ]
-    R = rot(0, tilt, 0)
-    H = _H((0, 0.55, 0.05), R)
-    head = s.group(k=0.10)
+    yaw = 28 * math.sin(w)  # baykuşlar başı gövdeden bağımsız çevirir
+    hr = rot(-4, yaw, 4 * math.sin(w * 2))
+    H = _H((0, 1.42, 0.02), hr)
+    head = s.group(k=0.08)
     head.items += [
-        (ellipsoid(H((0, 0, 0)), (0.72, 0.58, 0.58), R), brown),
-        (round_cone(H((-0.42, 0.40, -0.05)), H((-0.62, 0.86, -0.12)), 0.16, 0.03), dark),
-        (round_cone(H((0.42, 0.40, -0.05)), H((0.62, 0.86, -0.12)), 0.16, 0.03), dark),
+        (_furry(ellipsoid(H((0, 0.0, 0.0)), (0.30, 0.26, 0.27), hr), 0.010, 34), brown),
+        (_furry(ellipsoid(H((0.115, -0.01, 0.17)), (0.13, 0.14, 0.07), hr), 0.006, 50), disc),       # yüz diski
+        (_furry(ellipsoid(H((-0.115, -0.01, 0.17)), (0.13, 0.14, 0.07), hr), 0.006, 50), disc),
+        (ellipsoid(H((0, -0.20, 0.15)), (0.12, 0.05, 0.08), hr), throat),                           # beyaz gerdan
     ]
-    face = s.group(k=0.06)
-    for sx in (-0.27, 0.27):
-        face.items.append((ellipsoid(H((sx, 0.02, 0.38)), (0.30, 0.30, 0.16), R), disc))
-    bl = _blink(ph, 0.62, 0.05)
-    _eyes(s, H, R, (-0.27, 0.27), 0.04, 0.50, 0.16, (255, 190, 40), pupil_r=0.55, blink=bl)
-    face2 = s.group()
-    face2.items.append((round_cone(H((0, -0.12, 0.50)), H((0, -0.30, 0.56)), 0.07, 0.015), beak))
+    for sx in (-1, 1):  # yüz diskinin koyu kenarı ve kulak tüyleri
+        head.items.append((ellipsoid(H((0.235 * sx, -0.02, 0.10)), (0.035, 0.15, 0.06), hr @ rot(0, 0, 8 * sx)), rimd))
+        head.items.append((_furry(round_cone(H((0.15 * sx, 0.20, 0.0)), H((0.22 * sx, 0.40, -0.04)), 0.060, 0.010), 0.006), wing))
+    feat = s.group()
+    bl = _blink(ph, 0.83, 0.03)
+    for sx in (-1, 1):
+        c = H((0.108 * sx, 0.015, 0.255))
+        if bl > 0.5:
+            feat.items.append((ellipsoid(c, (0.062, 0.014, 0.035), hr), disc))
+        else:
+            feat.items.append((ellipsoid(c, (0.062, 0.060 * (1 - 0.7 * bl), 0.035), hr), eye))
+            feat.items.append((ellipsoid(H((0.108 * sx, 0.015, 0.285)), (0.032, 0.032 * (1 - 0.7 * bl), 0.012), hr), pupil))
+        feat.items.append((ellipsoid(H((0.10 * sx, 0.092, 0.250)), (0.080, 0.018, 0.03), hr @ rot(0, 0, -18 * sx)), throat))  # kaş
+    feat.items.append((round_cone(H((0, -0.04, 0.290)), H((0, -0.12, 0.305)), 0.034, 0.007), beak))
     perch = s.group(k=0.02)
-    perch.items.append((capsule((-1.3, -1.42, 0.15), (1.3, -1.38, 0.10), 0.09), branch))
-    for sx in (-0.25, 0.25):
-        for k in (-0.07, 0.0, 0.07):
-            perch.items.append((capsule((sx + k, -1.36, 0.28), (sx + k * 1.4, -1.40, 0.40), 0.028), claw))
-    return s, ASCII_LIGHT, {"cam": (0.0, -0.10, 6.0), "target": (0.0, -0.20, 0.0), "fov": 30.0, "aspect": 0.95}
+    perch.items.append((_furry(capsule((-1.3, 0.12, 0.10), (1.3, 0.08, -0.05), 0.085), 0.02, 14), branch))
+    perch.items.append((capsule((0.7, 0.10, 0.0), (1.05, 0.30, -0.15), 0.04), branch))
+    for sx in (-1, 1):
+        for k in (-0.05, 0.0, 0.05):
+            perch.items.append((capsule((0.12 * sx + k, 0.22, 0.17), (0.12 * sx + k * 1.3, 0.16, 0.24), 0.018), talon))
+    return s, ASCII_LIGHT, {"cam": (0.7, 1.15, 4.3), "target": (0.0, 0.92, 0.0), "fov": 30.0, "aspect": 1.12}
 
 
-# =========================================================================== KÖPEK (golden retriever)
+# =========================================================================== KÖPEK (gerçekçi golden retriever büstü)
 
 def build_dog(ph: float):
+    """Golden retriever: uzun burun, belirgin alın kırımı, sarkık kulaklar, uzun tüylü göğüs, hafif soluma."""
     s = Scene()
-    gold = s.mat((228, 168, 90), rim=0.45, pattern=_fur(30, 0.22))
-    ear_m = s.mat((196, 128, 62), rim=0.35, pattern=_fur(36, 0.3))
-    light_m = s.mat((245, 214, 160), rim=0.3, pattern=_fur(34, 0.18), outline=False)
-    nose = s.mat((70, 62, 70), spec=0.8, shine=50, rim=0.1, glyph="@", priority=5, glyph_min=3)
-    tongue = s.mat((245, 110, 130), spec=0.5, rim=0.1, glyph="u", priority=4, glyph_min=3)
-    collar = s.mat((210, 50, 60), spec=0.4, rim=0.2)
-    tag = s.mat((250, 210, 80), spec=1.0, shine=40, emissive=0.3, glyph="o", priority=4, glyph_min=2)
-    pant = 0.5 + 0.5 * math.sin(ph * 2 * math.pi * 4)
-    flop = 6 * math.sin(ph * 2 * math.pi * 2)
-    body = s.group(k=0.14)
-    body.items += [(ellipsoid((0, -0.95, -0.1), (0.75, 0.70, 0.55), None), gold),
-                   (capsule((0, -0.55, -0.05), (0, 0.05, 0.0), 0.36), gold),  # boyun
-                   (ellipsoid((0, -0.80, 0.28), (0.42, 0.50, 0.30), None), light_m)]
-    s.group().items.append((torus((0, -0.36, 0.0), 0.43, 0.06, rot(78, 0, 0)), collar))
-    s.group().items.append((sphere((0, -0.55, 0.47), 0.07), tag))
-    R = rot(-6, -14 + 6 * math.sin(ph * 2 * math.pi), 4)
-    H = _H((0, 0.22, 0.05), R)
-    head = s.group(k=0.14)
-    head.items += [
-        (ellipsoid(H((0, 0.08, -0.05)), (0.58, 0.52, 0.52), R), gold),
-        (ellipsoid(H((0, -0.18, 0.42)), (0.32, 0.26, 0.40), R), light_m),  # burun kemiği/ağız
-        (ellipsoid(H((0, 0.30, 0.25)), (0.36, 0.16, 0.30), R), gold),  # alın
+    w = 2 * math.pi * ph
+    gold = s.mat((214, 158, 86), rim=0.25, pattern=_fur(40, 0.22))
+    light_m = s.mat((232, 196, 132), rim=0.2, pattern=_fur(46, 0.18))
+    ear_m = s.mat((165, 98, 46), rim=0.2, pattern=_fur(52, 0.30))
+    nose = s.mat((34, 28, 28), spec=0.9, shine=70, rim=0.0)
+    eye = s.mat((60, 34, 20), spec=1.0, shine=60, rim=0.0, emissive=0.05)
+    lip = s.mat((60, 40, 38), rim=0.0)
+    tongue = s.mat((222, 110, 118), spec=0.5, shine=40, rim=0.05)
+    pant = 0.5 + 0.5 * math.sin(w * 3)
+    breath = 1.0 + 0.015 * math.sin(w * 3)
+
+    body = s.group(k=0.12)
+    body.items += [
+        (_furry(ellipsoid((0, 0.80, -0.05), (0.42 * breath, 0.55, 0.36 * breath), None), 0.03, 26), gold),  # göğüs/omuz
+        (_furry(ellipsoid((0, 0.88, 0.20), (0.26, 0.40, 0.16), None), 0.035, 24), light_m),                # göğüs tüyü
+        (_furry(capsule((0, 1.05, 0.02), (0, 1.42, 0.10), 0.22), 0.025, 26), gold),                         # boyun
     ]
-    ears = s.group(k=0.05)
+    hr = rot(-6 + 3 * math.sin(w), 42 + 6 * math.sin(w + 0.4), -3 * math.sin(w + 1.3))  # 3/4 profil: namlu görünür
+    H = _H((0, 1.55, 0.14), hr)
+    head = s.group(k=0.07)
+    head.items += [
+        (_furry(ellipsoid(H((0, 0.03, -0.03)), (0.215, 0.195, 0.225), hr), 0.010), gold),           # kafatası
+        (_furry(ellipsoid(H((0, 0.07, 0.12)), (0.15, 0.10, 0.12), hr), 0.006), gold),              # alın / kaş çıkıntısı
+        (round_cone(H((0, -0.04, 0.14)), H((0, -0.075, 0.36)), 0.115, 0.080), light_m),           # burun (namlu)
+        (ellipsoid(H((0.065, -0.12, 0.27)), (0.075, 0.07, 0.09), hr), light_m),                   # dudak sarkıkları
+        (ellipsoid(H((-0.065, -0.12, 0.27)), (0.075, 0.07, 0.09), hr), light_m),
+        (ellipsoid(H((0, -0.14 - 0.02 * pant, 0.25)), (0.06, 0.035, 0.08), hr @ rot(14 * pant, 0, 0)), light_m),  # alt çene
+    ]
+    feat = s.group(k=0.0)
+    feat.items += [
+        (ellipsoid(H((0, -0.050, 0.425)), (0.050, 0.036, 0.034), hr), nose),
+        (capsule(H((0, -0.085, 0.43)), H((0, -0.12, 0.40)), 0.008), lip),
+        (ellipsoid(H((0, -0.185 - 0.03 * pant, 0.33)), (0.042, 0.016, 0.060 + 0.02 * pant), hr @ rot(28 + 10 * pant, 0, 0)), tongue),
+    ]
+    bl = _blink(ph, 0.58, 0.03)
     for sx in (-1, 1):
-        ears.items.append((ellipsoid(H((0.52 * sx, -0.10, -0.05)), (0.17, 0.42, 0.26), R @ rot(0, 0, (14 + flop) * sx)), ear_m))
-    _eyes(s, H, R, (-0.22, 0.22), 0.12, 0.40, 0.085, (90, 55, 35), pupil_r=0.7, blink=_blink(ph, 0.55, 0.04))
-    f = s.group()
-    f.items.append((ellipsoid(H((0, -0.04, 0.82)), (0.12, 0.08, 0.08), R), nose))
-    f.items.append((ellipsoid(H((0, -0.42 - 0.05 * pant, 0.64)), (0.10, 0.08 + 0.05 * pant, 0.05), R @ rot(-25, 0, 0)), tongue))
-    return s, ASCII_LIGHT, {"cam": (0.0, -0.05, 5.4), "target": (0.0, -0.12, 0.0), "fov": 30.0, "aspect": 0.95}
+        feat.items.append((ellipsoid(H((0.095 * sx, 0.040, 0.178)), (0.040, 0.034 * (1 - 0.85 * bl) + 0.004, 0.024), hr @ rot(0, 25 * sx, 0)),
+                           eye if bl < 0.5 else ear_m))
+    ears = s.group(k=0.01)
+    flop = 5 * math.sin(w * 2)
+    for sx in (-1, 1):
+        er = hr @ rot(0, 0, (14 + flop) * sx)
+        ears.items.append((_furry(ellipsoid(H((0.215 * sx, -0.07, -0.06)), (0.055, 0.175, 0.125), er), 0.014, 50), ear_m))
+    li = Light(dir=(0.35, 0.55, 0.75), color=(1.0, 0.95, 0.86), sky=(0.30, 0.32, 0.38), rim_color=(0.9, 0.85, 0.75),
+               ambient=0.22, shadow_k=5.0)
+    return s, li, {"cam": (-0.35, 1.66, 2.45), "target": (0.08, 1.38, 0.10), "fov": 30.0, "aspect": 0.92}
 
 
-# =========================================================================== TİLKİ
+# =========================================================================== TİLKİ (gerçekçi kızıl tilki, oturan, 3/4)
 
 def build_fox(ph: float):
+    """Kızıl tilki: ince uzun burun, büyük sivri kulaklar (arkası siyah), beyaz yanak/göğüs, siyah 'çoraplı' bacaklar,
+    öne dolanan gür, beyaz uçlu kuyruk."""
     s = Scene()
-    orange = s.mat((240, 125, 45), rim=0.5, pattern=_fur(32, 0.22))
-    white = s.mat((250, 244, 232), rim=0.3, pattern=_fur(38, 0.15), outline=False)
-    black = s.mat((45, 32, 30), rim=0.25)
-    nose = s.mat((40, 30, 30), spec=0.8, shine=50, glyph="@", priority=5, glyph_min=2)
-    body = s.group(k=0.14)
-    body.items += [(ellipsoid((0, -0.95, -0.15), (0.62, 0.68, 0.50), None), orange),
-                   (capsule((0, -0.55, -0.05), (0, 0.05, 0.0), 0.30), orange),  # boyun
-                   (ellipsoid((0, -0.80, 0.22), (0.36, 0.52, 0.28), None), white)]
-    tail = s.group(k=0.10)
-    sw = 0.25 * math.sin(ph * 2 * math.pi)
-    for i in range(5):
-        f = i / 4
-        c = (0.55 + 0.45 * math.sin(f * 2.2) + sw * f, -1.45 + 0.65 * f, 0.20 + 0.25 * f)
-        r = 0.20 + 0.10 * math.sin(f * math.pi)
-        tail.items.append((sphere(c, r), white if i == 4 else orange))
-    R = rot(-4, -18 + 7 * math.sin(ph * 2 * math.pi), 3)
-    H = _H((0, 0.22, 0.05), R)
-    head = s.group(k=0.12)
-    head.items += [
-        (ellipsoid(H((0, 0.05, 0)), (0.56, 0.44, 0.46), R), orange),
-        (round_cone(H((0, -0.08, 0.20)), H((0, -0.16, 0.86)), 0.22, 0.06), white),  # sivri burun
-        (ellipsoid(H((-0.36, -0.14, 0.18)), (0.24, 0.22, 0.26), R), white),
-        (ellipsoid(H((0.36, -0.14, 0.18)), (0.24, 0.22, 0.26), R), white),
+    w = 2 * math.pi * ph
+    red = s.mat((214, 104, 40), rim=0.25, pattern=_fur(40, 0.24))
+    white = s.mat((238, 230, 218), rim=0.2, pattern=_fur(48, 0.14))
+    black = s.mat((48, 34, 30), rim=0.1, pattern=_fur(40, 0.2))
+    ear_in = s.mat((176, 140, 120), rim=0.05, pattern=_fur(50, 0.2))
+    nose = s.mat((26, 22, 22), spec=0.9, shine=70)
+    eye = s.mat((205, 140, 40), spec=1.0, shine=120, emissive=0.20)
+    pupil = s.mat((15, 12, 10), spec=0.8, shine=80)
+    breath = 1.0 + 0.012 * math.sin(w)
+    turn = rot(0, 32, 0)
+
+    def T(p):
+        return tuple((np.asarray(p, np.float64) @ turn.T).tolist())
+
+    body = s.group(k=0.09)
+    body.items += [
+        (_furry(ellipsoid(T((0, 0.95, 0.05)), (0.22 * breath, 0.38, 0.22 * breath), turn), 0.016), red),   # göğüs
+        (_furry(ellipsoid(T((0, 0.48, -0.20)), (0.30, 0.30, 0.38), turn), 0.016), red),                   # gövde/kalça
+        (_furry(ellipsoid(T((0, 0.92, 0.19)), (0.13, 0.30, 0.08), turn), 0.012), white),                  # göğüs beyazı
+        (_furry(capsule(T((0, 1.12, 0.06)), T((0, 1.30, 0.14)), 0.14), 0.016), red),                      # boyun
     ]
-    ears = s.group(k=0.02)
-    tw = 10 * max(0.0, math.sin((ph - 0.2) * 2 * math.pi * 3)) if 0.2 < ph < 0.37 else 0.0
     for sx in (-1, 1):
-        b, tip = H((0.30 * sx, 0.32, -0.02)), H((0.48 * sx, 0.95, -0.10 + 0.002 * tw * sx))
-        ears.items.append((round_cone(b, tip, 0.22, 0.03), orange))
-        ears.items.append((round_cone(H((0.44 * sx, 0.78, -0.08)), tip, 0.08, 0.035), black))
-    _eyes(s, H, R, (-0.22, 0.22), 0.14, 0.38, 0.085, (255, 190, 60), slit=True, blink=_blink(ph, 0.7, 0.04))
-    s.group().items.append((sphere(H((0, -0.14, 0.92)), 0.065), nose))
-    return s, ASCII_LIGHT, {"cam": (0.0, -0.20, 5.6), "target": (0.0, -0.28, 0.0), "fov": 30.0, "aspect": 0.95}
+        body.items += [
+            (_furry(ellipsoid(T((0.22 * sx, 0.36, -0.12)), (0.12, 0.24, 0.26), turn), 0.014), red),       # arka bacak
+            (round_cone(T((0.09 * sx, 0.85, 0.16)), T((0.09 * sx, 0.40, 0.24)), 0.058, 0.045), red),       # ön bacak üst
+            (round_cone(T((0.09 * sx, 0.40, 0.24)), T((0.10 * sx, 0.06, 0.28)), 0.045, 0.040), black),    # siyah çorap
+            (ellipsoid(T((0.10 * sx, 0.04, 0.33)), (0.05, 0.035, 0.08), turn), black),                    # pati
+        ]
+    sway = 0.08 * math.sin(w + 0.9)
+    tail_pts = [T((-0.10, 0.25, -0.52)), T((-0.42, 0.13, -0.30)), T((-0.48, 0.12, 0.10)),
+                T((-0.30 + sway, 0.14, 0.42)), T((-0.02 + 1.5 * sway, 0.16, 0.56))]
+    tail = s.group(k=0.08)
+    segs = _chain(tail_pts, 0.10, 0.15)
+    tail.items += [(_furry(f, 0.03, 22), red) for f in segs[:-1]]
+    tail.items.append((_furry(round_cone(tail_pts[-2], tail_pts[-1], 0.14, 0.09), 0.03, 22), white))  # beyaz uç
+
+    hr = turn @ rot(-3 + 2 * math.sin(w * 2), -54 + 9 * math.sin(w), 3 * math.sin(w + 0.7))  # baş 3/4: gözler ve burun görünür
+    hc = np.array(T((0, 1.40, 0.16)))
+    K = 1.5  # baş ölçeği (gerçek tilkide baş gövdeye göre iridir)
+
+    def H(p):
+        return tuple((hc + K * np.asarray(p, np.float64) @ hr.T).tolist())
+
+    def hE(c, r, R=None):  # baş içi: yarıçaplar da ölçeklenir
+        return ellipsoid(c, tuple(K * v for v in r), R)
+
+    def hRC(a, b, r1, r2):
+        return round_cone(a, b, K * r1, K * r2)
+
+    head = s.group(k=0.05 * K)
+    head.items += [
+        (_furry(hE(H((0, 0.02, -0.02)), (0.165, 0.145, 0.165), hr), 0.007), red),                   # kafatası
+        (_furry(hE(H((0.105, -0.075, 0.03)), (0.085, 0.065, 0.085), hr), 0.012), white),           # beyaz yanaklar
+        (_furry(hE(H((-0.105, -0.075, 0.03)), (0.085, 0.065, 0.085), hr), 0.012), white),
+        (hRC(H((0, -0.025, 0.10)), H((0, -0.065, 0.33)), 0.075, 0.030), red),                      # ince uzun burun
+        (hRC(H((0, -0.075, 0.10)), H((0, -0.085, 0.30)), 0.055, 0.022), white),                   # alt çene
+    ]
+    s.group().items.append((sphere(H((0, -0.058, 0.355)), K * 0.030), nose))
+    ears = s.group(k=0.012 * K)
+    tw = 12 * max(0.0, math.sin((ph - 0.25) * 2 * math.pi * 4)) if 0.25 < ph < 0.37 else 0.0
+    for sx in (-1, 1):
+        base = H((0.095 * sx, 0.115, -0.03))
+        tip = H((0.165 * sx, 0.355 - 0.01 * tw * (sx > 0), -0.06 - 0.004 * tw * (sx > 0)))
+        ears.items.append((hRC(base, tip, 0.075, 0.012), black))                                   # kulak arkası siyah
+        ears.items.append((hRC(H((0.093 * sx, 0.125, 0.0)), H((0.155 * sx, 0.315, -0.03)), 0.058, 0.010), red))
+        ears.items.append((hRC(H((0.092 * sx, 0.13, 0.030)), H((0.145 * sx, 0.27, 0.000)), 0.028, 0.006), ear_in))
+    bl = _blink(ph, 0.66, 0.03)
+    eyes = s.group()
+    for sx in (-1, 1):
+        er = hr @ rot(0, 28 * sx, 18 * sx)  # çekik badem göz
+        c = H((0.070 * sx, 0.035, 0.125))
+        if bl > 0.5:
+            eyes.items.append((hE(c, (0.038, 0.008, 0.022), er), black))
+        else:
+            eyes.items.append((hE(c, (0.038, 0.022, 0.024), er), eye))
+            eyes.items.append((hE(H((0.072 * sx, 0.035, 0.142)), (0.006, 0.018, 0.010), hr), pupil))
+    return s, ASCII_LIGHT, {"cam": (0.0, 1.15, 4.3), "target": (0.0, 0.92, 0.0), "fov": 30.0, "aspect": 1.08}
 
 
-# =========================================================================== KAMP ATEŞİ BAŞINDA KURT
+# =========================================================================== KAMP ATEŞİ BAŞINDA KURT (gerçekçi, profil)
 
 def build_wolf(ph: float):
+    """Gri kurt ateşe dönük oturur: uzun burun, dik kulaklar, kalın boyun yelesi, koyu sırt, gür kuyruk.
+    Sahne ateşin turuncu ışığı (yandan, alçak) ve soğuk ay dolgusu ile aydınlanır; alevler titrer."""
     s = Scene()
-    grey = s.mat((150, 152, 160), rim=0.5, pattern=_fur(30, 0.25))
-    pale = s.mat((215, 215, 220), rim=0.4, pattern=_fur(34, 0.2), outline=False)
-    darkg = s.mat((80, 82, 92), rim=0.3, pattern=_fur(30, 0.2))
-    nose = s.mat((35, 35, 40), spec=0.8, glyph="@", priority=5, glyph_min=2)
-    log = s.mat((110, 70, 40), rim=0.2, pattern=_fur(14, 0.5))
-    ember = s.mat((255, 120, 30), emissive=1.0, rim=0.0, glyph="*", priority=2, glyph_min=2, outline=False)
-    flame = s.mat((255, 190, 60), emissive=1.2, rim=0.0, outline=False)
-    ground = s.mat((60, 70, 55), rim=0.0, pattern=_fur(6, 0.4), outline=False)
-    # kurt (oturan, 3/4, sağa bakıyor)
-    b = s.group(k=0.16)
+    w = 2 * math.pi * ph
+    grey = s.mat((150, 148, 146), rim=0.3, pattern=_mottled(0.25, 14.0, 21))
+    saddle = s.mat((88, 84, 82), rim=0.25, pattern=_mottled(0.30, 12.0, 22))
+    pale = s.mat((222, 214, 200), rim=0.25, pattern=_fur(44, 0.16))
+    nose = s.mat((25, 22, 22), spec=0.9, shine=60)
+    eye = s.mat((230, 170, 60), spec=1.0, shine=120, emissive=0.45)
+    log = s.mat((92, 60, 38), rim=0.1, pattern=_mottled(0.4, 10.0, 31))
+    ember = s.mat((255, 110, 30), emissive=1.1, rim=0.0)
+    # düşük emisyon: sahne koyu olduğundan otomatik pozlama (~2,8×) rengi zaten parlatır; yüksek emisyonda
+    # kırmızı-turuncu kanal taşıp alevin tamamı sarıya dönüyordu
+    flame_o = s.mat((235, 70, 14), emissive=0.34, rim=0.0)
+    flame_y = s.mat((255, 180, 60), emissive=0.50, rim=0.0)
+    stone = s.mat((90, 86, 84), rim=0.1, pattern=_mottled(0.3, 8.0, 41))
+    ground = s.mat((52, 54, 48), rim=0.0, pattern=_fur(5, 0.4))
+    breath = 1.0 + 0.012 * math.sin(w)
+
+    b = s.group(k=0.10)
     b.items += [
-        (ellipsoid((-0.75, -0.55, 0.0), (0.62, 0.55, 0.48), rot(0, 0, -25)), grey),
-        (ellipsoid((-1.05, -0.95, 0.0), (0.55, 0.32, 0.45), None), grey),
-        (capsule((-0.45, -0.55, 0.25), (-0.40, -1.15, 0.35), 0.10), grey),
-        (capsule((-0.55, -0.55, -0.20), (-0.52, -1.15, -0.25), 0.10), darkg),
-        (ellipsoid((-0.48, -0.35, 0.18), (0.30, 0.42, 0.25), rot(0, 0, -15)), pale),
-        (capsule((-0.55, 0.0, 0.0), (-0.35, 0.35, 0.0), 0.28), grey),  # boyun
+        (_furry(ellipsoid((-0.05, 0.92, 0.0), (0.30, 0.44 * breath, 0.27), rot(0, 0, -22)), 0.02, 26), grey),   # göğüs
+        (_furry(ellipsoid((-0.48, 0.45, 0.0), (0.42, 0.32, 0.34), None), 0.02, 26), grey),                       # kalça
+        (_furry(ellipsoid((-0.30, 0.86, 0.0), (0.30, 0.30, 0.22), rot(0, 0, -30)), 0.02, 22), saddle),           # koyu sırt
+        (_furry(ellipsoid((0.10, 0.95, 0.0), (0.16, 0.36, 0.20), rot(0, 0, -15)), 0.03, 22), pale),             # açık göğüs
+        (_furry(capsule((0.0, 1.10, 0.0), (0.20, 1.42, 0.0), 0.22), 0.035, 20), grey),                          # boyun yelesi
+        (_furry(ellipsoid((-0.40, 0.30, 0.20), (0.22, 0.20, 0.14), None), 0.015), grey),                         # arka bacak
     ]
-    tail = s.group(k=0.08)
-    sw = 0.12 * math.sin(ph * 2 * math.pi)
-    for a_, b_ in (((-1.55, -1.0, -0.1), (-1.95, -1.05, 0.1)), ((-1.95, -1.05, 0.1), (-2.15 - sw, -1.05, 0.45))):
-        tail.items.append((capsule(a_, b_, 0.16), grey))
-    R = rot(0, 35, -8 + 3 * math.sin(ph * 2 * math.pi))
-    H = _H((-0.30, 0.42, 0.05), R)
-    head = s.group(k=0.10)
+    for sz in (-0.11, 0.11):
+        b.items += [
+            (round_cone((0.08, 0.80, sz), (0.16, 0.08, sz), 0.07, 0.045), grey if sz > 0 else saddle),           # ön bacaklar
+            (ellipsoid((0.21, 0.04, sz), (0.08, 0.04, 0.05), None), pale),
+        ]
+    b.items.append((ellipsoid((-0.10, 0.04, 0.26), (0.10, 0.04, 0.06), None), pale))                         # arka pati
+    tail = s.group(k=0.06)
+    sw = 0.06 * math.sin(w + 1.2)
+    tail_pts = [(-0.82, 0.32, -0.05), (-1.05, 0.14, 0.05), (-0.95, 0.07, 0.30), (-0.62 + sw, 0.07, 0.42)]
+    tail.items += [(_furry(f, 0.035, 20), saddle if i == 0 else grey) for i, f in enumerate(_chain(tail_pts, 0.10, 0.12))]
+
+    hr = rot(0, 0, -4 + 3 * math.sin(w)) @ rot(0, 8 * math.sin(w), 0)  # profil; başı hafifçe kaldırıp çevirir
+    H = _H((0.30, 1.55, 0.0), hr)
+    head = s.group(k=0.06)
     head.items += [
-        (ellipsoid(H((0, 0, 0)), (0.36, 0.32, 0.34), R), grey),
-        (round_cone(H((0.0, -0.06, 0.10)), H((0.0, -0.14, 0.62)), 0.20, 0.08), pale),
+        (_furry(ellipsoid(H((0, 0, 0)), (0.18, 0.15, 0.15), hr), 0.01), grey),                                  # kafatası
+        (round_cone(H((0.10, -0.03, 0)), H((0.38, -0.09, 0)), 0.095, 0.050), grey),                             # uzun burun
+        (round_cone(H((0.10, -0.08, 0)), H((0.34, -0.13, 0)), 0.070, 0.035), pale),                             # alt çene
+        (_furry(ellipsoid(H((0.02, -0.08, 0)), (0.14, 0.09, 0.13), hr), 0.015), pale),                         # yanak tüyü
     ]
-    for sx in (-1, 1):
-        head.items.append((round_cone(H((0.18 * sx, 0.20, -0.05)), H((0.24 * sx, 0.58, -0.10)), 0.13, 0.02), darkg))
-    _eyes(s, H, R, (-0.15, 0.15), 0.08, 0.27, 0.06, (255, 205, 80), slit=False, pupil_r=0.5, blink=_blink(ph, 0.8, 0.04))
-    s.group().items.append((sphere(H((0, -0.13, 0.68)), 0.06), nose))
-    # ateş
+    ears = s.group(k=0.02)
+    for sz in (-0.075, 0.075):
+        ears.items.append((round_cone(H((-0.06, 0.10, sz)), H((-0.10, 0.30, sz * 1.15)), 0.065, 0.012), saddle))
+    f = s.group()
+    f.items.append((sphere(H((0.405, -0.075, 0)), 0.035), nose))
+    bl = _blink(ph, 0.8, 0.03)
+    for sz in (-0.08, 0.08):
+        f.items.append((ellipsoid(H((0.13, 0.03, sz)), (0.028, 0.014 * (1 - 0.8 * bl) + 0.003, 0.015), hr @ rot(0, 0, -12)),
+                        eye if bl < 0.5 else saddle))
+    # ateş (sağda): taş halka, çapraz kütükler, titreyen alevler ve közler
     fire = s.group(k=0.0)
-    fire.items += [(capsule((0.75, -1.25, 0.35), (1.65, -1.18, 0.05), 0.08), log),
-                   (capsule((0.85, -1.18, -0.05), (1.6, -1.25, 0.40), 0.08), log)]
-    fl = s.group(k=0.12)
-    for i, (dx, hgt) in enumerate(((0.0, 0.85), (-0.18, 0.55), (0.17, 0.62), (0.05, 0.40))):
-        fh = hgt * (0.85 + 0.25 * math.sin(ph * 2 * math.pi * 3 + i * 1.7))
-        wob = 0.06 * math.sin(ph * 2 * math.pi * 2 + i)
-        fl.items.append((round_cone((1.2 + dx, -1.15, 0.18), (1.2 + dx + wob, -1.15 + fh, 0.18), 0.17, 0.01), flame))
-    s.group().items.append((sphere((1.2, -1.18, 0.18), 0.14), ember))
-    s.group().items.append((ellipsoid((0.0, -1.42, 0.0), (2.6, 0.08, 1.4), None), ground))
-    li = Light(dir=(0.7, 0.4, 0.55), color=(1.05, 0.62, 0.32), sky=(0.16, 0.20, 0.32), rim_color=(1.0, 0.55, 0.25),
-               ambient=0.35, shadow_k=4.0)
-    return s, li, {"cam": (0.0, -0.35, 7.6), "target": (-0.25, -0.45, 0.0), "fov": 30.0, "aspect": 0.62}
+    FX = 1.55
+    for i in range(9):
+        a = 2 * math.pi * i / 9
+        fire.items.append((ellipsoid((FX + 0.36 * math.cos(a), 0.04, 0.36 * math.sin(a)), (0.10, 0.07, 0.09), None), stone))
+    fire.items += [(capsule((FX - 0.30, 0.10, 0.18), (FX + 0.28, 0.16, -0.12), 0.055), log),
+                   (capsule((FX - 0.26, 0.15, -0.16), (FX + 0.30, 0.10, 0.16), 0.055), log)]
+    # alev dilleri: ince, ayrı ayrı titreyen, uçları kıvrılan; dışta kızıl-turuncu, içte sarı çekirdek
+    fl = s.group(k=0.035)
+    core = s.group(k=0.03)
+    tongues = ((0.0, 0.0, 0.70), (-0.12, 0.05, 0.46), (0.11, -0.04, 0.52), (0.04, 0.10, 0.38), (-0.06, -0.09, 0.40),
+               (0.15, 0.07, 0.30), (-0.16, -0.02, 0.28))
+    for i, (dx, dz, hgt) in enumerate(tongues):
+        fh = hgt * (0.78 + 0.24 * math.sin(w * 4 + i * 1.9) + 0.10 * math.sin(w * 9 + i * 2.3))
+        wob = 0.06 * math.sin(w * 3 + i * 1.3)
+        base = (FX + dx, 0.17, dz)
+        mid = (FX + dx + wob * 0.5, 0.17 + 0.5 * fh, dz)
+        tip = (FX + dx + wob * 1.6, 0.17 + fh, dz + 0.02 * math.sin(w * 5 + i))
+        fl.items.append((round_cone(base, mid, 0.095, 0.050), flame_o))
+        fl.items.append((round_cone(mid, tip, 0.045, 0.004), flame_o))
+        if hgt > 0.35:
+            core.items.append((round_cone((FX + dx * 0.7, 0.17, dz * 0.7 + 0.05), (FX + dx * 0.7 + wob, 0.17 + 0.45 * fh, dz * 0.7 + 0.05), 0.045, 0.006), flame_y))
+    s.group().items.append((ellipsoid((FX, 0.14, 0.0), (0.18, 0.05, 0.15), None), ember))
+    s.group().items.append((ellipsoid((0.4, -0.05, 0.0), (2.6, 0.06, 1.2), None), ground))
+    flick = 0.92 + 0.08 * math.sin(w * 4) + 0.04 * math.sin(w * 9)
+    li = Light(dir=(0.85, 0.30, 0.42), color=(1.20 * flick, 0.66 * flick, 0.30 * flick), sky=(0.14, 0.18, 0.30),
+               rim_color=(0.5, 0.6, 0.9), ambient=0.16, shadow_k=6.0)
+    return s, li, {"cam": (0.45, 1.05, 5.4), "target": (0.38, 0.72, 0.0), "fov": 30.0, "aspect": 0.62,
+                   "overlay": _spark_overlay(ph)}
+
+
+def _spark_overlay(ph: float, n: int = 22, seed: int = 13, rise: float = 0.55):
+    """Ateşten yükselen kıvılcımlar (hücre uzayında). Ateş, en parlak sarı-turuncu hücrelerden bulunur; kıvılcımlar
+    döngüyle senkron yükselir (faz 0 ve 1 aynı kare → kesintisiz döngü), yükseldikçe söner."""
+    def ov(chars: np.ndarray, colors: np.ndarray, phase: float) -> None:
+        c = colors.astype(np.int32)
+        hot = (c[..., 0] > 220) & (c[..., 1] > 150) & (c[..., 2] < 140) & (chars != 32)
+        if not hot.any():
+            return
+        rr, cc = np.nonzero(hot)
+        top, cx = int(rr.min()), float(np.median(cc))
+        rows, cols = chars.shape
+        span = max(4, int(rows * rise))
+        rs = np.random.default_rng(seed)
+        for k in range(n):
+            off, sp, amp, fq, dx = rs.random(), int(rs.integers(1, 3)), rs.uniform(0.5, 2.5), rs.uniform(1, 3), rs.uniform(-3, 3)
+            t = (phase * sp + off) % 1.0
+            y = int(round(top - t * span))
+            x = int(round(cx + dx + amp * math.sin(2 * math.pi * (fq * t + off))))
+            if 0 <= y < rows and 0 <= x < cols and chars[y, x] == 32:
+                fade = 1.0 - t
+                chars[y, x] = ord("*" if fade > 0.7 else ("+" if fade > 0.4 else "."))
+                colors[y, x] = (255, int(120 + 110 * fade), int(40 * fade))
+
+    return ov
 
 
 # =========================================================================== ŞÖVALYE (ortak; iki sahne)

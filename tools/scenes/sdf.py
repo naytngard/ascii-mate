@@ -304,7 +304,9 @@ def render(
             q = P[idx] + N[idx] * 0.004 + L * st[idx, None]
             dd = scene.dist(q)
             sh[idx] = np.minimum(sh[idx], light.shadow_k * dd / st[idx])
-            st[idx] += np.clip(dd, 0.02, 0.25)
+            # küre izleme: boşlukta adım, en yakın yüzeye olan uzaklık kadar büyür (eski 0.25 tavanı, sahneden çıkan
+            # ışınları 24+ adım boyunca boşuna yürütüyordu → gölge, toplam değerlendirmenin yarısından fazlasıydı)
+            st[idx] += np.clip(dd, 0.02, 0.8)
             idx = idx[(dd > 0.0005) & (st[idx] < 6.0)]
         sh = np.clip(sh, 0.0, 1.0)
     occ = np.ones(hid.size)

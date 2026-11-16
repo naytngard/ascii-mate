@@ -150,6 +150,71 @@ def render_cells(scene, light, cam: dict, cols: int, *, ramp: Optional[list] = N
     return chars, out_col, levels
 
 
+# gerçekçi mod: kalp/satürn gibi yumuşak gölge rampası (mürekkebe göre sıralanır). Yatay karakterler (- ~ = ,) yok:
+# küçük hücrelerde satır satır "tarama çizgisi" gibi görünüp yüzeyi çizgili gösteriyorlardı.
+SMOOTH_RAMP = ".:;+*%#$@"
+
+
+def render_cells_smooth(scene, light, cam: dict, cols: int, *, ramp: Optional[list] = None,
+                        levels: Optional[Tuple[float, ...]] = None, gamma: float = 0.95, ss: int = 2,
+                        target_mean: float = 0.62, keep_rgba: bool = False):
+    """SDF sahnesini 'gerçekçi' biçimde hücrelere çevirir: kontur ve öznitelik (göz/burun) karakteri YOK.
+    Matematiksel shader'lardaki (kalp, satürn) gibi yalnızca ışık/gölge → mürekkep yoğunluğu + hücre rengi.
+      * her hücre (2*ss)×(4*ss) alt pikselle örneklenir (kenar yumuşatma)
+      * kısmi kaplanan kenar hücreleri daha seyrek karakter alır → siluet yumuşak, çizgi film konturu yok
+      * kontrast düzeyleri ilk kareden alınır ve tüm döngüde sabit kalır (titreme yok)
+    Dönüş: chars, colors, levels [, rgba]"""
+    import sdf
+
+    ramp = ramp or hc.build_ramp(SMOOTH_RAMP)
+    for m in scene.materials:  # eski öznitelik malzemeleri (göz, bıyık...) parlamasın: doğal renkleriyle gölgelensin
+        if m.glyph:
+            m.emissive = min(m.emissive, 0.12)
+            m.rim = min(m.rim, 0.15)
+    aspect = float(cam.get("aspect", 1.0))
+    rows = max(1, int(round(cols * aspect / 2.0)))
+    sx, sy = 2 * ss, 4 * ss
+    W, H = cols * sx, rows * sy
+    rgba = sdf.render(scene, W, H, cam_pos=cam["cam"], target=cam["target"], fov_deg=cam["fov"], light=light)
+    a = rgba[..., 3]
+
+    def blk(x):
+        return x.reshape(rows, sy, cols, sx, *x.shape[2:])
+
+    cov = blk(a).mean(axis=(1, 3))
+    rgb = blk(rgba[..., :3] * a[..., None]).sum(axis=(1, 3)) / np.maximum(blk(a).sum(axis=(1, 3)), 1e-6)[..., None]
+    lum = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
+    if levels is None:
+        vals = lum[cov > 0.5]
+        lo, hi = (float(np.percentile(vals, 1)), float(np.percentile(vals, 99.5))) if vals.size else (0.0, 1.0)
+        mean_l = float(vals.mean()) if vals.size else target_mean
+        gain = float(np.clip(target_mean / max(mean_l, 1e-3), 1.0, 3.0))
+        levels = (lo, max(hi, lo + 1e-3), gain)
+    lo, hi = levels[0], levels[1]
+    gain = levels[2] if len(levels) > 2 else 1.0
+    if gain != 1.0:
+        g = rgb * gain
+        rgb = np.clip(g / (1.0 + np.maximum(g - 1.0, 0.0)), 0.0, 1.0)
+    tone = np.clip((lum - lo) / (hi - lo), 0.0, 1.0) ** gamma
+    tone = tone * np.clip(cov, 0.0, 1.0) ** 0.6  # kenar yumuşatma: yarı dolu hücre → daha hafif karakter
+    n = len(ramp)
+    ramp_chars = np.array([ord(c) for c, _ in ramp], np.uint8)
+    idx = np.clip(np.round(1 + tone * (n - 2)).astype(int), 1, n - 1)
+    chars = ramp_chars[idx]
+    chars = np.where(cov < 0.22, 32, chars).astype(np.uint8)
+    # renk: ton bilgisi asıl olarak karakter yoğunluğunda; renk ise malzemenin tonunu korur ama gölgede tamamen
+    # kararmaz (koyu masaüstünde kaybolmasın). Parlaklık tabanı ~0.38, ışıkta gerçek renk.
+    peak = rgb.max(axis=2, keepdims=True)
+    hue = rgb / np.maximum(peak, 1e-4)
+    bright = np.maximum(peak, 0.38 + 0.25 * tone[..., None])
+    colors = np.clip(hue * bright, 0.0, 1.0)
+    out_col = (colors * 255 + 0.5).astype(np.uint8)
+    out_col[chars == 32] = 0
+    if keep_rgba:
+        return chars, out_col, levels, rgba
+    return chars, out_col, levels
+
+
 def palette_frames(chars: Sequence[np.ndarray], colors: Sequence[np.ndarray]) -> Tuple[List[str], Dict[str, str], List[str]]:
     """Hücre dizilerini klasik 1.0 biçimine çevirir: satırlar + 64 renkli palet (palette_map) + renk haritası (color_frames)."""
     frames, cframes = [], []
