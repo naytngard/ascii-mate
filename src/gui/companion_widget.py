@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from src.core.i18n import asset_label, tr  # noqa: E402
 import math
 import re
 import time
@@ -200,7 +201,7 @@ class CompanionWidget(QWidget):
         self._init_first_frame()
 
         # Window setup
-        self.setWindowTitle(f"ASCII Mate — {self.asset.name}")
+        self.setWindowTitle(tr('ASCII Mate — {}').format(asset_label(self.asset)))
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
         self.setMouseTracking(True)
@@ -442,7 +443,7 @@ class CompanionWidget(QWidget):
 
     def set_behind_text(self, enabled: bool) -> None:
         if enabled and not is_supported():
-            QMessageBox.information(self, "Desteklenmiyor", "Akıllı okunabilirlik Windows 10 (2004) veya üstünü gerektirir.")
+            QMessageBox.information(self, tr('Desteklenmiyor'), tr('Akıllı okunabilirlik Windows 10 (2004) veya üstünü gerektirir.'))
             enabled = False
         self.state.behind_text_enabled = bool(enabled)
         self._sync_readability()
@@ -547,7 +548,7 @@ class CompanionWidget(QWidget):
 
     def _get_static_frame(self, idx: int) -> Tuple[List[str], Optional[List[List[Optional[RGB]]]]]:
         if not self.asset.frames:
-            return ["(Boş)"], None
+            return [tr('(Boş)')], None
         raw = self.asset.frames[idx % len(self.asset.frames)]
         lines = raw.split("\n")
         colors = self.asset.get_frame_colors(idx)
@@ -601,7 +602,7 @@ class CompanionWidget(QWidget):
             return
         char_w, line_h, _ = self._get_font_metrics()
         fm = QFontMetricsF(self._build_font())
-        lines = self._current_lines or ["(Boş)"]
+        lines = self._current_lines or [tr('(Boş)')]
         cols = max((len(l) for l in lines), default=10)
         max_px = max(cols * char_w, max((fm.horizontalAdvance(l) for l in lines), default=0.0))
         rows = len(lines)
@@ -1414,7 +1415,7 @@ class CompanionWidget(QWidget):
                         self._invalidate_art()
                         self._update_timer_interval()
                 else:
-                    QMessageBox.warning(self, "İçe Aktarma Hatası", msg)
+                    QMessageBox.warning(self, tr('İçe Aktarma Hatası'), msg)
 
     # --- State Mutators & Persistence ---
 

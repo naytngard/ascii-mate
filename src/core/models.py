@@ -94,6 +94,7 @@ class AnimationAsset:
     id: str
     name: str
     category: str
+    name_en: str = ""  # optional English display name (JSON "name_en"); falls back to name
     author: str = "ASCII Mate"
     tags: List[str] = field(default_factory=list)
     default_fps: float = 4.0
@@ -209,6 +210,7 @@ class AnimationAsset:
             schema_version=str(data.get("schema_version", "1.0")),
             id=str(data["id"]),
             name=str(data["name"]),
+            name_en=str(data.get("name_en") or ""),
             category=str(data.get("category", "Diğer")),
             author=str(data.get("author", "Topluluk")),
             tags=[str(t) for t in data.get("tags", [])],
@@ -246,6 +248,8 @@ class AnimationAsset:
             "particles": self.particles.to_dict(),
             "frames": self.frames,
         }
+        if self.name_en:
+            d["name_en"] = self.name_en
         if self.hd:
             d.update({"hd": True, "hd_file": self.hd_file, "cols": self.hd_cols, "rows": self.hd_rows,
                       "frame_count": self.hd_frame_count, "bg_mode": self.bg_mode})

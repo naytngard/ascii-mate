@@ -1,254 +1,190 @@
-# ✨ ASCII Mate (Yüzen Masaüstü ASCII Arkadaşı)
+# ✨ ASCII Mate — a floating desktop ASCII companion
 
-Ders çalışırken, kod yazarken veya kitap okurken masaüstünüzde PDF'lerin, VS Code'un ve pencerelerin **tam üzerinde** hiçbir arkaplan veya çerçeve olmadan süzülen, tamamen saydam, sürüklenebilir, büyütülebilir **141 animasyon**: 123 saf klasik ASCII / matematiksel 3B shader (Satürn, simit, kalp, yılbaşı ağacı...) + 18 **HD renkli ASCII** (11 yenilenmiş hayvan/karakter, 4 sahne, 3 örnek). Tüm karakterler ve zamanlayıcı etiketi saf ASCII'dir.
+Fully transparent, draggable, resizable ASCII animations that float **on top of** your PDFs, VS Code and windows while you study, code or read — no background, no frame. **141 animations**: 123 pure classic ASCII / mathematical 3D shaders (Saturn, donut, heart, Christmas tree...) plus 18 **HD colour ASCII** pieces (11 renewed animals/characters, 4 scenes, 3 samples). Every character, and the timer label, is plain ASCII.
 
-> **Platform:** ASCII Mate **yalnızca Windows 10/11** için tasarlandı (saydam tepsi widget'ı, named-pipe IPC, ekran kilidi/tam ekran algısı, akıllı okunabilirlik Windows API'lerine dayanır).
+> **Platform:** Windows 10/11 only (transparent tray widget, named-pipe IPC, lock-screen/fullscreen detection and smart readability use Windows APIs).
+>
+> **Language:** the interface is **English by default**; Turkish is available from the tray menu (**Language → Türkçe**). Asset ids and file names never change, so favourites and profiles survive a language switch. See [Türkçe özet](#türkçe) at the end.
 
 ---
 
-## 🚀 Kurulum ve Başlatma
+## 🚀 Install & run
 
-### 1. Tek Tıkla Başlatma (Windows)
-Klasördeki **`baslat.bat`** dosyasına çift tıklayın.
-- Gerekli paketler (`PyQt6`, `rich`) eksikse otomatik olarak kurulur.
-- Sade ve canlı renkli **ASCII Mate Terminal Hub** açılır.
+### 1. One click (Windows)
+Double-click **`baslat.bat`**. Missing packages (`PyQt6`, `rich`) are installed automatically and the **ASCII Mate Terminal Hub** opens.
 
-### 2. Komut Satırından Doğrudan Kullanım
+### 2. Command line
 ```bash
-# İnteraktif Terminal Hub'ını açar:
-python main.py
-
-# Doğrudan tek bir karakteri masaüstünde başlatır (ör. uyuyan kedi veya 3B Satürn):
-python main.py --widget sleeping_cat
+python main.py                          # interactive Terminal Hub
+python main.py --widget sleeping_cat    # place one character on the desktop
 python main.py --widget saturn_3d
-
-# Tüm 141 animasyonu (18 HD dahil) doğrular (saf klasik ASCII, hizalama, kare zıplaması, 3B shader testi):
-python tests/validate_library.py
-
-# Birim testleri (pytest; requirements-dev.txt):
-python -m pytest tests -q
-
-# Bir animasyonu terminalde önizle / statik animasyonların kontak sayfasını üret / CPU ölçümü:
-python tests/preview_art.py cat_bust_3d --w 64 --h 30 --color
-python tests/contact_sheet.py
-python tests/bench_render.py          # klasik 3B
-python tests/bench_render.py --hd     # HD senaryoları (CPU + RAM)
-python tests/bench_cpu_real.py --repeat 3   # GERÇEK süreç CPU ölçümü (gerçek host + widget'lar)
-
-# Kendi görselinizi/GIF'inizi/OBJ'nizi HD varlığa çevirin (aşağıya bakın):
-python tools/hd_convert.py foto.png --out assets/animations/community --id portre --cols 180
+python tests/validate_library.py        # validate all 141 animations (pure ASCII, alignment, frame jitter, shaders)
+python -m pytest tests -q               # unit tests (requirements-dev.txt)
+python tests/preview_art.py cat_bust_3d --w 64 --h 30 --color   # preview in the terminal
+python tests/bench_render.py [--hd]     # render CPU/RAM benchmarks
+python tests/bench_cpu_real.py --repeat 3   # REAL process CPU (real host + widgets)
+python tools/hd_convert.py photo.png --out assets/animations/community --id portrait --cols 180   # your own image → HD
 ```
 
-### 3. Python Kurmadan Çalıştırmak İçin `.exe` Oluşturma
-Klasördeki **`build_exe.bat`** dosyasına çift tıklayın (`--onedir`). İki program üretir: konsolsuz **`ASCII_Mate.exe`** (tepsi + widget'lar) ve Terminal Hub için konsollu **`ASCII_Mate_CLI.exe`**. Geliştirme bağımlılıkları (`pyinstaller`, `pytest`) `requirements-dev.txt` içindedir.
+### 3. Build a Python-free `.exe`
+Double-click **`build_exe.bat`** (`--onedir`). It produces a console-less **`ASCII_Mate.exe`** (tray + widgets) and a console **`ASCII_Mate_CLI.exe`** (Terminal Hub). Dev dependencies (`pyinstaller`, `pytest`) are in `requirements-dev.txt`.
 
 ---
 
-## 📁 Proje Klasör Yapısı
+## 📁 Project layout
 ```text
 ascii_mate/
-├── baslat.bat                  # Tek tıkla başlatıcı
-├── build_exe.bat               # Taşınabilir uygulama derleyici (--onedir)
-├── ASCII_Mate.spec             # PyInstaller yapılandırması
-├── main.py                     # Ana giriş noktası
-├── config.example.json         # Örnek ayar (gerçek config.json git'e girmez)
-├── requirements.txt / requirements-dev.txt
-├── README.md
+├── baslat.bat / build_exe.bat / ASCII_Mate.spec
+├── main.py                     # entry point
+├── config.example.json         # sample settings (the real config.json is git-ignored)
+├── THIRD_PARTY.md              # CC0 3D models used to generate some HD scenes
 ├── src/
-│   ├── core/                   # Modeller, 3B shader motoru, parçacıklar, kütüphane
-│   ├── gui/                    # Saydam widget, sağ tık menüsü, ayarlar, sistem tepsisi
-│   └── cli/                    # Terminal Hub ve canlı önizleme
-├── tools/generate_model_assets.py  # 3B model JSON'larını üretir
-├── tools/hd_convert.py         # görüntü/GIF/klasör/OBJ → HD (3.0) varlık
-├── tools/make_hd_samples.py    # 3 örnek HD varlığı üretir (kendi ürettiğimiz kaynaklar)
-├── tools/scenes/               # offline SDF sahneleri → HD hayvanlar/sahneler (build_assets.py)
-├── tools/import_local_art.py   # KİŞİSEL resim → HD (yalnızca %APPDATA%, repoya yazmaz)
-├── assets/
-│   ├── animations/             # Kategorilere ayrılmış saf ASCII .ascii.json dosyaları
-│   └── themes.json
-└── tests/                      # validate_library, pytest, bench_render, preview_art, contact_sheet
+│   ├── core/                   # models, 3D shader engine, particles, library, i18n (src/core/i18n*.py)
+│   ├── gui/                    # transparent widget, context menu, settings, tray
+│   └── cli/                    # Terminal Hub and live preview
+├── tools/                      # hd_convert, scenes/ (HD builders), blender_prep, import_local_art, ...
+├── assets/animations/          # categorised .ascii.json (+ .ascii.hd) files, themes.json
+└── tests/                      # validate_library, pytest, benchmarks, previews
 ```
 
 ---
 
-## 🎮 Masaüstü Widget Kontrolleri
+## 🎮 Desktop widget controls
 
-* **Sol Tık + Sürükle:** Karakteri ekranın istediğiniz köşesine taşıyın (konumu otomatik kaydedilir).
-* **Shift + Sol Tık (3B Orbit) / Serbest Bakış:** Canlı 3B modellerin kamera açısını (`pitch` / `yaw`) fareyle istediğiniz yöne çevirin.
-* **Köşe/Kenar Tutmaçları, Mouse Tekerleği (Scroll) / `+` `-`:** Karakter boyutunu pürüzsüz büyütüp küçültün (`6 pt` – `48 pt`). 3B modellerde **Otomatik** çözünürlük modunda widget büyüdükçe ASCII ızgara yoğunluğu (`width × height`) da otomatik artar!
-* **Üzerine Gelme (Hover):** Fare ile üzerine geldiğinizde tutma ve köşe/kenar boyutlandırma tutmaçları belirir; fare gidince tekrar tamamen görünmez olur.
-* **Sağ Tık Menüsü:**
-  * 💧 **Saydamlık:** `%15` ile `%100` arası canlı ayar + İnce Ayar Slider Paneli.
-  * 🖥️ **3B Izgara Çözünürlüğü:** Kompakt (`38×18`), Standart (`52×24`), HD (`64×30`), Ultra HD (`74×34`) veya Büyütmeye Göre Otomatik.
-  * ⏱️ **Çalışma Zamanlayıcısı (Pomodoro):** `15 / 25 / 45 / 60 dk` veya özel dakika (`3B Kum Saati` kalan süreyle senkron akar!); süre dolduğunda **5 saniyelik canlı 3B Havai Fişek kutlaması** oynatır ve isteğe bağlı **5 dakikalık mola sayacına** geçer.
-  * ⚡ **Animasyon Hızı:** `0.25x` – `3x` + manuel FPS.
-  * 🎨 **Renk Modları:** Saf Beyaz, Krem, Matrix Yeşili, Amber CRT, Cyberpunk Neon, Pastel Lavanta, Buz Mavisi, Sakura, Altın, Gökkuşağı ve Özel Hex Renk Seçici.
-  * ✨ **Efektler & Parçacıklar:** Kar yağışı, yağmur, şimşekli fırtına, buhar, kalpler, kıvılcımlar, yıldız tozu, uyku `Zzz` baloncukları, göz kırpma, **👀 Fare İmlecinin Yönüne Bak**, yatay aynalama (`Flip`), yumuşak neon parıltı (`Glow`) ve her zeminde okunabilirlik sağlayan gölge/kontur (`Shadow`).
-  * 👻 **Ders / Hayalet Modu (Click-Through):** Açıldığında widget altındaki PDF veya tarayıcıya tıklamanıza izin verir. *(Çıkmak için sağ alttaki **Sistem Tepsisi** ikonuna sağ tıklayıp kapatabilirsiniz.)*
-* **Sistem Tepsisi (Tray):** **📌 Masaüstü Düzeni (Profiller)** ile hazır/özel çoklu widget yerleşimlerini tek tıkla yükleyip kaydedin ve **🔄 Açılışta Son Açık Widget'ları Geri Yükle** seçeneğini yönetin.
-* **Terminal Hub Kısayolları:** `F` tuşuyla **⭐ Favoriler** sekmesine ekleyin, `C` tuşuyla önizleme temasını canlı değiştirip masaüstüne fırlatın.
-* **Sürükle-Bırak (Drag & Drop):** Bilgisayarınızdaki bir `.ascii.json` veya `.txt` dosyasını doğrudan açık olan widget'ın üzerine sürükleyip bırakarak anında kütüphaneye ekleyip çalıştırabilirsiniz!
-
----
-
-## 👁️ Akıllı Okunabilirlik ("Yazıların Arkasına Geç")
-
-Sağ tık → **Yazıların Arkasına Geç** (varsayılan **kapalı**). Widget, altındaki ekran yazı içeriyorsa o hücrelerde soluklaşır ve rengini arka planın zıddına kaydırır; yazı olmayan yerde normal görünür.
-
-> **Not:** Widget her zaman üstte duran bir overlay'dir; gerçekten başka pencerenin "arkasına" geçemez. Bu mod, yazı olan hücrelerde widget'ı **soluk / zıt renkli** yapar.
-
-* **Nasıl çalışır (OCR yok, dilden bağımsız):** widget'ın altındaki bölge ~1,4 Hz'de yakalanır, yüksek frekans enerjisi karakter hücresi ızgarasına indirgenir, yazıya benzeyen hücreler bulunur; geçişler EMA ile yumuşatılır (titreme yok). Ekran içeriği değişmediyse analiz atlanır.
-* **Kendi penceresini görmez:** `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` (Windows 10 2004+).
-* **Ayarlar:** Hassasiyet ve soluklaşma düzeyi (sağ tık menüsü / İnce Ayar Paneli). Tıklama-geçirgen (hayalet) modla birlikte çalışır.
-* **🔒 Gizlilik:** Ekran yakalama **yalnızca bu mod açıkken** yapılır. Yakalanan görüntü **yalnızca bellekte** işlenir, **diske yazılmaz ve ağa gönderilmez**; yalnızca hücre başına "yazı var/yok" ve ortalama parlaklık bilgisi tutulur. Mod açıkken ASCII Mate widget'ları ekran görüntüsü/kayıt uygulamalarında da görünmez (yakalamadan hariç tutulurlar); mod kapanınca eski haline döner.
-* **Performans:** ≈ 17 ms/yoklama (≈ %2,5 tek çekirdek; 4 çekirdekte ≈ %0,6). OCR/UI Automation (V2) henüz uygulanmadı.
+* **Left-click + drag:** move the character (position is saved).
+* **Shift + left-click (3D orbit) / free look:** rotate live 3D models (`pitch` / `yaw`).
+* **Edge/corner handles, mouse wheel / `+` `-`:** resize smoothly (`6 pt` – `48 pt`). In **Automatic** 3D resolution the ASCII grid density grows with the widget.
+* **Hover:** drag and resize handles appear on hover and disappear again.
+* **Right-click menu:**
+  * 💧 **Opacity** `15%`–`100%` + the Fine-Tuning slider panel.
+  * 🖥️ **3D grid resolution:** Compact (`38×18`), Standard (`52×24`), HD (`64×30`), Ultra HD (`74×34`) or automatic.
+  * ⏱️ **Study timer (Pomodoro):** `15 / 25 / 45 / 60 min` or custom (the `3D Hourglass` follows the remaining time); a **5-second 3D fireworks celebration** plays at the end, optionally followed by a **5-minute break timer**.
+  * ⚡ **Animation speed:** `0.25x` – `3x` + manual FPS.
+  * 🎨 **Colour modes:** white, cream, Matrix green, Amber CRT, Cyberpunk neon, pastel lavender, ice blue, sakura, gold, rainbow and a custom hex picker.
+  * ✨ **Effects & particles:** snow, rain, thunderstorm, steam, hearts, sparks, stardust, sleep `Zzz` bubbles, eye blink, **look toward the mouse cursor**, horizontal flip, soft neon glow and a readability shadow.
+  * 👻 **Study / Ghost mode (click-through):** lets you click the PDF or browser under the widget. *(Turn it off from the tray icon.)*
+* **System tray:** **Desktop Layout (Profiles)** saves/loads multi-widget layouts, **Restore last open widgets on startup**, HD mode, battery saver and **Language**.
+* **Terminal Hub keys:** `F` adds to **Favorites**, `C` changes the preview theme live, `I` imports a file.
+* **Drag & drop:** drop an `.ascii.json` or `.txt` file onto an open widget to add it to the library instantly.
 
 ---
 
-## 🖼️ HD Mod (Yüksek Çözünürlüklü Renkli ASCII) — opsiyonel
+## 🌐 Language / i18n
 
-Normal widget'lardan ayrı bir varlık türüdür (`schema_version: "3.0"`, `"hd": true`; menülerde **[HD]** rozeti). Yüzlerce sütunluk, **karakter başına RGB renkli** ASCII çizer; koyu/arka plan hücreleri karakter koymaz (saydam kalır, masaüstünde zemin yok). Mevcut 1.0/2.0 animasyonlara ve shader'lara dokunmaz.
+* The UI language is stored in `config.json` as `"language": "en"` (default) or `"tr"`; switch it from the tray (**Language**), no restart needed.
+* `src/core/i18n.py` is a dependency-free translation layer: UI strings in code are Turkish source text used as lookup keys, `tr()` returns the English text from `src/core/i18n_en.py` when the language is `en`. Unknown keys fall back to the source text.
+* Asset display names: add an optional **`"name_en"`** field to an asset JSON; otherwise the bundled English names (`src/core/i18n_names_en.py`) or the stored `name` are shown. Category names are translated for display only.
 
-* **Varsayılan kapalı:** ilk HD widget açılırken "daha fazla CPU/RAM kullanır" uyarısı ve onay istenir (tepsi → *HD Mod* ile de açılıp kapatılır). **Aynı anda en fazla 2 HD widget** açılabilir (3.'de uyarı).
-* **Sağ tık → HD Kalite:** Düşük (sütun/satır yarıya iner, ≤8 FPS), Orta (tam çözünürlük, ≤12 FPS), Yüksek (tam çözünürlük, ≤15 FPS) ve **HD FPS üst sınırı** (4 / 8 / 10 / 15 / otomatik). Döner HD hiçbir koşulda 15 FPS'i aşmaz.
-* **Çizim hattı:** 95 ASCII glifi bir kez maskeye çizilir (NumPy glyph atlası); kare, **yalnızca değişen hücreler** tek bir `QImage` tamponuna yazılır ve `paintEvent` tek `drawImage` yapar (`drawText` yok). Kare değişmediyse hiç çizilmez; durağan HD yalnızca 2 Hz'de uyanıp hiçbir şey yapmaz. Pil tasarrufu, ekran kilidi, tam ekran uygulama ve gizli widget'ta duraklama mevcut mekanizmayı kullanır. **Akıllı okunabilirlik** HD ile de çalışır (hücre başına soluklaşma/zıt renk maskesi).
-* **Depolama:** `<id>.ascii.json` (küçük üst veri: `id, name, category, cols, rows, default_fps, frame_count, bg_mode, hd_file`) + `<id>.ascii.hd` (kare başına zlib; ASCII kodları + düzlemsel RGB). Kareler **tembel** çözülür; bellekte en fazla 3 kare tutulur (ham kare dizisi hiç saklanmaz). Topluluk klasörüne **iki dosyayı birlikte** kopyalayın (sürükle-bırak yalnızca klasik varlıklar içindir).
-* **Gereksinimler:** `numpy` (`requirements.txt`). Paketli sürümde numpy ≈ +26,5 MB ekler (`ASCII_Mate` klasörü 142 MB, iki exe dahil).
+---
 
-### Dönüştürücü: `tools/hd_convert.py`
+## 👁️ Smart readability ("go behind text")
+
+Right-click → **Go Behind Text** (default **off**). Where the screen under the widget contains text, those cells fade and shift to a contrasting colour; elsewhere the widget looks normal.
+
+> **Note:** the widget is an always-on-top overlay and cannot truly go *behind* another window; this mode makes text-covering cells **faded / contrast-coloured**.
+
+* **How it works (no OCR, language-independent):** the area under the widget is captured at ~1.4 Hz, high-frequency energy is reduced to the character-cell grid and text-like cells are detected; transitions are smoothed with an EMA (no flicker). Analysis is skipped when the screen did not change.
+* **Excludes its own window:** `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` (Windows 10 2004+).
+* **🔒 Privacy:** screen capture happens **only while this mode is on**, is processed **in memory only**, and is **never written to disk or sent over the network**; only a per-cell "text / no text" flag and average brightness are kept. While the mode is on, ASCII Mate widgets are also hidden from screenshot/recording apps.
+* **Performance:** ≈ 17 ms per poll (≈ 2.5 % of one core; ≈ 0.6 % on 4 cores).
+
+---
+
+## 🖼️ HD mode (high-resolution colour ASCII) — optional
+
+A separate asset type (`schema_version: "3.0"`, `"hd": true`; shown with an **[HD]** badge). Hundreds of columns, **per-character RGB colour**; dark/background cells emit no character (transparent). Classic 1.0/2.0 animations and shaders are untouched.
+
+* **Off by default:** the first HD widget asks for confirmation (it uses more CPU/RAM; also toggle in tray → *HD Mode*). **At most 2 HD widgets** at once.
+* **Right-click → HD Quality:** Low (half columns/rows, ≤8 FPS), Medium (full, ≤12 FPS), High (full, ≤15 FPS) and an **HD FPS cap** (4 / 8 / 10 / 15 / auto). A spinning HD asset never exceeds 15 FPS.
+* **Rendering pipeline:** 95 ASCII glyphs are drawn once into a mask (NumPy atlas); each frame writes **only the changed cells** into one `QImage` buffer and `paintEvent` does a single `drawImage`. Unchanged frames are not drawn; still HD wakes at 2 Hz. Battery saver, lock screen, fullscreen apps and hidden widgets pause as for classic widgets.
+* **Storage:** `<id>.ascii.json` (small metadata) + `<id>.ascii.hd` (zlib per frame; ASCII codes + planar RGB). Frames decode lazily (max 3 in memory). Copy **both files** into the community folder.
+* **Requirements:** `numpy` (≈ +26.5 MB in the packaged build).
+
+### Converter: `tools/hd_convert.py`
 ```bash
-python tools/hd_convert.py foto.png   --out assets/animations/community --id portre --cols 180 --gamma 0.8 --edge-boost 0.5
-python tools/hd_convert.py anim.gif   --out assets/animations/community --id anim   --cols 160 --fps 10
-python tools/hd_convert.py kareler/   --out assets/animations/community --id seri   --frames 48
-python tools/hd_convert.py model.obj  --out assets/animations/community --id donen  --frames 48 --rotate-y 360 --tilt 20 --obj-color "#d8b45a"
+python tools/hd_convert.py photo.png --out assets/animations/community --id portrait --cols 180 --gamma 0.8 --edge-boost 0.5
+python tools/hd_convert.py anim.gif  --out assets/animations/community --id anim --cols 160 --fps 10
+python tools/hd_convert.py frames/   --out assets/animations/community --id series --frames 48
+python tools/hd_convert.py model.obj --out assets/animations/community --id spin --frames 48 --rotate-y 360 --tilt 20 --obj-color "#d8b45a"
 ```
-`--cols`, `--ramp` (`auto` ya da kendi karakterleriniz), `--gamma`, `--edge-boost` (Sobel kenarları `| - / \`), `--bg-threshold`, `--color-lift`, `--fps`, `--frames`. Karakterler yalnızca ASCII'dir; yoğunluk rampası, widget'ın kullandığı yazı tipiyle **ölçülen gerçek mürekkep yoğunluğuna** göre sıralanır. OBJ'ler (köşe renkleri desteklenir) ortografik z-buffer ile döndürülüp aynı hattan geçirilir. Kendi CC0 şövalye/at mesh'inizi veya görüntünüzü doğrudan bu araca verebilirsiniz.
+Options: `--cols`, `--ramp` (`auto` or your own characters), `--gamma`, `--edge-boost` (Sobel edges `| - / \`), `--bg-threshold`, `--color-lift`, `--fps`, `--frames`. Characters are ASCII only; the density ramp is ordered by the **measured real ink density** of the widget font. OBJ files (vertex colours supported) are rotated with an orthographic z-buffer and passed through the same pipeline.
 
-### HD hayvanlar, karakterler ve sahneler (`tools/scenes/`)
-Eski elipsoit modelleri (kedi, baykuş, köpek, tilki, kurt+kamp ateşi, oturan şövalye, ejderha yavrusu, nöbetçi robot,
-astronot, büyücü+kitap, bonsai) **aynı id'lerle** HD sürüme yenilendi; favoriler ve profiller (`cat_bust_3d` vb.) bozulmaz.
-Yeni sahneler: `hd_knight_resting` (gün batımında dinlenen şövalye), `hd_rider_horse` (sepya atlı süvari),
-`hd_meadow_warrior` (rüzgârlı çayırda savaşçı + çiçekler), `hd_skeleton_giant` (dev iskelet + savaşçı, kırmızı sis).
+### HD animals, characters and scenes (`tools/scenes/`)
+The old ellipsoid models were renewed as HD **under the same ids** (favourites/profiles keep working). New scenes: `hd_knight_resting`, `hd_rider_horse`, `hd_meadow_warrior`, `hd_skeleton_giant`.
 
-* **Nasıl üretilir:** `python tools/scenes/build_assets.py` — NumPy ile **derleme anında** SDF ray-marching (yönlü anahtar
-  ışık, yumuşak gölge, gök dolgusu, AO, speküler) → hücre ızgarası.
-* **Gerçekçi stil (Kasım 2026):** çizgi film görünümü veren kontur karakterleri (`| - _ / \`) ve sabit yüz karakterleri
-  (`o @ v`) kaldırıldı. Biçim artık Satürn/kalp shader'larındaki gibi yalnızca ışık-gölge geçişiyle anlatılır: her hücre
-  2×4 alt pikselle örneklenir (kenar yumuşatma), yarı dolu kenar hücreleri daha seyrek karakter alır, rampa `.:;+*%#$@`
-  (yatay karakterler yok → "tarama çizgisi" görünümü yok). Kedi, köpek, tilki, baykuş ve kurt gerçek oranlarla yeniden
-  modellendi (küçük kafa/badem göz, tüy pürüzü, dikey tekir çizgileri, benekli tüy, ateş ışığı + yükselen kıvılcımlar).
-* **Akıcılık:** hareket (nefes, göz kırpma, kulak/kuyruk, baş çevirme, alev, rüzgârlı çimen, sis) **48 karelik** döngü,
-  8 FPS (önce 24 kare / 8 FPS): kare başına hareket yarıya indi, döngü 6 sn. **Çalışma anında render yoktur**, çizici
-  yalnızca değişen hücreleri yazar. Renkler kanal başına 5 bite indirildiği için nefes gibi çok küçük gölge değişimleri
-  hücreyi yeniden çizdirmez: kare başına değişen hücre sayısı eski sürümün yaklaşık yarısıdır (kedi 1374 → 758,
-  tilki 1102 → 566, baykuş 806 → 424; istisna: ateş ışığı titreyen kurt sahnesi 253 → 715). Gerçek süreç CPU'su
-  (aşağıdaki tablo) yeni varlıklarla yeniden **ölçülmedi**.
-* **Derleme süresi/yükü:** varsayılan hafif moddur (3 süreç, düşük öncelik, süreç başına tek iş parçacığı): 15 sahne
-  16 mantıksal çekirdekli dizüstünde ≈ 22 dk. Hızlı mod: `--workers=8 --normal-priority`.
-* **Klasik yedek:** her HD varlıkta 62 sütunluk tek kareli klasik ASCII yedeği (64 renkli palet) bulunur. HD kapalıysa veya
-  2 HD sınırı doluysa aynı karakter bu yedekle açılır (onay penceresi yalnızca bir kez sorulur; sonra tepsiden açılır).
-* **Parlaklık:** sahne dönüştürücüsü otomatik pozlama uygular (dolu hücrelerin ortalama renk parlaklığı hedefi ≈ 0,62);
-  `python tools/hd_brightness.py` her HD varlığın ortalamasını yazar, test 125/255'in altını reddeder. Küçük hücrelerde
-  glifler kalın yazı tipiyle atlasa çizilir (daha çok mürekkep → koyu zeminde daha parlak).
-* **Kaynak/lisans:** tüm geometri bu depodaki parametrik SDF betiklerindedir; harici görsel, mesh veya başkasının çizimi
-  kullanılmamıştır. Referans resimler yalnızca tema/ton fikri olarak kullanıldı (kopya veya iz sürme yok).
+* **Realistic style:** no contour characters (`| - _ / \`) or fixed face characters; form comes from light/shadow only, like the Saturn/heart shaders. Each cell is sampled with 2×4 sub-pixels, half-covered edge cells get lighter characters, ramp `.:;+*%#$@` (no horizontal characters → no scan-line look). Grass overlays use the same ramp: dense at the root, sparse at the tip, with wind sway.
+* **Smooth motion:** 48-frame loops at 8 FPS; **no render at runtime**, only changed cells are drawn. Colours are quantised to 5 bits per channel so tiny shading changes do not redraw cells.
+* **Two ways to build scenes:**
+  * **Parametric SDF models** (`tools/scenes/animals.py`): NumPy ray-marching at *build time* (key light, soft shadow, sky fill, AO, specular) → cell grid. All geometry is in this repository.
+  * **CC0 3D models** (`tools/scenes/mesh_scenes.py`): `sentinel_robot_3d`, `astronaut_eva_3d`, `knight_sitting_3d`, `hd_knight_resting` are rendered from public-domain models prepared with `tools/blender_prep.py` (Blender in background mode: pick objects, decimate, bake material colours into vertex colours; the astronaut's T-pose arms are lowered around the shoulder). They sway ±25° in a seamless loop. **The model files are not in the repository** (`tools/models_cache/` is git-ignored); only the generated frames are. Authors, URLs and licences: [`THIRD_PARTY.md`](THIRD_PARTY.md) and each JSON's `model_credit` field (checked by tests).
+* **Build:** `python tools/scenes/build_assets.py [ids]` — lightweight by default (3 processes, low priority); fast mode `--workers=8 --normal-priority`.
+* **Classic fallback:** every HD asset ships a 62-column single-frame classic fallback (64-colour palette), used when HD is off or the 2-HD limit is reached.
+* **Brightness:** the scene converter applies auto-exposure (mean colour brightness target ≈ 0.62); `python tools/hd_brightness.py` prints each asset's mean and the test rejects anything below 125/255.
+* **Source/licence:** parametric scenes are original; the four mesh scenes derive from CC0 models listed in `THIRD_PARTY.md`. Reference images were used only as mood/tone inspiration (no copying or tracing).
 
-### Kişisel resimler: `tools/import_local_art.py` (repoya girmez)
+### Personal images: `tools/import_local_art.py` (never enters the repo)
 ```bash
-# Önerilen (tablolar/fotoğraflar): koyu tonlu hücre zemini + yerel kontrast + özne vurgusu
-python tools/import_local_art.py "C:\Resimler\tablo.jpg" --preset high --bg tinted --look vivid --min-brightness 0.45 --subject-mask auto --bg-dim 0.55 --edge-pct 94 --anim wind
-python tools/import_local_art.py foto.jpg --cols 180 --crop 0.1,0,0.8,1 --bg auto --bg-side top --anim pulse,embers
+python tools/import_local_art.py "C:\Pictures\painting.jpg" --preset high --bg tinted --look vivid --min-brightness 0.45 --subject-mask auto --bg-dim 0.55 --edge-pct 94 --anim wind
 ```
-Çıktı **varsayılan olarak `%APPDATA%\ASCII_Mate\community`** klasörüne yazılır (uygulama bu klasörü de tarar); depo içine
-yazmak `--allow-repo` olmadan reddedilir. Başkalarının eserlerinden (tablo, illüstrasyon, film karesi) üretilen
-dönüşümler **yalnızca kişisel kullanım** içindir; repoya, release'e veya paylaşılan klasörlere koymayın.
-Seçenekler: `--preset low|medium|high` (110/160/210 sütun), `--gamma`, `--edges`, `--bg auto|threshold|solid`
-(`auto`: kenarlardan taşan renk maskesiyle gökyüzü/kağıt ayrılır; `solid`: koyu panel; `tinted`: her hücrenin zemini
-kendi renginin koyu tonu → resim gibi okunur, en parlak sonuç), `--look vivid|soft|photo` (gamma + yerel kontrast +
-doygunluk önayarı), `--clahe` (NumPy ile sınırlı uyarlamalı histogram eşitleme), `--min-brightness` (koyu zırh/at gibi
-koyu renkleri görünür parlaklığa çeker; ton karakter yoğunluğunda kalır), `--subject-mask auto|center|edge` + `--bg-dim`
-(özne net, zemin soluk; zemin silinmez), `--edge-pct` (kenar karakterini yalnızca en güçlü kenarlarda kullan), `--crop`, `--invert`,
-`--black-point/--white-point`, `--saturation`, `--anim wind|embers|pulse` (yalnızca alt bölge/partiküller değişir).
+Output goes to **`%APPDATA%\ASCII_Mate\community`** by default (the app scans it too); writing into the repository is refused without `--allow-repo`. Conversions of other people's work are **for personal use only** — do not commit or share them. Options: `--preset low|medium|high`, `--gamma`, `--edges`, `--bg auto|threshold|solid|tinted`, `--look vivid|soft|photo`, `--clahe`, `--min-brightness`, `--subject-mask auto|center|edge` + `--bg-dim`, `--edge-pct`, `--crop`, `--invert`, `--black-point/--white-point`, `--saturation`, `--anim wind|embers|pulse`.
 
-### Örnek varlıklar ve lisans
-İki örnek **tamamen bu depodaki `tools/make_hd_samples.py` betiğiyle üretilir**; harici görsel, mesh veya başkasının çizimi kullanılmamıştır:
-| Varlık | Kaynak | Özellik |
-|---|---|---|
-| `hd_torus_knot_spin` | parametrik torus düğümü (betik OBJ üretir) → `hd_convert` | 150×75, 48 kare, 8 FPS döner |
-| `hd_poppy_field` | procedural çimen + gelincik (rüzgâr) | 190×44, 24 kare, 8 FPS |
+### Sample assets and licence
+Two samples are generated entirely by `tools/make_hd_samples.py` (no external images or meshes): `hd_torus_knot_spin` (150×75, 48 frames) and `hd_poppy_field` (190×44, 24 frames). Generated data is under the project licence (CC0-equivalent free use).
 
-Üretilen tüm veriler proje lisansı altındadır (CC0'a eşdeğer serbest kullanım). Örnekler motorun kalite çıtasını göstermek içindir; fotoğraf kalitesinde şövalye/at gibi içerik için kendi CC0 kaynağınızı dönüştürün.
+### HD performance (`python tests/bench_render.py --hd`)
+Windows 11, offscreen Qt, single-core estimate; "CPU" = tick + `paintEvent` time ÷ timer interval. On a 4-core machine total CPU ≈ value ÷ 4.
 
-### HD performans ölçümleri
-`python tests/bench_render.py --hd` ile ölçüldü (Windows 11, offscreen Qt, tek çekirdek tahmini; gerçek DWM/ekran birleştirme maliyeti dahil değil). "CPU" = tick + `paintEvent` süresi ÷ zamanlayıcı aralığı. 4 çekirdekli makinede toplam CPU ≈ değer ÷ 4.
-
-| Senaryo | Kalite | Aralık | ms/tick | CPU (tek çekirdek) | +RAM (widget) |
+| Scenario | Quality | Interval | ms/tick | CPU (1 core) | +RAM |
 |---|---|---|---|---|---|
-| Hafif hareketli çimen/gelincik (10 FPS) | Orta/Yüksek | 100 ms | ≈1,9 | **%1,9** | ≈3–5 MB |
-| Aynı | Düşük (≤8 FPS) | 125 ms | ≈2,5 | %2,0 | ≈4 MB |
-| Dönen torus düğümü | Düşük (≤8 FPS) | 125 ms | ≈5,9 | %4,7 | ≈6 MB |
-| Aynı | Orta (≤12 FPS) | 83 ms | ≈5,7 | %6,9 | ≈4–5 MB |
-| Aynı | Yüksek (15 FPS) | 67 ms | ≈5,6 | %8,4 | ≈5 MB |
+| Lightly moving grass/poppies (10 FPS) | Medium/High | 100 ms | ≈1.9 | **1.9 %** | ≈3–5 MB |
+| Same | Low (≤8 FPS) | 125 ms | ≈2.5 | 2.0 % | ≈4 MB |
+| Spinning torus knot | Low (≤8 FPS) | 125 ms | ≈5.9 | 4.7 % | ≈6 MB |
+| Same | Medium (≤12 FPS) | 83 ms | ≈5.7 | 6.9 % | ≈4–5 MB |
+| Same | High (15 FPS) | 67 ms | ≈5.6 | 8.4 % | ≈5 MB |
 
-Karşılaştırma için klasik canlı 3B shader (kedi, 12 FPS): ≈ %8 tek çekirdek. İki HD widget açıkken tepsi sürecinin toplam çalışma kümesi ≈ 147 MB (Qt dahil) ölçüldü. Hız optimizasyonu öncesi (alan başına `drawText`/çoklu çarpma yolu) dönen torus ≈ %14,3'tü; kanal başına bitişik çarpma ve bitişik blok yazımı ile ≈ %8,4'e indi.
+For comparison a classic live 3D shader (cat, 12 FPS) is ≈ 8 % of one core. With two HD widgets open the tray process working set is ≈ 147 MB (including Qt).
 
-### Gerçek CPU ölçümü (önce / sonra)
-`python tests/bench_cpu_real.py` gerçek bir tepsi host'u açar, widget'ları IPC ile başlatır ve **host sürecinin işletim
-sistemi CPU süresini** ölçer (tahmin değil). Tek çekirdek eşdeğeri = CPU süresi / duvar süresi; "toplam" = ÷ 16 mantıksal
-çekirdek (ölçüm makinesi). Gerçek ekran (1,5 DPI), dizüstü. "Önce" = commit 6a64039 (20 sn tek pencere), "sonra" =
-3 × 12 sn pencerenin medyanı; ham değerler `bench_results/*.json`. Dizüstünde tek pencere ±%3 oynayabilir.
+### Real CPU measurement (before / after)
+`python tests/bench_cpu_real.py` starts a real tray host, launches widgets over IPC and measures the **host process's OS CPU time** (not an estimate). Single-core equivalent = CPU time / wall time. "Before" = commit 6a64039 (20 s, one window), "after" = median of 3 × 12 s windows; raw values in `bench_results/*.json`. A laptop's single window can vary by ±3 %. The HD scene rows were measured with earlier versions of the scenes and have **not been re-measured** with the latest assets.
 
-| Senaryo | Önce (tek çekirdek) | Sonra (medyan) | Sonra pencereleri | Hedef |
-|---|---|---|---|---|
-| Satürn | %13,98 | **%3,26** | 2,6 / 3,3 / 8,1 | ≤ %4 ✓ |
-| Simit (donut) | %13,52 | **%2,73** | 0,0* / 2,7 / 3,9 | ≤ %4 ✓ |
-| Kalp | %12,73 | **%4,04** | 2,3 / 4,0 / 4,6 | ≤ %4 ≈ |
-| Yılbaşı ağacı | %9,69 | **%3,52** | 3,3 / 3,5 / 4,9 | ≤ %4 ✓ |
-| HD gelincik (hareketli) | %1,87 | **%2,99** | 0,0* / 3,0 / 3,6 | ≤ %3 ≈ |
-| HD kedi (önceki kontur sürümü, 8 FPS) | (elipsoit: ölçülmedi) | **%3,52** | 3,0 / 3,5 / 3,9 | ≤ %3 ✗ |
-| HD çayırda savaşçı | — | **%2,08** | 1,6 / 2,1 / 4,4 | ≤ %3 ✓ |
-| HD dönen torus (10,6 FPS) | %10,55 | **%7,2** (ayrı ölçüm) | 2,5 / 7,2 / 9,0 | ≤ %3 ✗ |
-| Satürn + simit + kalp + HD gelincik | %48,28 | **%12,11** | 11,2 / 12,1 / 12,6 | ≤ %10 ✗ |
+| Scenario | Before (1 core) | After (median) | Target |
+|---|---|---|---|
+| Saturn | 13.98 % | **3.26 %** | ≤ 4 % ✓ |
+| Donut | 13.52 % | **2.73 %** | ≤ 4 % ✓ |
+| Heart | 12.73 % | **4.04 %** | ≤ 4 % ≈ |
+| Christmas tree | 9.69 % | **3.52 %** | ≤ 4 % ✓ |
+| HD poppy (moving) | 1.87 % | **2.99 %** | ≤ 3 % ≈ |
+| HD cat (earlier contour version, 8 FPS) | — | **3.52 %** | ≤ 3 % ✗ |
+| HD warrior in meadow | — | **2.08 %** | ≤ 3 % ✓ |
+| HD spinning torus (10.6 FPS) | 10.55 % | **7.2 %** | ≤ 3 % ✗ |
+| Saturn + donut + heart + HD poppy | 48.28 % | **12.11 %** | ≤ 10 % ✗ |
 
-\* 0,0 pencereler: o anda pencere yöneticisi widget'ı tamamen örtülü saydı ya da ölçüm penceresi kare sınırına denk geldi;
-bu yüzden medyan raporlanır. Torus'un uzun ölçümünde bir pencerede tick'lerin durduğu görüldü (kök neden doğrulanamadı),
-o değer tabloya alınmadı. Toplam (tüm çekirdeklere göre) en kötü durumda ≈ %0,8.
-
-**Neler yapıldı:** klasik widget'larda `drawText` yerine glif atlası + yalnızca değişen hücreler (gölge maskeye pişirilmiş),
-(karakter, renk) blok önbelleği, yalnızca kirli bölgenin yeniden boyanması (katmanlı pencere güncellemesi alanla orantılı),
-Satürn/simit/kalp ışın + z-buffer adımının NumPy'a taşınması (**çıktı birebir aynı**: eşdeğerlik ve altın testler),
-3B shader varsayılan 8 FPS, tamamen örtülen (üstte olmayan) widget'ta tick yok, tek kareli çizimde 1 Hz.
-**Ulaşılamayanlar ve nedeni:** dönen torus her karede neredeyse tüm hücreleri değiştiriyor ve 1500+ farklı (karakter, renk)
-çifti kullanıyor (önbellek işe yaramıyor); maliyet ≈ birleştirme + 750×750 px katmanlı pencere güncellemesi × FPS.
-HD kedi ~%3,5 (hedefin biraz üstünde). Dört ağır widget birlikte ≈ %12 (hedef %10). En kolay kazanım: İnce Ayar → Manuel FPS
-veya HD Kalite → Düşük.
+What was done: glyph atlas + changed-cells-only drawing instead of `drawText`, a (character, colour) block cache, repainting only the dirty region, NumPy ray/z-buffer steps for Saturn/donut/heart (**byte-identical output**: equivalence and golden tests), 8 FPS shader default, no ticks for fully covered widgets, 1 Hz for single-frame drawings. What was not reached: the spinning torus changes almost every cell each frame with 1500+ distinct (character, colour) pairs, so the cache cannot help; four heavy widgets together ≈ 12 % (target 10 %). Easiest saving: Fine-Tuning → Manual FPS, or HD Quality → Low.
 
 ---
 
-## 🔋 Performans İpuçları
+## 🔋 Performance tips
 
-* Matematiksel 3B shader'lar varsayılan olarak **8 FPS**, HD hayvanlar 8 FPS (48 karelik akıcı döngü) çalışır; **İnce Ayar Paneli → Manuel FPS** ile değiştirin. Daha düşük FPS ve daha küçük ızgara (`Kompakt`) CPU'yu doğrudan azaltır.
-* Gölge tek geçiştir; **Glow varsayılan kapalıdır** (ek çizim geçişi).
-* Ekran **kilitliyken** çizim durur; tam ekran bir uygulama widget'ın bulunduğu ekranı kaplıyorsa ve widget "Her Zaman Üstte" değilse durur. **Pildeyken** FPS otomatik ~%40 düşer (tepsi menüsünden kapatılabilir).
-* Statik animasyonlar yalnızca kare/parçacık/zamanlayıcı gerektiğinde 1–8 FPS'te güncellenir.
-* Hata günlükleri: `%APPDATA%\ASCII_Mate\logs\ascii_mate.log` (dönen dosya).
-
----
-
-## 🧩 Kütüphane Kuralları
-
-* Aynı `id` iki dosyada varsa **yerleşik animasyon kazanır**; topluluk dosyası yerleşik olanı ezmez (uyarı log'a yazılır). Aynı türden iki dosya çakışırsa alfabetik yolda ilk görülen kalır.
-* Aynı animasyonun birden fazla kopyası açılabilir; her kopya **kendi konum/ayarını** saklar (`id`, `id#2`, ...). Zamanlayıcı süresi kayıtlıdır ama **kendiliğinden başlamaz**.
-* IPC (Terminal Hub ↔ tepsi host'u) kullanıcıya özel bir `authkey` ile korunur (`%APPDATA%\ASCII_Mate\ipc.key`).
+* Math 3D shaders run at **8 FPS** by default and HD animals at 8 FPS (48-frame loop); change it in **Fine-Tuning → Manual FPS**. Lower FPS and a smaller grid (`Compact`) directly reduce CPU.
+* The shadow is a single pass; **Glow is off by default** (extra paint pass).
+* Drawing pauses while the **screen is locked**, and when a fullscreen app covers the widget's screen (unless the widget is "Always on Top"). On **battery** FPS drops ~40 % automatically (can be disabled in the tray).
+* Static animations only update at 1–8 FPS when a frame/particle/timer needs it.
+* Error logs: `%APPDATA%\ASCII_Mate\logs\ascii_mate.log` (rotating).
 
 ---
 
-## 🌐 Topluluk Animasyonu Oluşturma (`.ascii.json` ve `.txt` Rehberi)
+## 🧩 Library rules
 
-Kendi ASCII animasyonunuzu paylaşmak veya eklemek için iki yöntem vardır:
+* If the same `id` exists in two files, the **built-in animation wins**; a community file never overrides it (a warning is logged).
+* Several copies of one animation can be open; each keeps its **own position/settings** (`id`, `id#2`, ...). Timer duration is saved but **never starts by itself**.
+* IPC (Terminal Hub ↔ tray host) is protected by a per-user `authkey` (`%APPDATA%\ASCII_Mate\ipc.key`).
 
-### Yöntem 1: Düz Metin (`.txt`)
-Her kareyi **`===FRAME===`** satırıyla ayırarak bir `.txt` dosyası kaydedin:
+---
+
+## 🌍 Creating community animations (`.ascii.json` and `.txt`)
+
+### Option 1: plain text (`.txt`)
+Separate frames with a **`===FRAME===`** line:
 
 ```text
   /\_/\
@@ -259,26 +195,26 @@ Her kareyi **`===FRAME===`** satırıyla ayırarak bir `.txt` dosyası kaydedin:
  ( -.- )
   > ^ <
 ```
+Drop the file onto an open widget, or press **`I`** in the Terminal Hub — it is converted to `.ascii.json` and aligned automatically.
 
-Bu `.txt` dosyasını açık olan widget'ın üstüne sürükleyin veya Terminal Hub'da **`I`** tuşuna basarak içe aktarın — otomatik olarak `.ascii.json` formatına dönüştürülür ve hizalanır!
-
-### Yöntem 2: Standart `.ascii.json` Formatı
-Dosyalarınızı `assets/animations/community/` klasörüne `<isim>.ascii.json` olarak atabilirsiniz:
+### Option 2: `.ascii.json`
+Put files into `assets/animations/community/` as `<name>.ascii.json`:
 
 ```json
 {
   "schema_version": "1.0",
   "id": "cozy_snow_cloud",
   "name": "Kar Yağdıran Bulut",
+  "name_en": "Snow-Dropping Cloud",
   "category": "Topluluk / Özel Eklenenler",
-  "author": "Adınız",
-  "tags": ["bulut", "kar", "kış"],
+  "author": "Your name",
+  "tags": ["cloud", "snow", "winter"],
   "default_fps": 4,
   "recommended_color": "pastel_blue",
   "particles": {
     "enabled_by_default": true,
     "type": "snow",
-    "toggle_label": "Buluttan Kar Dökülsün",
+    "toggle_label": "Let it snow from the cloud",
     "spawn_area": "bottom",
     "density": "medium",
     "chars": ["*", ".", "+", "o"]
@@ -289,7 +225,16 @@ Dosyalarınızı `assets/animations/community/` klasörüne `<isim>.ascii.json` 
   ]
 }
 ```
+`name_en` is optional (English UI shows it when present). The optional `"blink_patterns": [["o.o", "-.-"]]` defines custom blink substitutions (equal-length text pairs). Supported `particles.type` values: `"none"`, `"snow"`, `"rain"`, `"lightning"`, `"steam"`, `"hearts"`, `"sparks"`, `"stars"`.
 
-İsteğe bağlı `"blink_patterns": [["o.o", "-.-"]]` alanı, göz kırpma efektinde bu animasyona özel değişimleri tanımlar (aynı uzunlukta metin çiftleri). Verilmezse yalnızca göz benzeri bağlamlarda eşleşen güvenli varsayılanlar kullanılır.
+---
 
-Desteklenen `particles.type` değerleri: `"none"`, `"snow"`, `"rain"`, `"lightning"`, `"steam"`, `"hearts"`, `"sparks"`, `"stars"`.
+## Türkçe
+
+**ASCII Mate**, ders çalışırken/kod yazarken masaüstünüzde PDF ve pencerelerin üzerinde süzülen, tamamen saydam, sürüklenebilir **141 ASCII animasyonu** (123 klasik/3B shader + 18 HD renkli) sunan bir **Windows 10/11** uygulamasıdır. Arayüz varsayılan olarak **İngilizcedir**; tepsi menüsünden **Language → Türkçe** ile Türkçeye geçebilirsiniz (ayar `config.json` içinde `"language": "tr"`). Varlık id'leri değişmediği için favoriler ve profiller dil değişiminde bozulmaz.
+
+**Kurulum:** `baslat.bat` dosyasına çift tıklayın (eksik `PyQt6` ve `rich` otomatik kurulur ve Terminal Hub açılır).
+**Komut satırı:** `python main.py` (Terminal Hub) · `python main.py --widget saturn_3d` (doğrudan masaüstüne) · `python tests/validate_library.py` · `python -m pytest tests -q`.
+**.exe üretmek için:** `build_exe.bat` (`ASCII_Mate.exe` + `ASCII_Mate_CLI.exe`).
+
+**Temel kullanım:** sol tık + sürükle = taşı · tekerlek / köşe tutmaçları = boyut · sağ tık = saydamlık, Pomodoro zamanlayıcı, renk, efektler, **Hayalet Modu** (tıklama geçirgen) · Shift + sol tık = 3B kamera · sistem tepsisi = masaüstü düzenleri (profiller), HD mod, pil tasarrufu, dil. Terminal Hub'da `F` favori, `C` tema, `I` içe aktar. HD mod varsayılan kapalıdır ve daha fazla CPU/RAM kullanır; aynı anda en fazla 2 HD widget açılabilir. Robot, astronot ve şövalye HD sahneleri CC0 lisanslı 3B modellerden üretilmiştir (künye: `THIRD_PARTY.md`); modeller depoda yoktur.

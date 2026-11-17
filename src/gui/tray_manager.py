@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from src.core import i18n
+from src.core.i18n import asset_label, category_label, tr  # noqa: E402
 import os
 import subprocess
 import sys
@@ -103,7 +105,7 @@ class QuickPickerDialog(QDialog):
         super().__init__()
         self.library = library
         self.on_pick = on_pick
-        self.setWindowTitle("ASCII Mate — Karakter Seç")
+        self.setWindowTitle(tr('ASCII Mate — Karakter Seç'))
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         self.resize(460, 520)
         self.setStyleSheet(DARK_GLASS_DIALOG_QSS)
@@ -114,12 +116,12 @@ class QuickPickerDialog(QDialog):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
 
-        title = QLabel("✨ Masaüstüne Karakter Ekle")
+        title = QLabel(tr('✨ Masaüstüne Karakter Ekle'))
         title.setObjectName("HeaderTitle")
         layout.addWidget(title)
 
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("Ara (ör. kedi, kahve, bulut, uzay)...")
+        self.search_edit.setPlaceholderText(tr('Ara (ör. kedi, kahve, bulut, uzay)...'))
         self.search_edit.textChanged.connect(self._populate)
         layout.addWidget(self.search_edit)
 
@@ -133,11 +135,11 @@ class QuickPickerDialog(QDialog):
         layout.addWidget(self.list_widget)
 
         btn_row = QHBoxLayout()
-        add_btn = QPushButton("🚀 Masaüstüne Çıkar")
+        add_btn = QPushButton(tr('🚀 Masaüstüne Çıkar'))
         add_btn.clicked.connect(self._launch_selected)
-        refresh_btn = QPushButton("🔄 Yenile")
+        refresh_btn = QPushButton(tr('🔄 Yenile'))
         refresh_btn.clicked.connect(self._refresh_library)
-        close_btn = QPushButton("Kapat")
+        close_btn = QPushButton(tr('Kapat'))
         close_btn.clicked.connect(self.close)
         btn_row.addWidget(add_btn)
         btn_row.addWidget(refresh_btn)
@@ -150,7 +152,7 @@ class QuickPickerDialog(QDialog):
         self.list_widget.clear()
         for asset in self.library.search(query):
             badge = " [HD]" if asset.is_hd else (" [3B]" if asset.is_procedural else (" [HD-renk]" if asset.has_multicolor else ""))
-            item = QListWidgetItem(f"{asset.name}{badge}  [{asset.category}]")
+            item = QListWidgetItem(f"{asset_label(asset)}{badge}  [{category_label(asset.category)}]")
             item.setData(Qt.ItemDataRole.UserRole, asset.id)
             self.list_widget.addItem(item)
 
@@ -196,20 +198,20 @@ class IPCBridge(QObject):
                 except Exception:
                     if not self._running:
                         break
-                    log.warning("IPC accept hatası (döngü sürüyor)", exc_info=True)
+                    log.warning(tr('IPC accept hatası (döngü sürüyor)'), exc_info=True)
                     time.sleep(0.1)
                     continue
                 try:
                     msg = conn.recv()
                     if not isinstance(msg, dict):
-                        raise ValueError("IPC mesajı dict olmalı")
+                        raise ValueError(tr('IPC mesajı dict olmalı'))
                     done_ev = threading.Event()
                     holder: Dict[str, object] = {"reply": {"ok": True}, "event": done_ev}
                     self.command_received.emit(msg, holder)
                     done_ev.wait(timeout=3.0)
                     conn.send(holder["reply"])
                 except Exception as e:
-                    log.warning("IPC komutu işlenemedi", exc_info=True)
+                    log.warning(tr('IPC komutu işlenemedi'), exc_info=True)
                     try:
                         conn.send({"ok": False, "error": str(e)})
                     except Exception:
@@ -254,7 +256,7 @@ class WidgetHostManager(QObject):
         self.app.setWindowIcon(self.icon)
 
         self.tray = QSystemTrayIcon(self.icon, self)
-        self.tray.setToolTip("ASCII Mate")
+        self.tray.setToolTip(tr('ASCII Mate'))
         self.tray.activated.connect(self._on_tray_activated)
         self._rebuild_tray_menu()
         self.tray.show()
@@ -336,7 +338,7 @@ class WidgetHostManager(QObject):
 
     def _notify(self, text: str) -> None:
         try:
-            self.tray.showMessage("ASCII Mate", text, QSystemTrayIcon.MessageIcon.Information, 4000)
+            self.tray.showMessage(tr('ASCII Mate'), text, QSystemTrayIcon.MessageIcon.Information, 4000)
         except Exception:
             log.debug("tepsi bildirimi gösterilemedi", exc_info=True)
 
@@ -346,13 +348,13 @@ class WidgetHostManager(QObject):
         has_fallback: varlığın klasik yedeği var → engelleyici uyarı yerine bildirim, onay yalnızca bir kez sorulur."""
         if sum(1 for w in self.widgets.values() if w._hd is not None) >= self.MAX_HD_WIDGETS:
             if has_fallback:
-                self._notify(f"En fazla {self.MAX_HD_WIDGETS} HD widget açık olabilir; klasik (düşük çözünürlüklü) sürüm açıldı.")
+                self._notify(tr('En fazla {} HD widget açık olabilir; klasik (düşük çözünürlüklü) sürüm açıldı.').format(self.MAX_HD_WIDGETS))
                 return False
             if not interactive:
                 return False
             QMessageBox.warning(
-                None, "HD sınırı",
-                f"Aynı anda en fazla {self.MAX_HD_WIDGETS} HD widget açılabilir (CPU/pil tasarrufu için).\nÖnce birini kapatın.",
+                None, tr('HD sınırı'),
+                tr('Aynı anda en fazla {} HD widget açılabilir (CPU/pil tasarrufu için).\nÖnce birini kapatın.').format(self.MAX_HD_WIDGETS),
             )
             return False
         if not self.config_mgr.get_global("hd_enabled", False):
@@ -360,11 +362,8 @@ class WidgetHostManager(QObject):
                 return False
             self.config_mgr.set_global("hd_prompted", True)
             ans = QMessageBox.question(
-                None, "HD mod",
-                "HD mod yüksek çözünürlüklü (yüzlerce sütun) renkli ASCII çizer ve normal widget'lardan DAHA FAZLA CPU/RAM kullanır.\n"
-                "Ders çalışırken pil/performans için dikkatli kullanın (sağ tık → HD kalite).\n"
-                "Hayır derseniz karakterlerin klasik (düşük çözünürlüklü) sürümü açılır; tepsi menüsünden sonra açabilirsiniz.\n\n"
-                "HD modu etkinleştirilsin mi?",
+                None, tr('HD mod'),
+                tr("HD mod yüksek çözünürlüklü (yüzlerce sütun) renkli ASCII çizer ve normal widget'lardan DAHA FAZLA CPU/RAM kullanır.\nDers çalışırken pil/performans için dikkatli kullanın (sağ tık → HD kalite).\nHayır derseniz karakterlerin klasik (düşük çözünürlüklü) sürümü açılır; tepsi menüsünden sonra açabilirsiniz.\n\nHD modu etkinleştirilsin mi?"),
             )
             if ans != QMessageBox.StandardButton.Yes:
                 return False
@@ -426,12 +425,12 @@ class WidgetHostManager(QObject):
 
     def save_current_profile_prompt(self) -> None:
         if not self.widgets:
-            QMessageBox.information(None, "Bilgi", "Kaydedilecek açık widget yok.")
+            QMessageBox.information(None, tr('Bilgi'), tr('Kaydedilecek açık widget yok.'))
             return
         name, ok = QInputDialog.getText(
             None,
-            "Masaüstü Düzeni Kaydet",
-            "Bu düzen için bir profil adı girin:",
+            tr('Masaüstü Düzeni Kaydet'),
+            tr('Bu düzen için bir profil adı girin:'),
         )
         if not ok or not name.strip():
             return
@@ -454,11 +453,16 @@ class WidgetHostManager(QObject):
     def set_hd_enabled(self, enabled: bool) -> None:
         if enabled:
             ans = QMessageBox.question(
-                None, "HD mod",
-                "HD mod yüksek çözünürlüklü renkli ASCII çizer ve normal widget'lardan DAHA FAZLA CPU/RAM kullanır.\nEtkinleştirilsin mi?",
+                None, tr('HD mod'),
+                tr("HD mod yüksek çözünürlüklü renkli ASCII çizer ve normal widget'lardan DAHA FAZLA CPU/RAM kullanır.\nEtkinleştirilsin mi?"),
             )
             enabled = ans == QMessageBox.StandardButton.Yes
         self.config_mgr.set_global("hd_enabled", bool(enabled))
+        self._rebuild_tray_menu()
+
+    def set_language(self, code: str) -> None:
+        i18n.set_language(code)
+        self.config_mgr.set_global("language", i18n.get_language())
         self._rebuild_tray_menu()
 
     def set_battery_saver(self, enabled: bool) -> None:
@@ -534,101 +538,109 @@ class WidgetHostManager(QObject):
         menu = QMenu()
         menu.setStyleSheet(DARK_GLASS_MENU_QSS)
 
-        title = QAction("✨ ASCII Mate", menu)
+        title = QAction(tr('✨ ASCII Mate'), menu)
         title.setEnabled(False)
         menu.addAction(title)
         menu.addSeparator()
 
-        add_act = QAction("➕  Yeni Karakter Aç (Hızlı Seç)...", menu)
+        add_act = QAction(tr('➕  Yeni Karakter Aç (Hızlı Seç)...'), menu)
         add_act.triggered.connect(self.open_quick_picker)
         menu.addAction(add_act)
 
-        hub_act = QAction("🖥️  Terminal Merkezini (CLI Hub) Aç", menu)
+        hub_act = QAction(tr('🖥️  Terminal Merkezini (CLI Hub) Aç'), menu)
         hub_act.triggered.connect(self.open_terminal_hub)
         menu.addAction(hub_act)
 
         menu.addSeparator()
 
         if self.widgets:
-            active_hdr = QAction(f"🟢 Çalışan Widget'lar ({len(self.widgets)})", menu)
+            active_hdr = QAction(tr("🟢 Çalışan Widget'lar ({})").format(len(self.widgets)), menu)
             active_hdr.setEnabled(False)
             menu.addAction(active_hdr)
 
             has_ghost = False
             for iid, w in list(self.widgets.items()):
-                sub = menu.addMenu(f"  • {w.asset.name}")
+                sub = menu.addMenu(f"  • {asset_label(w.asset)}")
                 sub.setStyleSheet(DARK_GLASS_MENU_QSS)
 
-                bring_act = QAction("Öne Getir", sub)
+                bring_act = QAction(tr('Öne Getir'), sub)
                 bring_act.triggered.connect(lambda _c, wid=w: (wid.raise_(), wid.activateWindow()))
                 sub.addAction(bring_act)
 
                 if w.state.click_through:
                     has_ghost = True
-                ghost_act = QAction("👻 Hayalet Modu (Tıklama Geçirgen)", sub, checkable=True)
+                ghost_act = QAction(tr('👻 Hayalet Modu (Tıklama Geçirgen)'), sub, checkable=True)
                 ghost_act.setChecked(w.state.click_through)
                 ghost_act.triggered.connect(lambda chk, wid=w: wid.set_click_through(chk))
                 sub.addAction(ghost_act)
 
-                close_one = QAction("❌ Kapat", sub)
+                close_one = QAction(tr('❌ Kapat'), sub)
                 close_one.triggered.connect(lambda _c, wid=w: wid.close_widget())
                 sub.addAction(close_one)
 
             if has_ghost:
-                unghost = QAction("🔓 Tümünde Hayalet Modunu Kapat", menu)
+                unghost = QAction(tr('🔓 Tümünde Hayalet Modunu Kapat'), menu)
                 unghost.triggered.connect(self.disable_all_click_through)
                 menu.addAction(unghost)
 
-            close_all_act = QAction("🧹 Tüm Widget'ları Kapat", menu)
+            close_all_act = QAction(tr("🧹 Tüm Widget'ları Kapat"), menu)
             close_all_act.triggered.connect(self.close_all_widgets)
             menu.addAction(close_all_act)
         else:
-            empty_act = QAction("⚪ Aktif widget yok", menu)
+            empty_act = QAction(tr('⚪ Aktif widget yok'), menu)
             empty_act.setEnabled(False)
             menu.addAction(empty_act)
 
         menu.addSeparator()
 
         # Scene Profiles Submenu
-        prof_menu = menu.addMenu("📌  Masaüstü Düzeni (Profiller)")
+        prof_menu = menu.addMenu(tr('📌  Masaüstü Düzeni (Profiller)'))
         prof_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
         profiles = self.config_mgr.get_profiles()
         for pname, pitems in profiles.items():
-            pact = QAction(f"▶  {pname} ({len(pitems)} widget)", prof_menu)
+            pact = QAction(tr('▶  {} ({} widget)').format(tr(pname), len(pitems)), prof_menu)
             pact.triggered.connect(lambda _c, pn=pname: self.load_profile(pn))
             prof_menu.addAction(pact)
         prof_menu.addSeparator()
-        save_prof_act = QAction("💾  Mevcut Masaüstü Düzenini Kaydet...", prof_menu)
+        save_prof_act = QAction(tr('💾  Mevcut Masaüstü Düzenini Kaydet...'), prof_menu)
         save_prof_act.triggered.connect(self.save_current_profile_prompt)
         prof_menu.addAction(save_prof_act)
 
         if profiles:
-            del_menu = prof_menu.addMenu("🗑️  Profil Sil")
+            del_menu = prof_menu.addMenu(tr('🗑️  Profil Sil'))
             del_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
             for pname in profiles:
-                dact = QAction(pname, del_menu)
+                dact = QAction(tr(pname), del_menu)
                 dact.triggered.connect(
                     lambda _c, pn=pname: (self.config_mgr.delete_profile(pn), self._rebuild_tray_menu())
                 )
                 del_menu.addAction(dact)
 
-        restore_act = QAction("🔄  Açılışta Son Açık Widget'ları Geri Yükle", menu, checkable=True)
+        restore_act = QAction(tr("🔄  Açılışta Son Açık Widget'ları Geri Yükle"), menu, checkable=True)
         restore_act.setChecked(bool(self.config_mgr.get_global("restore_last_session", False)))
         restore_act.triggered.connect(lambda checked: self.set_restore_last_session(checked))
         menu.addAction(restore_act)
 
-        hd_act = QAction("🖼️  HD Mod (daha fazla CPU/RAM kullanır)", menu, checkable=True)
+        hd_act = QAction(tr('🖼️  HD Mod (daha fazla CPU/RAM kullanır)'), menu, checkable=True)
         hd_act.setChecked(bool(self.config_mgr.get_global("hd_enabled", False)))
         hd_act.triggered.connect(self.set_hd_enabled)
         menu.addAction(hd_act)
 
-        batt_act = QAction("🔋  Pildeyken FPS'i Otomatik Düşür", menu, checkable=True)
+        batt_act = QAction(tr("🔋  Pildeyken FPS'i Otomatik Düşür"), menu, checkable=True)
         batt_act.setChecked(bool(self.config_mgr.get_global("battery_saver", True)))
         batt_act.triggered.connect(self.set_battery_saver)
         menu.addAction(batt_act)
 
+        lang_menu = menu.addMenu("🌐  " + tr("Dil / Language"))
+        lang_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+        for code, label in i18n.LANGUAGES.items():
+            lact = QAction(label, lang_menu, checkable=True)
+            lact.setChecked(i18n.get_language() == code)
+            lact.triggered.connect(lambda _c, cd=code: self.set_language(cd))
+            lang_menu.addAction(lact)
+
         menu.addSeparator()
-        quit_act = QAction("🚪 Uygulamadan Tamamen Çık", menu)
+        quit_act = QAction(tr('🚪 Uygulamadan Tamamen Çık'), menu)
         quit_act.triggered.connect(self.shutdown)
         menu.addAction(quit_act)
 
@@ -650,10 +662,9 @@ class WidgetHostManager(QObject):
             else:
                 a_chk = self.library.get(asset_id)
                 if a_chk is not None and a_chk.is_hd:
-                    reply = {"ok": False, "error": "HD widget açılamadı: en fazla 2 HD widget açılabilir ve HD mod tepsi menüsünden "
-                                                   "('HD Mod (daha fazla CPU/RAM)') bir kez etkinleştirilmelidir."}
+                    reply = {"ok": False, "error": tr("HD widget açılamadı: en fazla 2 HD widget açılabilir ve HD mod tepsi menüsünden ('HD Mod (daha fazla CPU/RAM)') bir kez etkinleştirilmelidir.")}
                 else:
-                    reply = {"ok": False, "error": f"Karakter bulunamadı: {asset_id}"}
+                    reply = {"ok": False, "error": tr('Karakter bulunamadı: {}').format(asset_id)}
         elif cmd == "list":
             reply["widgets"] = [
                 {

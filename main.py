@@ -120,6 +120,9 @@ def run_host(initial_widget_id: str | None = None, initial_theme: str | None = N
     library = AnimationLibrary(anim_dir, extra_community_dir=comm_dir, user_art_dir=user_art_dir())
     theme_lib = ThemeLibrary(themes_path)
     config_mgr = ConfigManager(config_path)
+    from src.core import i18n
+
+    i18n.set_language(config_mgr.get_global("language", i18n.DEFAULT_LANGUAGE))
 
     app = QApplication(sys.argv)
     manager = WidgetHostManager(
@@ -134,7 +137,7 @@ def run_host(initial_widget_id: str | None = None, initial_theme: str | None = N
     if initial_widget_id:
         w = manager.spawn_widget(initial_widget_id, color_theme=initial_theme)
         if not w:
-            print(f"[HATA] '{initial_widget_id}' ID'li animasyon bulunamadı.")
+            print(f"[ERROR] No animation found with ID '{initial_widget_id}'.")
     elif config_mgr.get_global("restore_last_session", False):
         manager.restore_last_session_widgets()
     try:
@@ -168,10 +171,10 @@ def run_cli(prewarm: bool = True) -> int:
 def main() -> int:
     setup_logging()
     parser = argparse.ArgumentParser(description="ASCII Mate")
-    parser.add_argument("--host", action="store_true", help="Arka plan PyQt6 widget ve tepsi sunucusunu başlatır.")
-    parser.add_argument("--widget", type=str, default=None, help="Doğrudan belirtilen ID'li widget'ı masaüstünde açar.")
-    parser.add_argument("--theme", type=str, default=None, help="--widget ile açılırken uygulanacak renk teması.")
-    parser.add_argument("--no-prewarm", action="store_true", help="Terminal Hub açılırken GUI host ön-ısıtmasını devre dışı bırakır.")
+    parser.add_argument("--host", action="store_true", help="Start the background PyQt6 widget and tray host.")
+    parser.add_argument("--widget", type=str, default=None, help="Open the widget with the given asset ID directly on the desktop.")
+    parser.add_argument("--theme", type=str, default=None, help="Color theme applied when opening with --widget.")
+    parser.add_argument("--no-prewarm", action="store_true", help="Disable GUI host pre-warming when the Terminal Hub starts.")
     args = parser.parse_args()
 
     # Paketli GUI exe (konsolsuz) argümansız açılınca tepsi host'unu başlatır; Terminal Hub ASCII_Mate_CLI.exe'dedir.

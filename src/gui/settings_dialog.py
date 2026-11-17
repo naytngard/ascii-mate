@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from src.core.i18n import asset_label, tr  # noqa: E402
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt
@@ -97,7 +98,7 @@ class SettingsDialog(QDialog):
     def __init__(self, widget: "CompanionWidget") -> None:
         super().__init__(widget)
         self.widget = widget
-        self.setWindowTitle(f"Ayarlar — {widget.asset.name}")
+        self.setWindowTitle(tr('Ayarlar — {}').format(asset_label(widget.asset)))
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         self.setMinimumWidth(370)
         self.setStyleSheet(DARK_GLASS_DIALOG_QSS)
@@ -108,7 +109,7 @@ class SettingsDialog(QDialog):
         root.setContentsMargins(18, 16, 18, 16)
         root.setSpacing(12)
 
-        title = QLabel(f"✨ {self.widget.asset.name} — İnce Ayarlar")
+        title = QLabel(tr('✨ {} — İnce Ayarlar').format(asset_label(self.widget.asset)))
         title.setObjectName("HeaderTitle")
         root.addWidget(title)
 
@@ -125,74 +126,74 @@ class SettingsDialog(QDialog):
         self.opacity_slider.valueChanged.connect(self._on_opacity_changed)
         opacity_row.addWidget(self.opacity_slider)
         opacity_row.addWidget(self.opacity_lbl)
-        form.addRow("💧 Saydamlık:", opacity_row)
+        form.addRow(tr('💧 Saydamlık:'), opacity_row)
 
         # Font Size Slider (6 - 48)
         size_row = QHBoxLayout()
         self.size_slider = QSlider(Qt.Orientation.Horizontal)
         self.size_slider.setRange(6, 48)
         self.size_slider.setValue(self.widget.state.font_size)
-        self.size_lbl = QLabel(f"{self.size_slider.value()} pt")
+        self.size_lbl = QLabel(tr('{} pt').format(self.size_slider.value()))
         self.size_lbl.setMinimumWidth(38)
         self.size_slider.valueChanged.connect(self._on_size_changed)
         size_row.addWidget(self.size_slider)
         size_row.addWidget(self.size_lbl)
-        form.addRow("🔍 Boyut:", size_row)
+        form.addRow(tr('🔍 Boyut:'), size_row)
 
         # Line Spacing Slider (0.75x - 1.15x -> 75..115)
         ls_row = QHBoxLayout()
         self.ls_slider = QSlider(Qt.Orientation.Horizontal)
         self.ls_slider.setRange(75, 115)
         self.ls_slider.setValue(int(round(self.widget.state.line_spacing * 100)))
-        self.ls_lbl = QLabel(f"{self.widget.state.line_spacing:.2f}x")
+        self.ls_lbl = QLabel(tr('{:.2f}x').format(self.widget.state.line_spacing))
         self.ls_lbl.setMinimumWidth(42)
         self.ls_slider.valueChanged.connect(self._on_ls_changed)
         ls_row.addWidget(self.ls_slider)
         ls_row.addWidget(self.ls_lbl)
-        form.addRow("📐 Satır Sıkılığı:", ls_row)
+        form.addRow(tr('📐 Satır Sıkılığı:'), ls_row)
 
         # Speed Multiplier Slider (0.25x - 3.00x -> 25..300)
         speed_row = QHBoxLayout()
         self.speed_slider = QSlider(Qt.Orientation.Horizontal)
         self.speed_slider.setRange(25, 300)
         self.speed_slider.setValue(int(round(self.widget.state.speed_multiplier * 100)))
-        self.speed_lbl = QLabel(f"{self.widget.state.speed_multiplier:.2f}x")
+        self.speed_lbl = QLabel(tr('{:.2f}x').format(self.widget.state.speed_multiplier))
         self.speed_lbl.setMinimumWidth(42)
         self.speed_slider.valueChanged.connect(self._on_speed_changed)
         speed_row.addWidget(self.speed_slider)
         speed_row.addWidget(self.speed_lbl)
-        form.addRow("⚡ Hız Çarpanı:", speed_row)
+        form.addRow(tr('⚡ Hız Çarpanı:'), speed_row)
 
         # Custom FPS
         self.fps_spin = QDoubleSpinBox()
         self.fps_spin.setRange(0.0, 30.0)
         self.fps_spin.setSingleStep(1.0)
-        self.fps_spin.setSpecialValueText(f"Varsayılan ({self.widget.asset.default_fps:g})")
+        self.fps_spin.setSpecialValueText(tr('Varsayılan ({:g})').format(self.widget.asset.default_fps))
         self.fps_spin.setValue(self.widget.state.custom_fps or 0.0)
         self.fps_spin.valueChanged.connect(self._on_fps_changed)
-        form.addRow("🎞️ Manuel FPS (0=Oto):", self.fps_spin)
+        form.addRow(tr('🎞️ Manuel FPS (0=Oto):'), self.fps_spin)
 
         # Study Timer Duration
         timer_row = QHBoxLayout()
         self.timer_spin = QSpinBox()
         self.timer_spin.setRange(0, 360)
-        self.timer_spin.setSpecialValueText("Süresiz")
+        self.timer_spin.setSpecialValueText(tr('Süresiz'))
         self.timer_spin.setSuffix(" dk")
         self.timer_spin.setValue(self.widget.state.duration_minutes)
-        apply_timer_btn = QPushButton("Başlat / Güncelle")
+        apply_timer_btn = QPushButton(tr('Başlat / Güncelle'))
         apply_timer_btn.clicked.connect(self._on_apply_timer)
         timer_row.addWidget(self.timer_spin)
         timer_row.addWidget(apply_timer_btn)
-        form.addRow("⏱️ Ekranda Kalma:", timer_row)
+        form.addRow(tr('⏱️ Ekranda Kalma:'), timer_row)
 
         # Color Theme Selector + Hex
         color_row = QHBoxLayout()
         self.theme_combo = QComboBox()
-        self.theme_combo.addItem("Önerilen (Otomatik)", "auto")
+        self.theme_combo.addItem(tr('Önerilen (Otomatik)'), "auto")
         for key, info in self.widget.theme_lib.themes.items():
             if key == "auto_hd":
                 continue
-            self.theme_combo.addItem(str(info.get("name", key)), key)
+            self.theme_combo.addItem(tr(str(info.get("name", key))), key)
         cur_theme = "auto" if self.widget.state.color_theme == "auto_hd" else self.widget.state.color_theme
         idx = self.theme_combo.findData(cur_theme)
         if idx >= 0:
@@ -212,21 +213,21 @@ class SettingsDialog(QDialog):
         color_row.addWidget(self.theme_combo)
         color_row.addWidget(self.hex_edit)
         color_row.addWidget(pick_btn)
-        form.addRow("🎨 Renk Modu:", color_row)
+        form.addRow(tr('🎨 Renk Modu:'), color_row)
 
         # Particle Selector
         particle_row = QHBoxLayout()
         self.particle_combo = QComboBox()
         particle_choices = [
-            ("Varsayılan", None),
-            ("Kapalı", "none"),
-            ("❄️ Kar Yağışı", "snow"),
-            ("🌧️ Yağmur", "rain"),
-            ("⚡ Şimşekli Fırtına", "lightning"),
+            (tr('Varsayılan'), None),
+            (tr('Kapalı'), "none"),
+            (tr('❄️ Kar Yağışı'), "snow"),
+            (tr('🌧️ Yağmur'), "rain"),
+            (tr('⚡ Şimşekli Fırtına'), "lightning"),
             ("♨️ Buhar", "steam"),
             ("♥ Kalpler", "hearts"),
-            ("✨ Kıvılcım", "sparks"),
-            ("✦ Yıldız Tozu", "stars"),
+            (tr('✨ Kıvılcım'), "sparks"),
+            (tr('✦ Yıldız Tozu'), "stars"),
         ]
         for label, val in particle_choices:
             self.particle_combo.addItem(label, val)
@@ -236,61 +237,61 @@ class SettingsDialog(QDialog):
         self.particle_combo.currentIndexChanged.connect(self._on_particle_changed)
 
         self.density_combo = QComboBox()
-        self.density_combo.addItem("Az", "low")
-        self.density_combo.addItem("Orta", "medium")
-        self.density_combo.addItem("Çok", "high")
+        self.density_combo.addItem(tr("Az"), "low")
+        self.density_combo.addItem(tr('Orta'), "medium")
+        self.density_combo.addItem(tr('Çok'), "high")
         d_idx = self.density_combo.findData(self.widget.state.particle_density)
         if d_idx >= 0:
             self.density_combo.setCurrentIndex(d_idx)
         self.density_combo.currentIndexChanged.connect(self._on_density_changed)
         particle_row.addWidget(self.particle_combo)
         particle_row.addWidget(self.density_combo)
-        form.addRow("✨ Parçacık Efekti:", particle_row)
+        form.addRow(tr('✨ Parçacık Efekti:'), particle_row)
 
         root.addLayout(form)
 
         # Toggles
-        self.glow_chk = QCheckBox("Yumuşak Neon Parıltı (Glow)")
+        self.glow_chk = QCheckBox(tr('Yumuşak Neon Parıltı (Glow)'))
         self.glow_chk.setChecked(self.widget.state.glow_enabled)
         self.glow_chk.toggled.connect(lambda v: self.widget.set_glow(v))
         root.addWidget(self.glow_chk)
 
-        self.shadow_chk = QCheckBox("Okunabilirlik Gölgesi (Her Zeminde Net)")
+        self.shadow_chk = QCheckBox(tr('Okunabilirlik Gölgesi (Her Zeminde Net)'))
         self.shadow_chk.setChecked(self.widget.state.shadow_enabled)
         self.shadow_chk.toggled.connect(lambda v: self.widget.set_shadow(v))
         root.addWidget(self.shadow_chk)
 
-        self.flip_chk = QCheckBox("Yatay Aynala (Sola / Sağa Çevir)")
+        self.flip_chk = QCheckBox(tr('Yatay Aynala (Sola / Sağa Çevir)'))
         self.flip_chk.setChecked(self.widget.state.flip_horizontal)
         self.flip_chk.toggled.connect(lambda v: self.widget.set_flip(v))
         root.addWidget(self.flip_chk)
 
-        self.top_chk = QCheckBox("Her Zaman Üstte (Always on Top)")
+        self.top_chk = QCheckBox(tr('Her Zaman Üstte (Always on Top)'))
         self.top_chk.setChecked(self.widget.state.always_on_top)
         self.top_chk.toggled.connect(lambda v: self.widget.set_always_on_top(v))
         root.addWidget(self.top_chk)
 
-        self.zzz_chk = QCheckBox("Uyku Zzz Baloncukları Göster")
+        self.zzz_chk = QCheckBox(tr('Uyku Zzz Baloncukları Göster'))
         self.zzz_chk.setChecked(self.widget.state.sleep_zzz_enabled)
         self.zzz_chk.toggled.connect(lambda v: self.widget.set_sleep_zzz(v))
         root.addWidget(self.zzz_chk)
 
-        self.blink_chk = QCheckBox("Göz Kırpma Efekti")
+        self.blink_chk = QCheckBox(tr('Göz Kırpma Efekti'))
         self.blink_chk.setChecked(self.widget.state.eye_blink_enabled)
         self.blink_chk.toggled.connect(lambda v: self.widget.set_eye_blink(v))
         root.addWidget(self.blink_chk)
 
-        self.track_chk = QCheckBox("Fare İmlecinin Yönüne Bak (İzleme)")
+        self.track_chk = QCheckBox(tr('Fare İmlecinin Yönüne Bak (İzleme)'))
         self.track_chk.setChecked(self.widget.state.track_cursor)
         self.track_chk.toggled.connect(lambda v: self.widget.set_track_cursor(v))
         root.addWidget(self.track_chk)
 
-        self.brk_chk = QCheckBox("Pomodoro Bitince 5 dk Mola Sayacı Başlat")
+        self.brk_chk = QCheckBox(tr('Pomodoro Bitince 5 dk Mola Sayacı Başlat'))
         self.brk_chk.setChecked(self.widget.state.pomodoro_break_enabled)
         self.brk_chk.toggled.connect(lambda v: self.widget.set_pomodoro_break_enabled(v))
         root.addWidget(self.brk_chk)
 
-        self.behind_chk = QCheckBox("Yazıların Arkasına Geç (Akıllı Okunabilirlik — ekranı 2 Hz yakalar, kaydetmez)")
+        self.behind_chk = QCheckBox(tr('Yazıların Arkasına Geç (Akıllı Okunabilirlik — ekranı 2 Hz yakalar, kaydetmez)'))
         self.behind_chk.setChecked(self.widget.state.behind_text_enabled)
         self.behind_chk.toggled.connect(lambda v: self.widget.set_behind_text(v))
         root.addWidget(self.behind_chk)
@@ -300,20 +301,20 @@ class SettingsDialog(QDialog):
         self.rd_sens.setRange(0, 100)
         self.rd_sens.setValue(int(round(self.widget.state.behind_text_sensitivity * 100)))
         self.rd_sens.valueChanged.connect(lambda v: self.widget.set_behind_text_sensitivity(v / 100.0))
-        rd_form.addRow("   Hassasiyet:", self.rd_sens)
+        rd_form.addRow(tr('   Hassasiyet:'), self.rd_sens)
         self.rd_fade = QSlider(Qt.Orientation.Horizontal)
         self.rd_fade.setRange(8, 60)
         self.rd_fade.setValue(int(round(self.widget.state.behind_text_fade * 100)))
         self.rd_fade.valueChanged.connect(lambda v: self.widget.set_behind_text_fade(v / 100.0))
-        rd_form.addRow("   Soluklaşma düzeyi:", self.rd_fade)
+        rd_form.addRow(tr('   Soluklaşma düzeyi:'), self.rd_fade)
         root.addLayout(rd_form)
 
         if self.widget.asset.is_procedural:
             res_row = QHBoxLayout()
-            res_lbl = QLabel("🖥️ 3B Izgara:")
+            res_lbl = QLabel(tr('🖥️ 3B Izgara:'))
             self.res_combo = QComboBox()
             for rk, rname in (
-                ("auto", "Otomatik (Büyütmeye Göre)"),
+                ("auto", tr('Otomatik (Büyütmeye Göre)')),
                 ("compact", "Kompakt (38×18)"),
                 ("standard", "Standart (52×24)"),
                 ("hd", "HD (64×30)"),
@@ -330,12 +331,12 @@ class SettingsDialog(QDialog):
             res_row.addWidget(self.res_combo)
             root.addLayout(res_row)
 
-            self.orbit_chk = QCheckBox("3B Serbest Bakış Modu (Sol Tıkla Döndür)")
+            self.orbit_chk = QCheckBox(tr('3B Serbest Bakış Modu (Sol Tıkla Döndür)'))
             self.orbit_chk.setChecked(self.widget.state.free_orbit_3d)
             self.orbit_chk.toggled.connect(lambda v: self.widget.set_free_orbit(v))
             root.addWidget(self.orbit_chk)
 
-        close_btn = QPushButton("Tamam")
+        close_btn = QPushButton(tr('Tamam'))
         close_btn.clicked.connect(self.accept)
         root.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
 
@@ -344,17 +345,17 @@ class SettingsDialog(QDialog):
         self.widget.set_opacity(val / 100.0)
 
     def _on_size_changed(self, val: int) -> None:
-        self.size_lbl.setText(f"{val} pt")
+        self.size_lbl.setText(tr('{} pt').format(val))
         self.widget.set_font_size(val)
 
     def _on_ls_changed(self, val: int) -> None:
         ls = val / 100.0
-        self.ls_lbl.setText(f"{ls:.2f}x")
+        self.ls_lbl.setText(tr('{:.2f}x').format(ls))
         self.widget.set_line_spacing(ls)
 
     def _on_speed_changed(self, val: int) -> None:
         mult = val / 100.0
-        self.speed_lbl.setText(f"{mult:.2f}x")
+        self.speed_lbl.setText(tr('{:.2f}x').format(mult))
         self.widget.set_speed_multiplier(mult)
 
     def _on_fps_changed(self, val: float) -> None:
@@ -375,7 +376,7 @@ class SettingsDialog(QDialog):
             self.widget.set_color_theme(text)
 
     def _on_pick_color(self) -> None:
-        c = QColorDialog.getColor(QColor("#FFFFFF"), self, "ASCII Rengi Seç")
+        c = QColorDialog.getColor(QColor("#FFFFFF"), self, tr('ASCII Rengi Seç'))
         if c.isValid():
             hex_code = c.name().upper()
             self.hex_edit.setText(hex_code)

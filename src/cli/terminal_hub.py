@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from src.core.i18n import asset_label, tr  # noqa: E402
 import os
 import subprocess
 import sys
@@ -116,6 +117,7 @@ DEFAULT_STATUS = "Bir karakter seçip Enter ile masaüstüne bırakın."
 def build_banner_text(width: int) -> Tuple[Text, int]:
     """Builds pure classic ASCII stickman + ASCII Mate banner sized cleanly to terminal width."""
     rows = BANNER_WIDE_SEGMENTS if width >= 90 else BANNER_COMPACT_SEGMENTS
+    rows = [[(tr(s), st) for s, st in segs] for segs in rows]  # subtitle text follows the UI language
     row_strs = ["".join(s for s, _ in segs) for segs in rows]
     max_w = max((len(s) for s in row_strs), default=0)
     txt = Text(no_wrap=True)
@@ -188,7 +190,7 @@ class _CLIFocusServer:
                 except Exception:
                     if not self._running:
                         break
-                    log.warning("CLI IPC accept hatası (döngü sürüyor)", exc_info=True)
+                    log.warning(tr('CLI IPC accept hatası (döngü sürüyor)'), exc_info=True)
                     time.sleep(0.1)
                     continue
                 try:
@@ -235,7 +237,7 @@ def build_footer_panel(term_w: int, active_cnt: int, status_msg: str) -> Tuple[P
     cur_line = Text()
     cur_len = 0
     sep = "  •  "
-    for key_lbl, desc_lbl in NAV_SHORTCUTS:
+    for key_lbl, desc_lbl in [(k, tr(d)) for k, d in NAV_SHORTCUTS]:
         item_len = len(key_lbl) + 1 + len(desc_lbl)
         needed = item_len if cur_len == 0 else len(sep) + item_len
         if cur_len > 0 and cur_len + needed > inner_w:
@@ -349,13 +351,13 @@ def ensure_gui_host_running(base_dir: Path) -> bool:
 
 def spawn_asset_via_host(base_dir: Path, asset_id: str, color_theme: Optional[str] = None) -> tuple[bool, str]:
     if not ensure_gui_host_running(base_dir):
-        return False, "GUI Host başlatılamadı!"
+        return False, tr('GUI Host başlatılamadı!')
     payload: Dict[str, object] = {"cmd": "spawn", "asset_id": asset_id}
     if color_theme and color_theme != "auto":
         payload["color_theme"] = color_theme
     res = send_ipc(payload)
     if res and res.get("ok"):
-        return True, f"Masaüstüne bırakıldı: {res.get('name', asset_id)}"
+        return True, tr('Masaüstüne bırakıldı: {}').format(res.get('name', asset_id))
     return False, (res or {}).get("error", "Bilinmeyen hata")
 
 
@@ -407,6 +409,9 @@ class TerminalHub:
         self.library = library
         self.theme_lib = theme_lib
         self.config_mgr = ConfigManager(self.base_dir / "config.json")
+        from src.core import i18n
+
+        i18n.set_language(self.config_mgr.get_global("language", i18n.DEFAULT_LANGUAGE))
         self.prewarm = prewarm
         self.console = Console()
 
@@ -414,7 +419,7 @@ class TerminalHub:
         self.cat_idx: int = 0
         self.item_idx: int = 0
         self.search_query: str = ""
-        self.status_msg: str = DEFAULT_STATUS
+        self.status_msg: str = tr(DEFAULT_STATUS)
         self._preview_frame: int = 0
         self._last_anim_time: float = time.monotonic()
         self._active_widgets_cache: List[dict] = []
@@ -547,7 +552,7 @@ class TerminalHub:
             try:
                 rd = HDReader(selected.hd_path())  # type: ignore[arg-type]
             except Exception:
-                return ["(HD dosyası okunamadı)"], None
+                return [tr('(HD dosyası okunamadı)')], None
             self._hd_reader, self._hd_reader_id = rd, key
         return rd.preview(self._preview_frame % max(1, rd.frame_count), w, h)
 
@@ -588,14 +593,14 @@ class TerminalHub:
         if self._cached_cats_key != cats_key or self._cached_cats_node is None:
             if self.search_query:
                 cat_txt = Text.from_markup(
-                    f"Arama: [bold yellow]{escape(self.search_query)}[/bold yellow]  [dim](Temizlemek için Esc)[/dim]"
+                    tr('Arama: [bold yellow]{}[/bold yellow]  [dim](Temizlemek için Esc)[/dim]').format(escape(self.search_query))
                 )
             else:
                 cat_txt = Text()
                 for idx, cat in enumerate(self.categories):
                     if idx > 0:
                         cat_txt.append("   ")
-                    short_name = CATEGORY_SHORT.get(cat, cat)
+                    short_name = tr(CATEGORY_SHORT.get(cat, cat))
                     label = f"{idx + 1}.{short_name}"
                     if idx == self.cat_idx:
                         cat_txt.append(f" {label} ", style="bold black on cyan")
@@ -625,7 +630,8 @@ class TerminalHub:
                 tag = "[HD]" if a.is_hd else ("[3B]" if a.is_procedural else "")
                 num_str = f"[{idx + 1:02d}]"
                 avail_name = max(10, left_inner_w - len(num_str) - len(tag) - 8)
-                disp_name = a.name if len(a.name) <= avail_name else (a.name[: avail_name - 2] + "..")
+                dn = asset_label(a)
+                disp_name = dn if len(dn) <= avail_name else (dn[: avail_name - 2] + "..")
 
                 row_txt = Text()
                 if is_sel:
@@ -645,7 +651,7 @@ class TerminalHub:
                 list_lines.append(row_txt)
 
             if not items:
-                empty_msg = "  Henüz favori eklenmedi (F tuşuyla ekle)." if self.categories[self.cat_idx] == FAV_CATEGORY else "  Eşleşen karakter bulunamadı."
+                empty_msg = tr('  Henüz favori eklenmedi (F tuşuyla ekle).') if self.categories[self.cat_idx] == FAV_CATEGORY else tr('  Eşleşen karakter bulunamadı.')
                 list_lines.append(Text(empty_msg, style="dim"))
 
             scroll_hint = ""
@@ -659,7 +665,7 @@ class TerminalHub:
                     parts.append(f"↓ {dn_n}")
                 scroll_hint = f"[dim]{'  |  '.join(parts)}[/dim]"
 
-            list_title = f"{self.categories[self.cat_idx]} ({len(items)})" if not self.search_query else f"Arama Sonuçları ({len(items)})"
+            list_title = f"{tr(self.categories[self.cat_idx])} ({len(items)})" if not self.search_query else tr('Arama Sonuçları ({})').format(len(items))
             self._cached_list_panel = Panel(
                 Group(*list_lines),
                 title=f"[bold cyan]{escape(list_title)}[/bold cyan]",
@@ -676,7 +682,7 @@ class TerminalHub:
             sel_theme_key = self._current_theme_key()
             resolved_key = selected.recommended_color if sel_theme_key == "auto" else sel_theme_key
             theme_info = self.theme_lib.get(resolved_key)
-            theme_name = "Önerilen HD" if sel_theme_key == "auto" else str(theme_info.get("name", sel_theme_key))
+            theme_name = tr('Önerilen HD') if sel_theme_key == "auto" else str(theme_info.get("name", sel_theme_key))
             if theme_info.get("is_rainbow"):
                 rainbow_palette = ["bright_red", "bright_yellow", "bright_green", "bright_cyan", "bright_blue", "bright_magenta"]
                 fallback_style = f"bold {rainbow_palette[int(time.monotonic() * 4) % len(rainbow_palette)]}"
@@ -696,7 +702,7 @@ class TerminalHub:
             elif proc is not None:
                 pf = proc.step(dt_anim if dt_anim > 0 else 0.08)
                 p_lines, p_colors = pf.lines, (pf.colors if sel_theme_key == "auto" else None)
-                mode_info = "[bold green]Canlı 3B Shader[/bold green]"
+                mode_info = tr('[bold green]Canlı 3B Shader[/bold green]')
             else:
                 f_idx = self._preview_frame % selected.frame_count
                 frame_txt = selected.frames[f_idx]
@@ -729,7 +735,7 @@ class TerminalHub:
             layout["preview_panel"].update(
                 Panel(
                     preview_group,
-                    title="[bold magenta]Canlı Portre Önizleme[/bold magenta]",
+                    title=tr('[bold magenta]Canlı Portre Önizleme[/bold magenta]'),
                     border_style="bright_black",
                     box=box.ROUNDED,
                     padding=(0, 1),
@@ -738,8 +744,8 @@ class TerminalHub:
         else:
             layout["preview_panel"].update(
                 Panel(
-                    Align.center("[dim]Seçili karakter yok.[/dim]", vertical="middle"),
-                    title="[bold magenta]Canlı Portre Önizleme[/bold magenta]",
+                    Align.center(tr('[dim]Seçili karakter yok.[/dim]'), vertical="middle"),
+                    title=tr('[bold magenta]Canlı Portre Önizleme[/bold magenta]'),
                     border_style="bright_black",
                     box=box.ROUNDED,
                 )
@@ -824,7 +830,7 @@ class TerminalHub:
                         elif ch in ("\r", "\n"):
                             if items:
                                 chosen = items[self.item_idx]
-                                self.status_msg = f"'{chosen.name}' masaüstüne başlatılıyor..."
+                                self.status_msg = tr("'{}' masaüstüne başlatılıyor...").format(chosen.name)
                                 live.update(self._build_layout(0.0))
                                 ok, msg = spawn_asset_via_host(self.base_dir, chosen.id, color_theme=self._current_theme_key())
                                 self.status_msg = msg
@@ -840,14 +846,14 @@ class TerminalHub:
                             if items:
                                 chosen = items[self.item_idx]
                                 added = self.config_mgr.toggle_favorite(chosen.id)
-                                self.status_msg = f"'{chosen.name}' favorilere eklendi (★)." if added else f"'{chosen.name}' favorilerden çıkarıldı."
+                                self.status_msg = f"'{chosen.name}' favorilere eklendi (★)." if added else tr("'{}' favorilerden çıkarıldı.").format(chosen.name)
                                 self._invalidate_panel_caches()
                         elif ch in ("c", "C"):
                             if self.theme_keys:
                                 self.theme_idx = (self.theme_idx + 1) % len(self.theme_keys)
                                 tk = self._current_theme_key()
-                                t_lbl = "Önerilen HD" if tk == "auto" else str(self.theme_lib.get(tk).get("name", tk))
-                                self.status_msg = f"Önizleme & fırlatma teması: {t_lbl}"
+                                t_lbl = tr('Önerilen HD') if tk == "auto" else str(self.theme_lib.get(tk).get("name", tk))
+                                self.status_msg = tr('Önizleme & fırlatma teması: {}').format(t_lbl)
                                 self._invalidate_panel_caches()
                         elif ch == "/":
                             live.stop()
@@ -869,7 +875,7 @@ class TerminalHub:
                             self.library.reload()
                             send_ipc({"cmd": "reload"}, timeout=0.3)
                             self._invalidate_panel_caches()
-                            self.status_msg = f"Kütüphane yenilendi ({len(self.library.assets)} animasyon)."
+                            self.status_msg = tr('Kütüphane yenilendi ({} animasyon).').format(len(self.library.assets))
                         elif ch == "\x1b":  # Esc clears search
                             self.search_query = ""
                             self.item_idx = 0
@@ -883,26 +889,26 @@ class TerminalHub:
                     time.sleep(0.03)
 
             self.console.clear()
-            self.console.print("[bold cyan]ASCII Mate Terminal Hub kapatıldı.[/bold cyan]")
+            self.console.print(tr('[bold cyan]ASCII Mate Terminal Hub kapatıldı.[/bold cyan]'))
             if self._active_widgets_cache:
-                self.console.print("[dim]Not: Açık masaüstü widget'larınız arka planda çalışmaya devam ediyor (Sistem Tepsisinden yönetebilirsiniz).[/dim]")
+                self.console.print(tr("[dim]Not: Açık masaüstü widget'larınız arka planda çalışmaya devam ediyor (Sistem Tepsisinden yönetebilirsiniz).[/dim]"))
         finally:
             cli_server.stop()
 
     def _prompt_search(self) -> None:
         self.console.clear()
-        self.console.print("[bold cyan]Karakter Ara[/bold cyan] [dim](ör. satürn, kedi, kahve, kalp, boş bırakırsanız temizlenir)[/dim]")
-        q = input("Arama kelimesi: ").strip()
+        self.console.print(tr('[bold cyan]Karakter Ara[/bold cyan] [dim](ör. satürn, kedi, kahve, kalp, boş bırakırsanız temizlenir)[/dim]'))
+        q = input(tr('Arama kelimesi: ')).strip()
         self.search_query = q
         self.item_idx = 0
         self._preview_frame = 0
-        self.status_msg = f"'{q}' için arama sonuçları." if q else "Arama temizlendi."
+        self.status_msg = tr("'{}' için arama sonuçları.").format(q) if q else "Arama temizlendi."
 
     def _import_community_prompt(self) -> None:
         self.console.clear()
-        self.console.print("[bold magenta]Topluluk Dosyası İçe Aktar (.ascii.json veya ===FRAME=== içeren .txt)[/bold magenta]")
-        self.console.print(f"[dim]İpucu: Doğrudan '{self.library.community_dir}' klasörüne dosya atabilir veya açık widget'ın üstüne sürükleyip bırakabilirsiniz.[/dim]\n")
-        path_str = input("Dosya yolunu yapıştırın (iptal için Enter): ").strip().strip('"')
+        self.console.print(tr('[bold magenta]Topluluk Dosyası İçe Aktar (.ascii.json veya ===FRAME=== içeren .txt)[/bold magenta]'))
+        self.console.print(tr("[dim]İpucu: Doğrudan '{}' klasörüne dosya atabilir veya açık widget'ın üstüne sürükleyip bırakabilirsiniz.[/dim]\n").format(self.library.community_dir))
+        path_str = input(tr('Dosya yolunu yapıştırın (iptal için Enter): ')).strip().strip('"')
         if not path_str:
             return
         asset, msg = import_file_to_community(path_str, self.library.community_dir)
@@ -920,29 +926,29 @@ class TerminalHub:
             self.console.clear()
             res = send_ipc({"cmd": "list"}, timeout=0.5)
             widgets = res.get("widgets", []) if (res and res.get("ok")) else []
-            self.console.print("[bold green]Çalışan Masaüstü Widget Yönetimi[/bold green]\n")
+            self.console.print(tr('[bold green]Çalışan Masaüstü Widget Yönetimi[/bold green]\n'))
             if not widgets:
-                self.console.print("[dim]Şu anda açık masaüstü widget'ı yok.[/dim]\n")
-                input("Ana ekrana dönmek için Enter'a basın...")
+                self.console.print(tr("[dim]Şu anda açık masaüstü widget'ı yok.[/dim]\n"))
+                input(tr("Ana ekrana dönmek için Enter'a basın..."))
                 return
 
             t = Table(box=box.ROUNDED, border_style="cyan")
             t.add_column("#", justify="right")
-            t.add_column("Karakter")
-            t.add_column("Boyut")
-            t.add_column("Saydamlık")
-            t.add_column("Hayalet Modu")
+            t.add_column(tr('Karakter'))
+            t.add_column(tr('Boyut'))
+            t.add_column(tr('Saydamlık'))
+            t.add_column(tr('Hayalet Modu'))
             for i, w in enumerate(widgets, start=1):
                 t.add_row(
                     str(i),
                     w["name"],
                     f"{w['font_size']} pt",
                     f"%{int(round(w['opacity'] * 100))}",
-                    "Açık" if w["click_through"] else "Kapalı",
+                    tr('Açık') if w["click_through"] else tr('Kapalı'),
                 )
             self.console.print(t)
-            self.console.print("\n[cyan]\\[Numara][/cyan] Widget'ı Kapat  |  [cyan]\\[U][/cyan] Tümünde Hayalet Modunu Kapat  |  [cyan]\\[C][/cyan] Hepsini Kapat  |  [cyan]\\[Enter][/cyan] Geri Dön")
-            cmd = input("Seçim: ").strip().lower()
+            self.console.print(tr("\n[cyan]\\[Numara][/cyan] Widget'ı Kapat  |  [cyan]\\[U][/cyan] Tümünde Hayalet Modunu Kapat  |  [cyan]\\[C][/cyan] Hepsini Kapat  |  [cyan]\\[Enter][/cyan] Geri Dön"))
+            cmd = input(tr('Seçim: ')).strip().lower()
             if not cmd:
                 return
             elif cmd == "u":
@@ -962,13 +968,13 @@ class TerminalHub:
             self.console.print(banner_txt)
             for idx, cat in enumerate(self.categories, start=1):
                 self.console.print(f"[{idx}] {cat}", markup=False)
-            choice = input("Kategori seçin (Q çıkış): ").strip().lower()
+            choice = input(tr('Kategori seçin (Q çıkış): ')).strip().lower()
             if choice == "q":
                 break
             if choice.isdigit() and 1 <= int(choice) <= len(self.categories):
                 items = self.library.by_category(self.categories[int(choice) - 1])
                 for i, a in enumerate(items, start=1):
-                    self.console.print(f"  {i}. {a.name}")
-                pick = input("Açılacak numara: ").strip()
+                    self.console.print(f"  {i}. {asset_label(a)}")
+                pick = input(tr('Açılacak numara: ')).strip()
                 if pick.isdigit() and 1 <= int(pick) <= len(items):
                     spawn_asset_via_host(self.base_dir, items[int(pick) - 1].id)
