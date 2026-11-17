@@ -32,31 +32,32 @@ HD_ABS_FPS_CAP = 15.0
 BLOCK_CACHE = 2048  # önceden birleştirilmiş (karakter, renk) hücre blokları
 # Boyuttan bağımsız görünürlük: ölçüm (tests/test_hd_visibility.py) glif başına ortalama mürekkep oranının hücre boyutuyla
 # neredeyse sabit kaldığını gösterir (büyükte ≈ %85-90); büyütünce soluk görünmesinin nedeni glifler arasındaki boşlukların açık
-# duvar kağıdını göstermesidir. Büyük hücrelerde (≥ BACKING_FROM_CW fiziksel px) dolu hücrenin altına, rengin koyu tonunda hafif
-# yarı saydam bir zemin ("backing") eklenir; küçük boyutta hiç eklenmez → varsayılan görünüm değişmez.
-BACKING_FROM_CW = 6
-BACKING_FULL_CW = 16
-BACKING_MAX = 0.14
+# duvar kağıdını göstermesidir. Büyük hücrelerde (≥ BACKING_FROM_CW fiziksel px) glif katmanının ALTINA, rengin koyu tonunda
+# yarı saydam bir zemin ("backing") çizilir; küçük boyutta hiç çizilmez → varsayılan görünüm değişmez.
+# Zemin ayrı, hücre çözünürlüklü küçük bir QImage'dir (drows×dcols); Qt çizerken çift doğrusal büyütür → siluet kenarı yumuşak
+# geçer (kutu görünümü yok) ve glif tamponuna piksel başına iş eklenmez (CPU ≈ aynı).
+BACKING_FROM_CW = 6  # bu fiziksel hücre genişliğine (px) kadar zemin yok
+BACKING_FULL_CW = 12  # bu genişlikte tam yoğunluk
+BACKING_MAX = 0.5  # "auto" modunda en yoğun zemin alfası
+BACKING_MODES = {"off": 0.0, "auto": 1.0, "strong": 1.4}  # hd_backing ayarı → çarpan
 
 
-def backing_for_cell(phys_cw: float) -> float:
-    """Fiziksel hücre genişliğine (px) göre zemin yoğunluğu 0..BACKING_MAX."""
+def backing_for_cell(phys_cw: float, mode: str = "auto") -> float:
+    """Fiziksel hücre genişliğine (px) ve moda göre zemin alfası (0..0.8)."""
     t = (phys_cw - BACKING_FROM_CW) / float(BACKING_FULL_CW - BACKING_FROM_CW)
-    return max(0.0, min(1.0, t)) * BACKING_MAX
+    return min(0.8, max(0.0, min(1.0, t)) * BACKING_MAX * BACKING_MODES.get(mode, 1.0))
 
 
-def _compose_backing(a8: np.ndarray, col: np.ndarray, bk: int) -> np.ndarray:
-    """a8 (k,px) uint8 glif alfası (opaklık uygulanmış), col (k,3) RGB, bk 0..255 zemin alfası → premultiplied BGRA (k,px,4)."""
-    a16 = a8.astype(np.uint16)
-    b_eff = (bk * (255 - a16)) // 255  # glifin kapatmadığı yerde zemin
-    c = col.astype(np.uint16)
-    bgc = 14 + c * 18 // 100  # rengin koyu tonu
-    out = np.empty(a8.shape + (4,), np.uint8)
-    for dst, src in ((0, 2), (1, 1), (2, 0)):
-        rgb = ((a16 * c[:, src : src + 1]) >> 8) + ((b_eff * bgc[:, src : src + 1]) >> 8)
-        out[..., dst] = np.minimum(rgb, 255)
-    out[..., 3] = np.minimum(a16 + b_eff, 255)
-    return out
+def _neighbour_occupancy(filled: np.ndarray) -> np.ndarray:
+    """8 komşusunun dolu oranı (0..1); siluet kenarındaki hücrelerde düşer."""
+    p = np.pad(filled.astype(np.float32), 1)
+    h, w = filled.shape
+    acc = np.zeros((h, w), np.float32)
+    for dy in (0, 1, 2):
+        for dx in (0, 1, 2):
+            if dy != 1 or dx != 1:
+                acc += p[dy : dy + h, dx : dx + w]
+    return acc / 8.0
 
 
 def build_atlas(cw: int, ch: int) -> np.ndarray:
@@ -124,10 +125,12 @@ class HDPlayer:
         self._slot: Dict[int, int] = {}
         self._n_blocks = 0
         self._cache_bits = 5
-        self.backing = 0.0  # 0..BACKING_MAX (hücre büyüklüğüne göre; configure belirler)
+        self.backing = 0.0  # 0..0.8 zemin yoğunluğu (hücre büyüklüğüne ve moda göre; configure belirler)
+        self._bk_buf: Optional[np.ndarray] = None  # (drows, dcols, 4) premultiplied BGRA
+        self._bk_img: Optional[QImage] = None
 
     # --- yapılandırma
-    def configure(self, cell_w: int, cell_h: int, decim: int, opacity: float) -> None:
+    def configure(self, cell_w: int, cell_h: int, decim: int, opacity: float, backing_mode: str = "auto") -> None:
         decim = max(1, int(decim))
         cw, ch = max(1, int(cell_w)) * decim, max(1, int(cell_h)) * decim
         dcols, drows = max(1, self.reader.cols // decim), max(1, self.reader.rows // decim)
@@ -139,9 +142,13 @@ class HDPlayer:
             self._img = QImage(self._buf.data, dcols * cw, drows * ch, dcols * cw * 4, QImage.Format.Format_ARGB32_Premultiplied)
             self._full_dirty = True
             self._levels = self._light = self._prev_levels = None
-        bk = 0.0 if self.solid_bg else backing_for_cell(cw / decim)
-        if abs(bk - self.backing) > 1e-4:
+        bk = 0.0 if self.solid_bg else backing_for_cell(cw / decim, backing_mode)
+        if abs(bk - self.backing) > 1e-4 or (bk > 0 and (self._bk_buf is None or self._bk_buf.shape[:2] != (drows, dcols))):
             self.backing = bk
+            self._bk_buf = np.zeros((drows, dcols, 4), np.uint8) if bk > 0 else None
+            self._bk_img = None
+            if bk > 0:
+                self._bk_img = QImage(self._bk_buf.data, dcols, drows, dcols * 4, QImage.Format.Format_ARGB32_Premultiplied)
             self._full_dirty = True
         if abs(op - self.opacity) > 1e-4:
             self.opacity = op
@@ -160,6 +167,51 @@ class HDPlayer:
     @property
     def image(self) -> Optional[QImage]:
         return self._img
+
+    @property
+    def backing_image(self) -> Optional[QImage]:
+        """Hücre çözünürlüklü zemin katmanı (None = zemin yok). Glif görüntüsünün ALTINA, aynı dikdörtgene çift doğrusal çizilir."""
+        return self._bk_img if self.backing > 0 else None
+
+    def draw(self, painter: QPainter, x: int, y: int) -> None:
+        """Zemin (yumuşak) + glif görüntüsünü çizer."""
+        img = self._img
+        if img is None:
+            return
+        bk = self.backing_image
+        if bk is not None:
+            painter.save()
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+            painter.drawImage(QRectF(x, y, img.width(), img.height()), bk)
+            painter.restore()
+        painter.drawImage(x, y, img)
+
+    def composite(self) -> Optional[QImage]:
+        """Zemin + glif birleşik ARGB32_Premultiplied görüntü (test/önizleme)."""
+        img = self._img
+        if img is None:
+            return None
+        out = QImage(img.width(), img.height(), QImage.Format.Format_ARGB32_Premultiplied)
+        out.fill(0)
+        p = QPainter(out)
+        self.draw(p, 0, 0)
+        p.end()
+        return out
+
+    def _update_backing(self, chars: np.ndarray, colors: np.ndarray) -> None:
+        """Dolu hücreler için koyu tonlu zemin alfası; komşu doluluğuyla orantılı (siluet kenarında seyrek)."""
+        if self._bk_buf is None:
+            return
+        filled = chars != 32
+        occ = _neighbour_occupancy(filled)
+        a = 255.0 * self.opacity * self.backing * (0.25 + 0.75 * occ**1.2) * filled  # (drows, dcols)
+        bgc = 14.0 + colors.astype(np.float32) * 0.18  # rengin koyu tonu (RGB)
+        af = a[..., None] / 255.0
+        buf = self._bk_buf
+        buf[..., 0] = (bgc[..., 2] * af[..., 0]).astype(np.uint8)  # B
+        buf[..., 1] = (bgc[..., 1] * af[..., 0]).astype(np.uint8)  # G
+        buf[..., 2] = (bgc[..., 0] * af[..., 0]).astype(np.uint8)  # R
+        buf[..., 3] = a.astype(np.uint8)
 
     def set_mask(self, levels: Optional[np.ndarray], light: Optional[np.ndarray], fade: float) -> None:
         """Akıllı okunabilirlik maskesi (drows × dcols). None → maske yok."""
@@ -195,6 +247,7 @@ class HDPlayer:
         if self._buf is None or self._atlas is None:
             return False
         chars, colors = self._decimated(idx)
+        self._update_backing(chars, colors)
         levels = self._levels
         if self._full_dirty or self._prev_chars is None:
             if self.solid_bg:
@@ -218,7 +271,10 @@ class HDPlayer:
         if rr.size == 0:
             self.last_dirty = None
             return False
-        self.last_dirty = (int(rr.min()), int(cc.min()), int(rr.max()), int(cc.max()))
+        r0, c0, r1, c1 = int(rr.min()), int(cc.min()), int(rr.max()), int(cc.max())
+        if self.backing > 0:  # yumuşak zemin komşu hücreye 1 hücre taşar → kirli bölgeyi genişlet
+            r0, c0, r1, c1 = max(0, r0 - 1), max(0, c0 - 1), min(self.drows - 1, r1 + 1), min(self.dcols - 1, c1 + 1)
+        self.last_dirty = (r0, c0, r1, c1)
 
         idxs = chars[rr, cc].astype(np.intp) - 32
         col = colors[rr, cc]  # (k, 3) uint8 RGB
@@ -264,17 +320,14 @@ class HDPlayer:
                 m_idx = (mk >> 15).astype(np.intp)
                 m_col = np.stack([((mk >> s_) & 31) << sh | (1 << (sh - 1)) for s_ in (10, 5, 0)], axis=1).astype(np.uint16)
                 a8m = self._atlas_op[m_idx].reshape(len(miss), npx)
-                if self.backing > 0:
-                    blk = _compose_backing(a8m, m_col, int(255 * self.opacity * self.backing))
-                else:
-                    a16m = a8m.astype(np.uint16)
-                    blk = np.empty((len(miss), npx, 4), np.uint8)
-                    tmpm = np.empty(a16m.shape, np.uint16)
-                    for dst, src in ((0, 2), (1, 1), (2, 0)):
-                        np.multiply(a16m, m_col[:, src : src + 1], out=tmpm)
-                        tmpm >>= 8
-                        blk[:, :, dst] = tmpm
-                    blk[:, :, 3] = a8m
+                a16m = a8m.astype(np.uint16)
+                blk = np.empty((len(miss), npx, 4), np.uint8)
+                tmpm = np.empty(a16m.shape, np.uint16)
+                for dst, src in ((0, 2), (1, 1), (2, 0)):
+                    np.multiply(a16m, m_col[:, src : src + 1], out=tmpm)
+                    tmpm >>= 8
+                    blk[:, :, dst] = tmpm
+                blk[:, :, 3] = a8m
                 start = self._n_blocks
                 self._blocks[start : start + len(miss)] = blk
                 for j, i in enumerate(miss):
@@ -287,18 +340,15 @@ class HDPlayer:
         if levels is None and not self.solid_bg:
             # Doğrudan yol: alfa = opaklık uygulanmış atlas; kanal başına bitişik çarpma
             a8 = self._atlas_op[idxs].reshape(rr.size, self.ch * self.cw)  # (k, piksel)
-            if self.backing > 0:
-                out = _compose_backing(a8, col, int(255 * self.opacity * self.backing)).reshape(rr.size, self.ch, self.cw, 4)
-            else:
-                a16 = a8.astype(np.uint16)
-                out = np.empty((rr.size, self.ch * self.cw, 4), np.uint8)
-                tmp = np.empty(a16.shape, np.uint16)
-                for dst, src in ((0, 2), (1, 1), (2, 0)):  # premultiplied BGRA: kanal başına bitişik çarpma + kaydırma
-                    np.multiply(a16, col[:, src : src + 1].astype(np.uint16), out=tmp)
-                    tmp >>= 8
-                    out[:, :, dst] = tmp
-                out[:, :, 3] = a8
-                out = out.reshape(rr.size, self.ch, self.cw, 4)
+            a16 = a8.astype(np.uint16)
+            out = np.empty((rr.size, self.ch * self.cw, 4), np.uint8)
+            tmp = np.empty(a16.shape, np.uint16)
+            for dst, src in ((0, 2), (1, 1), (2, 0)):  # premultiplied BGRA: kanal başına bitişik çarpma + kaydırma
+                np.multiply(a16, col[:, src : src + 1].astype(np.uint16), out=tmp)
+                tmp >>= 8
+                out[:, :, dst] = tmp
+            out[:, :, 3] = a8
+            out = out.reshape(rr.size, self.ch, self.cw, 4)
         else:
             glyph = self._atlas[idxs].astype(np.uint16)  # (k, ch, cw)
             colw = col.astype(np.int32)

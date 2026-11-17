@@ -261,7 +261,7 @@ class CompanionWidget(QWidget):
         if hd is None:
             return
         cw, ch = self._hd_cell_px()
-        hd.configure(cw, ch, HD_QUALITY[self.state.hd_quality][0], self.state.opacity * self._fade_factor)
+        hd.configure(cw, ch, HD_QUALITY[self.state.hd_quality][0], self.state.opacity * self._fade_factor, self.state.hd_backing)
         self._current_lines = [" " * hd.dcols] * hd.drows
         self._hd_sync_mask()
         if hd._full_dirty:
@@ -455,6 +455,14 @@ class CompanionWidget(QWidget):
         self.state.hd_quality = quality
         self._recalculate_size()
         self._update_timer_interval()
+        self._save_state()
+        self.update()
+
+    def set_hd_backing(self, mode: str) -> None:
+        if mode not in ("off", "auto", "strong"):
+            mode = "auto"
+        self.state.hd_backing = mode
+        self._hd_configure()
         self._save_state()
         self.update()
 
@@ -1142,7 +1150,7 @@ class CompanionWidget(QWidget):
         if self._hd is not None:
             img = self._hd.image
             if img is not None:
-                painter.drawImage(12, 10, img)
+                self._hd.draw(painter, 12, 10)
             return
 
         if self._art_dirty or (self._art_pixmap is None and not self._cells_ok):

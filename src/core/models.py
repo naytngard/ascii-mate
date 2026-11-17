@@ -303,6 +303,7 @@ class WidgetState:
     # v3.0 HD kalite
     hd_quality: str = "medium"  # low | medium | high
     hd_fps_cap: Optional[float] = None  # None = kaliteye göre
+    hd_backing: str = "auto"  # off | auto | strong: büyük HD hücrelerinde koyu yarı saydam zemin (soluklaşmayı önler)
 
     @classmethod
     def from_dict(cls, asset_id: str, data: Optional[Dict[str, Any]]) -> "WidgetState":
@@ -350,6 +351,7 @@ class WidgetState:
             behind_text_fade=_clamp_float(data.get("behind_text_fade"), 0.08, 0.6, 0.2),
             hd_quality=str(data.get("hd_quality")) if str(data.get("hd_quality")) in ("low", "medium", "high") else "medium",
             hd_fps_cap=_clamp_float(data.get("hd_fps_cap"), 1.0, 15.0, None),
+            hd_backing=str(data.get("hd_backing")) if str(data.get("hd_backing")) in ("off", "auto", "strong") else "auto",
         )
 
     def to_dict(self) -> Dict[str, Any]:

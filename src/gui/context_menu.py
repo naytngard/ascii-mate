@@ -138,6 +138,14 @@ def build_context_menu(widget: "CompanionWidget") -> QMenu:
             ca.setChecked((cur_cap is None and cap is None) or (cap is not None and cur_cap is not None and abs(cur_cap - cap) < 0.5))
             ca.triggered.connect(lambda _c, v=cap: widget.set_hd_fps_cap(v))
             hd_menu.addAction(ca)
+        bk_labels = {"off": tr("Kapalı"), "auto": tr("Otomatik"), "strong": tr("Güçlü")}
+        bk_menu = menu.addMenu(tr("🌫️  HD Zemin ({})").format(bk_labels.get(widget.state.hd_backing, bk_labels["auto"])))
+        bk_menu.setStyleSheet(DARK_GLASS_MENU_QSS)
+        for bk_key, bk_lbl in bk_labels.items():
+            ba = QAction(bk_lbl, bk_menu, checkable=True)
+            ba.setChecked(widget.state.hd_backing == bk_key)
+            ba.triggered.connect(lambda _c, k=bk_key: widget.set_hd_backing(k))
+            bk_menu.addAction(ba)
         note = QAction(tr("ℹ️ HD mod normal widget'tan daha fazla CPU/RAM kullanır"), hd_menu)
         note.setEnabled(False)
         hd_menu.addSeparator()
