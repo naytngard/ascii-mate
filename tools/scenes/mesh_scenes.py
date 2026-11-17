@@ -26,24 +26,26 @@ BUILDERS: Dict[str, dict] = {
         obj="knight.obj", aspect=0.80, tilt=12.0, pre=(0, 0, 0), fill=0.80, color_gain=1.6, gamma=1.15,
         spec_k=0.65, spec_pow=14.0, rim_k=0.6, diff_k=1.05,
         light=dict(dir=(-0.5, 0.65, 0.6), color=(0.85, 0.80, 0.70), sky=(0.30, 0.36, 0.46), ambient=0.20, rim=(0.9, 0.95, 1.0)),
-        overlay="grass", sway_phase=0.0, bottom_pad=0.10),
+        overlay="grass", bottom_pad=0.10, motion="knight", chest=(0.0, 0.25, 0.0), chest_sigma=(0.9, 0.5, 0.9)),
     "knight_sunset": dict(
         obj="knight.obj", aspect=0.80, tilt=12.0, pre=(0, 0, 0), fill=0.80, color_gain=1.6, gamma=1.15,
         spec_k=0.65, spec_pow=14.0, rim_k=0.6, diff_k=1.1,
         light=dict(dir=(0.95, 0.22, 0.28), color=(1.5, 0.85, 0.45), sky=(0.45, 0.30, 0.32), ambient=0.20, rim=(1.0, 0.6, 0.3)),
-        rock=True, bottom_pad=0.10),
+        rock=True, bottom_pad=0.10, motion="knight", chest=(0.0, 0.25, 0.0), chest_sigma=(0.9, 0.5, 0.9)),
     "robot": dict(
         obj="robot.obj", aspect=1.05, tilt=10.0, pre=(0, 0, 0), fill=0.82,
-        light=dict(dir=(-0.45, 0.6, 0.65), color=(1.0, 0.97, 0.92), sky=(0.25, 0.30, 0.42), ambient=0.38, rim=(0.8, 0.9, 1.0))),
+        light=dict(dir=(-0.45, 0.6, 0.65), color=(1.0, 0.97, 0.92), sky=(0.25, 0.30, 0.42), ambient=0.38, rim=(0.8, 0.9, 1.0)),
+        motion="hum", glow=(0.20, 0.85, 1.0)),
     "dragon": dict(
         obj="dragon.obj", aspect=1.0, tilt=10.0, pre=(0, 0, 0), fill=1.18, yaw=40.0, color_gain=1.8, gamma=0.9,
         saturation=1.7, tint_dark=(0.80, 1.10, 0.62), tint_light=(1.22, 1.08, 0.80),
         spec_k=0.65, spec_pow=22.0, rim_k=0.5, diff_k=1.0,
+        motion="dragon", chest=(0.0, 0.0, 0.0), chest_sigma=(1.4, 0.9, 0.55),
         light=dict(dir=(-0.5, 0.65, 0.6), color=(0.95, 0.90, 0.80), sky=(0.30, 0.36, 0.46), ambient=0.24, rim=(0.9, 0.95, 1.0))),
     "astronaut": dict(
         obj="astro.obj", aspect=1.0, tilt=8.0, pre=(90, 0, 0), fill=0.82, yaw=25.0,
         light=dict(dir=(0.6, 0.5, 0.6), color=(1.0, 0.98, 0.92), sky=(0.12, 0.16, 0.30), ambient=0.30, rim=(0.5, 0.7, 1.0)),
-        overlay="stars"),
+        overlay="stars", motion="float"),
 }
 
 
@@ -59,6 +61,7 @@ CREDITS: Dict[str, dict] = {
         obj="dragon.obj", aspect=1.0, tilt=10.0, pre=(0, 0, 0), fill=1.18, yaw=40.0, color_gain=1.8, gamma=0.9,
         saturation=1.7, tint_dark=(0.80, 1.10, 0.62), tint_light=(1.22, 1.08, 0.80),
         spec_k=0.65, spec_pow=22.0, rim_k=0.5, diff_k=1.0,
+        motion="dragon", chest=(0.0, 0.0, 0.0), chest_sigma=(1.4, 0.9, 0.55),
         light=dict(dir=(-0.5, 0.65, 0.6), color=(0.95, 0.90, 0.80), sky=(0.30, 0.36, 0.46), ambient=0.24, rim=(0.9, 0.95, 1.0))),
     "dragon": dict(name="Cethiel's Dragon 3D (dragon.obj, dokudan köşe rengi)", author="Drummyfish (Cethiel ile)",
                    url="https://opengameart.org/content/cethiels-dragon-3d", license="CC0"),
@@ -214,6 +217,108 @@ def _cells(rgba: np.ndarray, cols: int, rows: int, ss: int, levels: Optional[Tup
 _RAMP = None
 
 
+# ------------------------------------------------------------------ canlılık hareketi (rig yok, bölgesel yumuşak ağırlık)
+# Kamera ve model yönü SABİT; yalnızca köşeler faza (0..1, faz 0 = faz 1) bağlı küçük, yavaş deformasyon alır.
+
+def _smooth(x):
+    x = np.clip(x, 0.0, 1.0)
+    return x * x * (3.0 - 2.0 * x)
+
+
+def breath_curve(ph: float, cycles: int = 2) -> float:
+    """0..1, hafif asimetrik nefes: kısa soluk alma (%40, yumuşak yükseliş), uzun verme (%60). Döngü kesintisiz."""
+    p = (ph * cycles) % 1.0
+    return float(_smooth(p / 0.4)) if p < 0.4 else float(1.0 - _smooth((p - 0.4) / 0.6))
+
+
+def _rot_about_y(pts: np.ndarray, ang: np.ndarray, px: float, pz: float) -> None:
+    ca, sa = np.cos(ang), np.sin(ang)
+    x, z = pts[:, 0] - px, pts[:, 2] - pz
+    pts[:, 0] = px + x * ca + z * sa
+    pts[:, 2] = pz - x * sa + z * ca
+
+
+def _rot_about_x(pts: np.ndarray, ang: np.ndarray, py: float, pz: float) -> None:
+    ca, sa = np.cos(ang), np.sin(ang)
+    y, z = pts[:, 1] - py, pts[:, 2] - pz
+    pts[:, 1] = py + y * ca - z * sa
+    pts[:, 2] = pz + y * sa + z * ca
+
+
+@lru_cache(maxsize=None)
+def _rig(builder: str):
+    """Model başına bir kez: bölgesel ağırlıklar (göğüs, üst gövde/baş, kuyruk/baş ucu...)."""
+    spec = BUILDERS[builder]
+    v = load(spec["obj"])[0]
+    lo, hi = v.min(axis=0), v.max(axis=0)
+    half = (hi - lo) / 2.0
+    mid = (hi + lo) / 2.0
+    rig = {"lo": lo, "hi": hi, "half": half, "mid": mid, "H": float(hi[1] - lo[1])}
+    m = spec.get("motion")
+    if m in ("knight", "dragon"):
+        cen = np.asarray(spec["chest"], np.float32) * half + mid
+        sig = np.asarray(spec["chest_sigma"], np.float32) * half
+        d = (v - cen) / sig
+        rig["w_chest"] = np.exp(-0.5 * (d ** 2).sum(axis=1)).astype(np.float32)
+        rig["center"] = cen
+    if m == "knight":
+        rig["w_up"] = _smooth((v[:, 1] - cen[1]) / (0.55 * half[1])).astype(np.float32)  # üst gövde + baş birlikte kalkar
+        rig["w_head"] = _smooth((v[:, 1] - (lo[1] + 0.74 * (hi[1] - lo[1]))) / (0.12 * (hi[1] - lo[1]))).astype(np.float32)
+        rig["head_x"], rig["head_z"] = float(mid[0]), float(mid[2])
+    if m == "dragon":
+        zc, zl = float(mid[2]), float(half[2])
+        top = v[:, 2] > mid[2] + 0.8 * half[2]
+        bot = v[:, 2] < mid[2] - 0.8 * half[2]
+        s = 1.0 if v[top, 1].mean() < v[bot, 1].mean() else -1.0  # kuyruğun bulunduğu uç yönü (kuyruk daha alçak uçtur)
+        un = s * (v[:, 2] - zc) / zl  # kuyrukta +1, başta -1
+        rig["un"], rig["s"] = un.astype(np.float32), s
+        rig["w_tail"] = _smooth((un - 0.70) / 0.30).astype(np.float32)
+        rig["w_headend"] = _smooth((-un - 0.55) / 0.30).astype(np.float32)
+        rig["tail_pz"] = zc + s * 0.6 * zl
+        rig["neck_pz"] = zc - s * 0.45 * zl
+        rig["neck_py"] = float(mid[1])
+        rig["w_up"] = rig["w_headend"]
+    return rig
+
+
+def deform(builder: str, ph: float, v: np.ndarray, c: np.ndarray):
+    """Faza bağlı köşe deformasyonu ve renk darbesi. v (n,3) float32 → (v2, c2)."""
+    m = BUILDERS[builder].get("motion")
+    if not m:
+        return v, c
+    rig = _rig(builder)
+    v2 = v.copy()
+    c2 = c
+    tau = 2.0 * math.pi
+    H = rig["H"]
+    if m in ("knight", "dragon"):
+        b = breath_curve(ph, 2)
+        w, cen = rig["w_chest"], rig["center"]
+        v2[:, 0] = cen[0] + (v[:, 0] - cen[0]) * (1.0 + 0.028 * b * w)
+        v2[:, 2] = cen[2] + (v[:, 2] - cen[2]) * (1.0 + 0.022 * b * w)
+        v2[:, 1] = cen[1] + (v[:, 1] - cen[1]) * (1.0 + 0.015 * b * w) + 0.010 * H * b * rig["w_up"]
+    if m == "knight":  # miğfer çok hafif sağa-sola (±3°)
+        _rot_about_y(v2, math.radians(3.0) * math.sin(tau * ph) * rig["w_head"], rig["head_x"], rig["head_z"])
+    elif m == "dragon":
+        _rot_about_y(v2, math.radians(7.0) * math.sin(tau * ph + 0.8 * math.pi) * rig["w_tail"], 0.0, rig["tail_pz"])  # kuyruk ucu yana, nefesle farklı fazda
+        _rot_about_x(v2, math.radians(2.0) * math.sin(tau * 2 * ph + 0.3 * math.pi) * rig["w_headend"], rig["neck_py"], rig["neck_pz"])  # baş iner-kalkar
+    elif m == "float":  # astronot: yavaş süzülme ±%2 yükseklik + ±3° yalpa
+        v2[:, 1] += 0.02 * H * math.sin(tau * ph)
+        a = math.radians(3.0) * math.sin(tau * ph + 0.5 * math.pi)
+        x, y = v2[:, 0] - rig["mid"][0], v2[:, 1] - rig["mid"][1]
+        v2[:, 0] = rig["mid"][0] + x * math.cos(a) - y * math.sin(a)
+        v2[:, 1] = rig["mid"][1] + x * math.sin(a) + y * math.cos(a)
+    elif m == "hum":  # robot: bekleme salınımı (±%1,5 dikey) + gözün/ışığın yavaş nabzı
+        v2[:, 1] += 0.015 * H * math.sin(tau * ph)
+        dark = (c @ np.array([0.2126, 0.7152, 0.0722], np.float32)) < 0.08  # siyah malzeme = göz/vizör
+        if dark.any():
+            pulse = 0.5 + 0.5 * math.sin(tau * 2 * ph)
+            glow = np.asarray(BUILDERS[builder].get("glow", (0.15, 0.75, 0.9)), np.float32) * (0.45 + 0.55 * pulse)
+            c2 = c.copy()
+            c2[dark] = glow
+    return v2, c2
+
+
 def frame(builder: str, ph: float, cols: int, levels: Optional[Tuple[float, ...]] = None, ss: int = 2, keep_rgba: bool = False):
     """ph ∈ [0,1): kare 0 ve 1.0 aynı (kesintisiz döngü). Dönüş: chars, colors, levels."""
     global _RAMP
@@ -222,7 +327,8 @@ def frame(builder: str, ph: float, cols: int, levels: Optional[Tuple[float, ...]
     if _RAMP is None:
         _RAMP = hc.build_ramp(common.SMOOTH_RAMP)
     spec = BUILDERS[builder]
-    v, f, c, n = load(spec["obj"])
+    v0, f, c, n = load(spec["obj"])
+    v, c = deform(builder, ph, v0, c)  # canlılık hareketi: köşeler faza göre oynar, kamera/yön sabit
     c = np.clip(c * spec.get("color_gain", 1.0), 0.0, 1.0)
     if "saturation" in spec:  # doku rengi korunur; doygunluk artar, koyu tonlar yeşil-bronza, açık tonlar kreme çekilir
         lum = (c @ np.array([0.2126, 0.7152, 0.0722], np.float32))[:, None]
@@ -233,14 +339,13 @@ def frame(builder: str, ph: float, cols: int, levels: Optional[Tuple[float, ...]
     ext = float(np.abs(v).max(axis=0)[1])  # yarı yükseklik
     if spec.get("rock"):
         # kaya: şövalyenin altında (model birimi: yükseklik ≈ 1.15 → kaya boyutu buna göre)
-        h = float(v[:, 1].max() - v[:, 1].min())
-        base_y = float(v[:, 1].min())
+        h = float(v0[:, 1].max() - v0[:, 1].min())
+        base_y = float(v0[:, 1].min())
         rc = (2.2, 1.7, 1.4)  # kaya kare içinde seçilir kalsın: >1 değer yalnızca gölgeleme çarpanı (son renk 1.4'e kırpılır)
         parts.append(ellipsoid_mesh((0.0, base_y + 0.03 * h, -0.02 * h), (0.50 * h, 0.13 * h, 0.38 * h), rc))
         parts.append(ellipsoid_mesh((0.34 * h, base_y + 0.0 * h, 0.12 * h), (0.32 * h, 0.10 * h, 0.28 * h), rc))
     pre = _rot(*spec["pre"])
-    ang = math.radians(SWAY_DEG) * math.sin(2 * math.pi * ph)
-    R = _rot(spec["tilt"], 0, 0) @ _rot(0, spec.get("yaw", 0.0) + math.degrees(ang), 0) @ pre
+    R = _rot(spec["tilt"], 0, 0) @ _rot(0, spec.get("yaw", 0.0), 0) @ pre  # sabit yön (dönme/salınım yok)
     mv, mf, mc, mn = _merge(parts)
     pv = mv @ R.T
     pn = mn @ R.T
@@ -249,8 +354,8 @@ def frame(builder: str, ph: float, cols: int, levels: Optional[Tuple[float, ...]
     sx_, sy_ = 2 * ss, 4 * ss
     W, H = cols * sx_, rows * sy_
     # sabit ölçek: dönüşten bağımsız sınır (yatay yarıçap), dikey yarı yükseklik
-    r_h = float(np.sqrt(v[:, 0] ** 2 + v[:, 2] ** 2).max())
-    kv = v @ R.T  # ölçek yalnızca ana modelden (kaya taşsa da şövalye küçülmesin)
+    r_h = float(np.sqrt(v0[:, 0] ** 2 + v0[:, 2] ** 2).max())
+    kv = v0 @ R.T  # ölçek yalnızca ana modelden (kaya taşsa da şövalye küçülmesin)
     lo_y, hi_y = float(kv[:, 1].min()), float(kv[:, 1].max())
     ext_y = max(hi_y - lo_y, 1e-6) / 2.0
     # ekran: hücre 1:2 → piksel kare. Sığdır

@@ -238,3 +238,20 @@ def test_tinted_bg_mode_validates_and_renders(tmp_path):
     pl.configure(4, 8, 1, 1.0)
     assert pl.render(0) and pl.render(1)
     assert (pl._buf[..., 3] > 0).all()  # tinted: her piksel koyu renkli zemin taşır (boşluk yok)
+
+
+def test_mesh_motion_loops_and_is_small():
+    """Mesh sahneleri: kamera/yön sabit, köşe deformasyonu faza bağlı, faz 0 = faz 1 (kesintisiz döngü), hareket küçük."""
+    sys.path.insert(0, str(BASE / "tools" / "scenes"))
+    import mesh_scenes as ms
+
+    assert ms.breath_curve(0.0) == pytest.approx(ms.breath_curve(1.0)) and 0.0 <= ms.breath_curve(0.2) <= 1.0
+    assert ms.breath_curve(0.2) > 0.95 and ms.breath_curve(0.0) == 0.0  # tepe %40'ta
+    for b in ("knight_grass", "knight_sunset", "robot", "astronaut", "dragon"):
+        v, _f, c, _n = ms.load(ms.BUILDERS[b]["obj"])
+        v0, c0 = ms.deform(b, 0.0, v, c)
+        v1, _ = ms.deform(b, 1.0, v, c)
+        assert np.allclose(v0, v1, atol=1e-5), b
+        vm, _ = ms.deform(b, 0.2, v, c)
+        size = float(np.linalg.norm(v.max(axis=0) - v.min(axis=0)))
+        assert 0.0 < float(np.abs(vm - v0).max()) < 0.06 * size, b  # görünür ama küçük (<%6)
