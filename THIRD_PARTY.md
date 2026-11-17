@@ -9,6 +9,7 @@ Lisansların hepsi sayfada CC0 / kamu malı olarak yazılıdır (kontrol: 2026-1
 |---|---|---|---|---|
 | `knight_sitting_3d`, `hd_knight_resting` | Knight statue (`knight_statue.blend`, kaide silindi, rengi değiştirildi) | yd | https://opengameart.org/content/knight-statue | CC0 |
 | `sentinel_robot_3d` | LowPoly Robot (`Robot.obj`) | Quaternius | https://quaternius.itch.io/lowpoly-robot | CC0 1.0 |
+| `dragon_baby_3d` (adı "HD Ejderha"; id aynı kaldı) | Cethiel's Dragon 3D (`dragon.obj` + `dragon.png`; dokudan köşe rengi örneklendi, kanatsız statik mesh) | Drummyfish (Cethiel ile) | https://opengameart.org/content/cethiels-dragon-3d | CC0 |
 | `astronaut_eva_3d` | Astronaut low poly (`Astronaut01.fbx`, tek renk) | ThunderWare games | https://mariusmopar.itch.io/astronaut-low-poly | CC0 |
 
 Her varlığın `.ascii.json` dosyasında `source` ve `model_credit` (başlık, yazar, URL, lisans) alanları bulunur.

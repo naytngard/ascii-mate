@@ -89,7 +89,7 @@ def test_scene_assets_declare_own_source():
 
 
 # Hazır 3B modelden üretilen sahneler: model repoda YOK, yalnız üretilen HD kareler + künye (yazar, URL, lisans)
-MESH_SCENES = ["knight_sitting_3d", "hd_knight_resting", "sentinel_robot_3d", "astronaut_eva_3d"]
+MESH_SCENES = ["knight_sitting_3d", "hd_knight_resting", "sentinel_robot_3d", "astronaut_eva_3d", "dragon_baby_3d"]
 ALLOWED_MODEL_LICENSES = {"CC0", "CC0 1.0", "Public Domain"}
 
 

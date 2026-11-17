@@ -1,4 +1,4 @@
-﻿"""Hazır (CC0) 3B modellerden HD sahneler: robot, astronot, şövalye. Kaynak/lisans: THIRD_PARTY.md.
+"""Hazır (CC0) 3B modellerden HD sahneler: robot, astronot, şövalye. Kaynak/lisans: THIRD_PARTY.md.
 
 Modeller repoya GİRMEZ (tools/models_cache/, .gitignore). Hazırlık: tools/blender_prep.py (Blender, arka plan) →
 köşe renkli OBJ (tools/models_cache/*.obj). Bu modül OBJ'yi okur, yavaş ±25° salınımla (kare 0 = kare N, kesintisiz döngü)
@@ -35,6 +35,10 @@ BUILDERS: Dict[str, dict] = {
     "robot": dict(
         obj="robot.obj", aspect=1.05, tilt=10.0, pre=(0, 0, 0), fill=0.82,
         light=dict(dir=(-0.45, 0.6, 0.65), color=(1.0, 0.97, 0.92), sky=(0.25, 0.30, 0.42), ambient=0.38, rim=(0.8, 0.9, 1.0))),
+    "dragon": dict(
+        obj="dragon.obj", aspect=1.0, tilt=10.0, pre=(0, 0, 0), fill=1.18, yaw=40.0, color_gain=1.8, gamma=0.9,
+        spec_k=0.35, spec_pow=18.0, rim_k=0.5, diff_k=1.0,
+        light=dict(dir=(-0.5, 0.65, 0.6), color=(0.95, 0.90, 0.80), sky=(0.30, 0.36, 0.46), ambient=0.24, rim=(0.9, 0.95, 1.0))),
     "astronaut": dict(
         obj="astro.obj", aspect=1.0, tilt=8.0, pre=(90, 0, 0), fill=0.82, yaw=25.0,
         light=dict(dir=(0.6, 0.5, 0.6), color=(1.0, 0.98, 0.92), sky=(0.12, 0.16, 0.30), ambient=0.30, rim=(0.5, 0.7, 1.0)),
@@ -50,6 +54,12 @@ CREDITS: Dict[str, dict] = {
                           url="https://opengameart.org/content/knight-statue", license="CC0"),
     "robot": dict(name="LowPoly Robot (Robot.obj)", author="Quaternius",
                   url="https://quaternius.itch.io/lowpoly-robot", license="CC0 1.0"),
+    "dragon": dict(
+        obj="dragon.obj", aspect=1.0, tilt=10.0, pre=(0, 0, 0), fill=1.18, yaw=40.0, color_gain=1.8, gamma=0.9,
+        spec_k=0.35, spec_pow=18.0, rim_k=0.5, diff_k=1.0,
+        light=dict(dir=(-0.5, 0.65, 0.6), color=(0.95, 0.90, 0.80), sky=(0.30, 0.36, 0.46), ambient=0.24, rim=(0.9, 0.95, 1.0))),
+    "dragon": dict(name="Cethiel's Dragon 3D (dragon.obj, dokudan köşe rengi)", author="Drummyfish (Cethiel ile)",
+                   url="https://opengameart.org/content/cethiels-dragon-3d", license="CC0"),
     "astronaut": dict(name="Astronaut low poly (Astronaut01.fbx)", author="ThunderWare games",
                       url="https://mariusmopar.itch.io/astronaut-low-poly", license="CC0"),
 }

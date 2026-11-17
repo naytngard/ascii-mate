@@ -53,7 +53,7 @@ SPECS = {
     "fox_bust_3d": ("fox", "cats_and_pets", "HD Kızıl Tilki (oturan)", "Kediler & Evcil Hayvanlar", ["tilki", "orman", "kuyruk"], 48, 8, 120, True),
     "wolf_campfire_3d": ("wolf", "nature_and_weather", "HD Kamp Ateşi Başında Kurt", "Doğa & Hava Durumu", ["kurt", "kamp ateşi", "gece"], 48, 8, 150, True),
     "knight_sitting_3d": ("knight_grass", "retro_and_fun", "HD Çimenlerde Oturan Şövalye", "Retro & Geek", ["şövalye", "zırh", "kılıç", "çimen"], 48, 8, 130, True),
-    "dragon_baby_3d": ("dragon", "retro_and_fun", "HD Ejderha Yavrusu", "Retro & Geek", ["ejderha", "fantezi", "kanat"], 48, 8, 120, True),
+    "dragon_baby_3d": ("dragon", "retro_and_fun", "HD Ejderha", "Retro & Geek", ["ejderha", "fantezi", "pullu"], 48, 8, 120, True),
     "sentinel_robot_3d": ("robot", "space_and_3d", "HD Nöbetçi Robot", "Uzay & Bilim Kurgu", ["robot", "bilim kurgu"], 48, 8, 110, True),
     "astronaut_eva_3d": ("astronaut", "space_and_3d", "HD Uzay Yürüyüşü Astronotu", "Uzay & Bilim Kurgu", ["astronot", "uzay", "yıldız"], 48, 8, 120, True),
     "wizard_book_3d": ("wizard", "study_and_lofi", "HD Büyücü & Büyülü Kitap", "Ders & Lo-Fi Odak", ["büyücü", "kitap", "ders"], 48, 8, 110, True),

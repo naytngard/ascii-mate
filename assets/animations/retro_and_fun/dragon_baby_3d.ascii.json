@@ -2,23 +2,23 @@
   "schema_version": "3.0",
   "hd": true,
   "id": "dragon_baby_3d",
-  "name": "HD Ejderha Yavrusu",
+  "name": "HD Ejderha",
   "category": "Retro & Geek",
   "author": "ASCII Mate",
   "tags": [
     "ejderha",
     "fantezi",
-    "kanat",
+    "pullu",
     "hd"
   ],
   "default_fps": 8.0,
   "recommended_color": "auto_hd",
   "hd_file": "dragon_baby_3d.ascii.hd",
   "cols": 120,
-  "rows": 57,
+  "rows": 60,
   "frame_count": 48,
   "bg_mode": "transparent",
-  "source": "tools/scenes (kendi ürettiğimiz SDF sahnesi; harici görsel yok)",
+  "source": "tools/scenes/mesh_scenes.py; model: Cethiel's Dragon 3D (dragon.obj, dokudan köşe rengi), yazar Drummyfish (Cethiel ile), https://opengameart.org/content/cethiels-dragon-3d, lisans CC0 (model repoda yok; yalnız üretilen HD kareler)",
   "particles": {
     "enabled_by_default": false,
     "type": "none",
@@ -32,7 +32,7 @@
     ]
   },
   "frames": [
-    "                                                              \n                                                              \n                         *        #:                          \n                        *@*;;;  *$;                           \n                       #$$$$#####%+                           \n                     ##$$$$##*$%*;;+                          \n                    #$%$$$##%:#;+;++:                         \n                    $$*##+***;++++::+                         \n                    %%%***;+:.::...::                         \n                     ;++:.........::                          \n           +;+         ;+:::....::            ;;              \n           ;%***;      %%*+:....:+         ;**+:              \n            ++;**%%%%+*$$$$$%;+::++ :::.+;*;:...              \n                +;;**$$$$$$$#%%*;++;::;;+:                    \n                  :*$$$$$@@@@$#***;+++:                       \n                   $$$$@@@$$$##%*;+++++                       \n                  %$$#@@@@@@@$$#%;++::+                       \n                  *##$@$$$$###%%*;+::::                       \n                  ;##$@@$$$$##%%*;::::+                       \n                   %%#$####%%%*;;+.::+::                      \n                    *%###%%%%*;++:.::::::++****%+             \n                     $##%**;;;+++::+....:+*###$;::+           \n                   %$$#%%;:++*#$##*;+:.:.:;;;*;;+::           \n                   ***;+:.   +%#%*;+:      ::                 \n                                ::                            \n                                                              \n                                                              \n                                                              \n                                                              "
+    "                                                              \n                                                              \n                                                              \n                                                              \n                                         *    +%              \n                                          *%;  ;#;            \n                                           *##* ;#;           \n                                          ##$##$%##           \n                                         %##%*;#$@@#*         \n                              ;    *****%%*;;;;**%$@%+        \n         ;               +;++**+: ++*%%##*;;+.+;;**%*;        \n         *;                 :++:::+  :**#%**;+:::*%#*         \n         +#+            %     :++++: ;:;#%%%*+     ;+         \n       ;*#$%;*+         $% %   :+%+++#;;%%#%%;:     +         \n       +#;%$#;          #%*$+ %;%%$#*%%%%#$##%++              \n        *%%#**        %%##%#*##%#$$$###%%$%*%%;+:             \n        ::;%%#%%%   ***%#@##*%$#%%$#$$$$@@@%**;++             \n           :+*%%##%%%##%#$#%;;%#$#$$$@@$###**%*++*#%+         \n              ;*%%%***#*%#$$#%%%##$$$##%**;;;;;++*;:          \n                 ....:;#*;*%*;+;;***+:+;*;;;;++++*#**+        \n                     *#%+:::::+;+;;*%#*:::+++++:::::.         \n                    ;%%*;+++++:*;++:::.....:::;;+             \n                   ;*%;;+:..   ;%%*;::......:;*#*:            \n                   *%*;+::     ;%%%*;+:      ;*##*:           \n                   *%#%;;;:    +%#$#;;:      ;*#$#*+          \n                   :+;%;*;;     *#@$%;        +;*#%***        \n                                ;*%##*%;         :+:+         \n                                  :+:++                       \n                                                              \n                                                              \n                                                              "
   ],
   "palette_map": {
     "0": "#000000",
@@ -101,8 +101,14 @@
     "#": "#FFFFFF"
   },
   "color_frames": [
-    "                                                              \n                                                              \n                         #        #L                          \n                        ##gkkk  ##g                           \n                       kkkkkkkTUkgf                           \n                     @jkkkkkkfzfPPPP                          \n                    kzgkkkkTPLzfPPLLP                         \n                    kkPkkLPPPPLLLLLLP                         \n                    kTTPPPPPLLLLLLLLL                         \n                     PLLLLLLLLLLLLLL                          \n           Rhh         PLLLLLLLLLL            lh              \n           kRRRhh      kTPLLLLLLLL         hlQML              \n            PPQRQQkkkTkkkkkkPPLLLLP PLLLQQQQLLLL              \n                QQQQQkkkkkkkTTPPPPPPLLMQMM                    \n                  QQkkkkk@@@@kjPPPPPLML                       \n                   kkkk@@@@@@@wfPPPLLLg                       \n                  kkkU@@@@@@@@@@fPPLLLL                       \n                  kkkk@@@@@@wvfffPLLLLL                       \n                  kkT@@@@@@@@vffffLLLLP                       \n                   kT@@@@wvvffffbLLLLLLL                      \n                    kfvvvvfffffLLLLLLLLLLLPPTkkkP             \n                     kk@vffffbLLLLLLLLLLLLPUUUkPLLL           \n                   kkkUTfPLLLfkkUTPPLLLLLLPPPPPPLLL           \n                   kPPPLLL   fTUTPPLL      LL                 \n                                PL                            \n                                                              \n                                                              \n                                                              \n                                                              "
+    "                                                              \n                                                              \n                                                              \n                                                              \n                                         #    @#              \n                                          ###  g##            \n                                           #### g##           \n                                          #########           \n                                         ###@wg######         \n                              #    ###@##@gggfggg@###g        \n         @               gggbggbL wgw@@@#gggbLfgggg@wg        \n         g@                 LLLLLLg  Lgw#@wgfLLLLg@#g         \n         g#g            #     LbbLfL gLg#wwwgb     gg         \n       #@##@@@g         ## #   LgwLLg#gw@@@@wgL     g         \n       w#gw##g          #@w#g #g@@##g#w#@####@gg              \n        w@w#ww        ######g##w#######ww##w@wgLL             \n        LLgw@####   #@######g###@@#########wwggLf             \n           Lbw@@##@@###@####ggw############gw@gfLg##g         \n              ggw@#wgg#g@#####@w#######wwggggggLLggg          \n                 LLLLLg#gggwggffgwwgfLLgggfffbLLLg###g        \n                     ##wbLLLLLLfbfgw@#gLLLLLLLLLLLLLL         \n                    ##wggbbfbLgwgbLLLLLLLLLLLLfgL             \n                   gw@gfLLLL   g#wwgLLLLLLLLLfw#gL            \n                   w@wfLLL     gw#wggbQ      gw##gf           \n                   ww#@gggg    gw###ggg      gw###gg          \n                   Lgw#gw#g     g###wg        bfw#@wgg        \n                                gg@##wwg         fgbg         \n                                  gggg@                       \n                                                              \n                                                              \n                                                              "
   ],
   "supports_eye_blink": false,
-  "fallback_note": "HD kapalıysa/sınır dolduysa klasik yedek kareler kullanılır"
+  "fallback_note": "HD kapalıysa/sınır dolduysa klasik yedek kareler kullanılır",
+  "model_credit": {
+    "title": "Cethiel's Dragon 3D (dragon.obj, dokudan köşe rengi)",
+    "author": "Drummyfish (Cethiel ile)",
+    "url": "https://opengameart.org/content/cethiels-dragon-3d",
+    "license": "CC0"
+  }
 }

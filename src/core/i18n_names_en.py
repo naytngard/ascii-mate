@@ -56,6 +56,7 @@ NAMES_EN = {
     "HD Büyücü & Büyülü Kitap": "HD Wizard & Magic Book",
     "HD Dev İskelet ve Savaşçı (kırmızı sis)": "HD Giant Skeleton & Warrior (red mist)",
     "HD Dönen Torus Düğümü": "HD Spinning Torus Knot",
+    "HD Ejderha": "HD Dragon",
     "HD Ejderha Yavrusu": "HD Baby Dragon",
     "HD Gelincik Tarlası (Rüzgârlı)": "HD Poppy Field (Windy)",
     "HD Golden Retriever (soluyan)": "HD Golden Retriever (panting)",
