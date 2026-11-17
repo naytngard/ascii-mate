@@ -37,7 +37,8 @@ BUILDERS: Dict[str, dict] = {
         light=dict(dir=(-0.45, 0.6, 0.65), color=(1.0, 0.97, 0.92), sky=(0.25, 0.30, 0.42), ambient=0.38, rim=(0.8, 0.9, 1.0))),
     "dragon": dict(
         obj="dragon.obj", aspect=1.0, tilt=10.0, pre=(0, 0, 0), fill=1.18, yaw=40.0, color_gain=1.8, gamma=0.9,
-        spec_k=0.35, spec_pow=18.0, rim_k=0.5, diff_k=1.0,
+        saturation=1.7, tint_dark=(0.80, 1.10, 0.62), tint_light=(1.22, 1.08, 0.80),
+        spec_k=0.65, spec_pow=22.0, rim_k=0.5, diff_k=1.0,
         light=dict(dir=(-0.5, 0.65, 0.6), color=(0.95, 0.90, 0.80), sky=(0.30, 0.36, 0.46), ambient=0.24, rim=(0.9, 0.95, 1.0))),
     "astronaut": dict(
         obj="astro.obj", aspect=1.0, tilt=8.0, pre=(90, 0, 0), fill=0.82, yaw=25.0,
@@ -56,7 +57,8 @@ CREDITS: Dict[str, dict] = {
                   url="https://quaternius.itch.io/lowpoly-robot", license="CC0 1.0"),
     "dragon": dict(
         obj="dragon.obj", aspect=1.0, tilt=10.0, pre=(0, 0, 0), fill=1.18, yaw=40.0, color_gain=1.8, gamma=0.9,
-        spec_k=0.35, spec_pow=18.0, rim_k=0.5, diff_k=1.0,
+        saturation=1.7, tint_dark=(0.80, 1.10, 0.62), tint_light=(1.22, 1.08, 0.80),
+        spec_k=0.65, spec_pow=22.0, rim_k=0.5, diff_k=1.0,
         light=dict(dir=(-0.5, 0.65, 0.6), color=(0.95, 0.90, 0.80), sky=(0.30, 0.36, 0.46), ambient=0.24, rim=(0.9, 0.95, 1.0))),
     "dragon": dict(name="Cethiel's Dragon 3D (dragon.obj, dokudan köşe rengi)", author="Drummyfish (Cethiel ile)",
                    url="https://opengameart.org/content/cethiels-dragon-3d", license="CC0"),
@@ -222,6 +224,11 @@ def frame(builder: str, ph: float, cols: int, levels: Optional[Tuple[float, ...]
     spec = BUILDERS[builder]
     v, f, c, n = load(spec["obj"])
     c = np.clip(c * spec.get("color_gain", 1.0), 0.0, 1.0)
+    if "saturation" in spec:  # doku rengi korunur; doygunluk artar, koyu tonlar yeşil-bronza, açık tonlar kreme çekilir
+        lum = (c @ np.array([0.2126, 0.7152, 0.0722], np.float32))[:, None]
+        c = np.clip(lum + (c - lum) * spec["saturation"], 0.0, 1.0)
+        t = np.clip((lum - 0.25) / 0.5, 0.0, 1.0)
+        c = np.clip(c * ((1 - t) * np.asarray(spec["tint_dark"], np.float32) + t * np.asarray(spec["tint_light"], np.float32)), 0.0, 1.0)
     parts = [(v, f, c, n)]
     ext = float(np.abs(v).max(axis=0)[1])  # yarı yükseklik
     if spec.get("rock"):
