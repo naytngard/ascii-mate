@@ -69,7 +69,10 @@ FALLBACK_COLS = 62
 def _frame(args):
     builder, ph, cols, levels = args
     import animals
+    import mesh_scenes
 
+    if builder in mesh_scenes.BUILDERS:  # hazır CC0 3B model (OBJ) → aynı gerçekçi hücre görünümü
+        return mesh_scenes.frame(builder, ph, cols, levels)
     s, light, cam = getattr(animals, "build_" + builder)(ph)
     # gerçekçi: kontur/öznitelik karakteri yok. ss=1 (hücre başına 2×4 örnek): ss=2 ile görsel fark yok, 4-5 kat hızlı
     ch, co, lv = common.render_cells_smooth(s, light, cam, cols, levels=levels, ss=1)
@@ -98,7 +101,14 @@ def build(asset_id: str, pool: ProcessPoolExecutor) -> None:
     fb = [_frame((builder, 0.0, FALLBACK_COLS, None))]  # tek kare: yedek tamamen durağan (sıfır CPU)
     fallback = common.palette_frames([f[0] for f in fb], [f[1] for f in fb])
     extra = {"supports_eye_blink": False, "fallback_note": "HD kapalıysa/sınır dolduysa klasik yedek kareler kullanılır"}
-    jp = common.write_scene_asset(folder, asset_id, name, cat, chars, colors, fps, tags, fallback=fallback, extra=extra)
+    src = ""
+    import mesh_scenes
+
+    if builder in mesh_scenes.BUILDERS:
+        src = mesh_scenes.source_text(builder)
+        cr = mesh_scenes.CREDITS[builder]
+        extra["model_credit"] = {"title": cr["name"], "author": cr["author"], "url": cr["url"], "license": cr["license"]}
+    jp = common.write_scene_asset(folder, asset_id, name, cat, chars, colors, fps, tags, fallback=fallback, extra=extra, source=src)
     prev = common.PREVIEW_DIR
     common.preview_png(chars[0], colors[0], prev / f"{asset_id}_after.png", cw=6, ch=12)
     common.preview_png(fb[0][0], fb[0][1], prev / f"{asset_id}_fallback.png", cw=8, ch=16)

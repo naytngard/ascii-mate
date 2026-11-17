@@ -32,3 +32,6 @@ config.json.bak
 config.json.*.tmp
 tests/contact_sheet.txt
 tools/samples/
+
+# Indirilen ucuncu taraf 3B modeller (repoya girmez; bkz. THIRD_PARTY.md)
+tools/models_cache/

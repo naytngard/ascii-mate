@@ -88,6 +88,32 @@ def test_scene_assets_declare_own_source():
         assert "tools/scenes" in d.get("source", ""), aid
 
 
+# Hazır 3B modelden üretilen sahneler: model repoda YOK, yalnız üretilen HD kareler + künye (yazar, URL, lisans)
+MESH_SCENES = ["knight_sitting_3d", "hd_knight_resting", "sentinel_robot_3d", "astronaut_eva_3d"]
+ALLOWED_MODEL_LICENSES = {"CC0", "CC0 1.0", "Public Domain"}
+
+
+@pytest.mark.parametrize("aid", MESH_SCENES)
+def test_mesh_scenes_declare_model_credit_and_cc0(aid):
+    d = json.loads(next(ANIM.rglob(f"{aid}.ascii.json")).read_text(encoding="utf-8"))
+    cr = d.get("model_credit") or {}
+    assert cr.get("license") in ALLOWED_MODEL_LICENSES, aid
+    assert cr.get("author") and cr.get("url", "").startswith("https://"), aid
+    assert "mesh_scenes.py" in d.get("source", "") and cr["license"] in d["source"], aid
+    third = (BASE / "THIRD_PARTY.md").read_text(encoding="utf-8")
+    assert cr["url"] in third, aid  # her model THIRD_PARTY.md'de listeli
+
+
+def test_no_3d_model_files_tracked_by_git():
+    try:
+        out = subprocess.run(["git", "ls-files"], cwd=BASE, capture_output=True, text=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        pytest.skip("git yok")
+    bad = [f for f in out.splitlines() if f.lower().endswith((".obj", ".fbx", ".blend", ".glb", ".gltf", ".mtl", ".3ds"))
+           or "models_cache" in f]
+    assert not bad, f"3B model/doku dosyası izleniyor (repoya girmemeli): {bad}"
+
+
 # ------------------------------------------------------------------ yerel dönüştürücü
 
 def test_import_local_art_refuses_repo_and_writes_outside(tmp_path):
