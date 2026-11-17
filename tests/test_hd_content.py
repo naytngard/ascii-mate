@@ -248,6 +248,8 @@ def test_mesh_motion_loops_and_is_small():
     assert ms.breath_curve(0.0) == pytest.approx(ms.breath_curve(1.0)) and 0.0 <= ms.breath_curve(0.2) <= 1.0
     assert ms.breath_curve(0.2) > 0.95 and ms.breath_curve(0.0) == 0.0  # tepe %40'ta
     for b in ("knight_grass", "knight_sunset", "robot", "astronaut", "dragon"):
+        if not (ms.CACHE / ms.BUILDERS[b]["obj"]).exists():  # modeller repoda yok (tools/models_cache, git-ignore): CI'da atlanır
+            continue
         v, _f, c, _n = ms.load(ms.BUILDERS[b]["obj"])
         v0, c0 = ms.deform(b, 0.0, v, c)
         v1, _ = ms.deform(b, 1.0, v, c)
