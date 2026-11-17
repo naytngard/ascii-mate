@@ -104,6 +104,30 @@ for v in mesh.vertices:
 lo = [min(p[i] for p in pts) for i in range(3)]
 hi = [max(p[i] for p in pts) for i in range(3)]
 ctr = [(lo[i] + hi[i]) / 2 for i in range(3)]
+arms = arg("--arms")  # "pivot_x,pivot_z,aci_derece,esik0,esik1": T-pozu kollarını omuz noktasında aşağı (+z) döndür
+if arms:
+    import math
+
+    px, pz, ang, e0, e1 = (float(t) for t in arms.split(","))
+    th = math.radians(ang)
+    moved = []
+    for p in pts:
+        x, y, z = p[0] - ctr[0], p[1] - ctr[1], p[2] - ctr[2]
+        s = 1.0 if x >= 0 else -1.0
+        t = min(1.0, max(0.0, (abs(x) - e0) / max(e1 - e0, 1e-6)))
+        w = t * t * (3 - 2 * t)  # yumuşak geçiş: gövde-omuz kopmasın
+        a = th * w
+        dx, dz = x - s * px, z - pz
+        ca, sa = math.cos(a), math.sin(a)
+        if s > 0:
+            ndx, ndz = dx * ca - dz * sa, dx * sa + dz * ca
+        else:
+            ndx, ndz = dx * ca + dz * sa, -dx * sa + dz * ca
+        moved.append((ndx + s * px + ctr[0], y + ctr[1], ndz + pz + ctr[2]))
+    pts = moved
+    lo = [min(p[i] for p in pts) for i in range(3)]
+    hi = [max(p[i] for p in pts) for i in range(3)]
+    ctr = [(lo[i] + hi[i]) / 2 for i in range(3)]
 with open(out, "w") as fh:
     for i, p in enumerate(pts):
         c = vcol.get(i, (0.7, 0.7, 0.7))

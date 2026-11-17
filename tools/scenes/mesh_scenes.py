@@ -23,18 +23,20 @@ SWAY_DEG = 25.0
 # id → model dosyası, ışık, kamera çerçevesi, ön döndürme (derece, x/y/z), eğim
 BUILDERS: Dict[str, dict] = {
     "knight_grass": dict(
-        obj="knight.obj", aspect=0.80, tilt=12.0, pre=(0, 0, 0), fill=0.80, color_gain=1.45, gamma=1.15,
-        light=dict(dir=(-0.5, 0.65, 0.6), color=(0.85, 0.80, 0.70), sky=(0.30, 0.36, 0.46), ambient=0.26, rim=(0.9, 0.9, 1.0)),
+        obj="knight.obj", aspect=0.80, tilt=12.0, pre=(0, 0, 0), fill=0.80, color_gain=1.6, gamma=1.15,
+        spec_k=0.65, spec_pow=14.0, rim_k=0.6, diff_k=1.05,
+        light=dict(dir=(-0.5, 0.65, 0.6), color=(0.85, 0.80, 0.70), sky=(0.30, 0.36, 0.46), ambient=0.20, rim=(0.9, 0.95, 1.0)),
         overlay="grass", sway_phase=0.0, bottom_pad=0.10),
     "knight_sunset": dict(
-        obj="knight.obj", aspect=0.80, tilt=12.0, pre=(0, 0, 0), fill=0.76, color_gain=1.45, gamma=1.15,
-        light=dict(dir=(0.75, 0.35, 0.55), color=(1.35, 0.80, 0.45), sky=(0.45, 0.30, 0.32), ambient=0.30, rim=(1.0, 0.55, 0.3)),
-        rock=True, bottom_pad=0.12),
+        obj="knight.obj", aspect=0.80, tilt=12.0, pre=(0, 0, 0), fill=0.80, color_gain=1.6, gamma=1.15,
+        spec_k=0.65, spec_pow=14.0, rim_k=0.6, diff_k=1.1,
+        light=dict(dir=(0.95, 0.22, 0.28), color=(1.5, 0.85, 0.45), sky=(0.45, 0.30, 0.32), ambient=0.20, rim=(1.0, 0.6, 0.3)),
+        rock=True, bottom_pad=0.10),
     "robot": dict(
         obj="robot.obj", aspect=1.05, tilt=10.0, pre=(0, 0, 0), fill=0.82,
         light=dict(dir=(-0.45, 0.6, 0.65), color=(1.0, 0.97, 0.92), sky=(0.25, 0.30, 0.42), ambient=0.38, rim=(0.8, 0.9, 1.0))),
     "astronaut": dict(
-        obj="astro.obj", aspect=1.0, tilt=8.0, pre=(90, 0, 0), fill=0.82,
+        obj="astro.obj", aspect=1.0, tilt=8.0, pre=(90, 0, 0), fill=0.82, yaw=25.0,
         light=dict(dir=(0.6, 0.5, 0.6), color=(1.0, 0.98, 0.92), sky=(0.12, 0.16, 0.30), ambient=0.30, rim=(0.5, 0.7, 1.0)),
         overlay="stars"),
 }
@@ -104,7 +106,8 @@ def _merge(parts):
     return np.concatenate(vs), np.concatenate(fs), np.concatenate(cs), np.concatenate(ns)
 
 
-def _raster(v, f, vcol, n, W: int, H: int, scale: float, cy: float, light: dict, fill: float) -> np.ndarray:
+def _raster(v, f, vcol, n, W: int, H: int, scale: float, cy: float, light: dict, fill: float, spec_k: float = 0.22,
+            spec_pow: float = 28.0, rim_k: float = 0.32, diff_k: float = 0.9) -> np.ndarray:
     """Ortografik z-buffer; yönlü ışık + zayıf dolgu ışığı + gökyüzü/zemin ortamı + kenar ışığı. RGBA float."""
     sx = v[:, 0] * scale + W / 2.0
     sy = -(v[:, 1] - cy) * scale + H / 2.0
@@ -148,9 +151,9 @@ def _raster(v, f, vcol, n, W: int, H: int, scale: float, cy: float, light: dict,
         hemi = (0.5 + 0.5 * nn[..., 1:2])  # üst → gökyüzü, alt → zemin
         ambient = amb * (sky * hemi + 0.35 * (1.0 - hemi)) + amb * 0.35
         nz = np.clip(nn[..., 2:3], 0, 1)
-        rim = ((1.0 - nz) ** 3) * 0.32 * rimc
-        spec = (np.clip(nn @ (L + np.array([0, 0, 1], np.float32)) / np.linalg.norm(L + np.array([0, 0, 1], np.float32)), 0, 1) ** 28)[..., None] * 0.22
-        rgb = base * (ambient + diff * lcol * 0.9 + dfil * fill * 0.25) + rim * (0.4 + 0.6 * diff) + spec
+        rim = ((1.0 - nz) ** 3) * rim_k * rimc
+        spec = (np.clip(nn @ (L + np.array([0, 0, 1], np.float32)) / np.linalg.norm(L + np.array([0, 0, 1], np.float32)), 0, 1) ** spec_pow)[..., None] * spec_k
+        rgb = base * (ambient + diff * lcol * diff_k + dfil * fill * 0.25) + rim * (0.4 + 0.6 * diff) + spec
         patch = img[y0 : y1 + 1, x0 : x1 + 1]
         patch[upd, :3] = np.clip(rgb, 0, 1.4)[upd]
         patch[upd, 3] = 1.0
@@ -215,12 +218,12 @@ def frame(builder: str, ph: float, cols: int, levels: Optional[Tuple[float, ...]
         # kaya: şövalyenin altında (model birimi: yükseklik ≈ 1.15 → kaya boyutu buna göre)
         h = float(v[:, 1].max() - v[:, 1].min())
         base_y = float(v[:, 1].min())
-        rc = (1.30, 1.00, 0.85)
+        rc = (2.2, 1.7, 1.4)  # kaya kare içinde seçilir kalsın: >1 değer yalnızca gölgeleme çarpanı (son renk 1.4'e kırpılır)
         parts.append(ellipsoid_mesh((0.0, base_y + 0.03 * h, -0.02 * h), (0.50 * h, 0.13 * h, 0.38 * h), rc))
         parts.append(ellipsoid_mesh((0.34 * h, base_y + 0.0 * h, 0.12 * h), (0.32 * h, 0.10 * h, 0.28 * h), rc))
     pre = _rot(*spec["pre"])
     ang = math.radians(SWAY_DEG) * math.sin(2 * math.pi * ph)
-    R = _rot(spec["tilt"], 0, 0) @ _rot(0, math.degrees(ang), 0) @ pre
+    R = _rot(spec["tilt"], 0, 0) @ _rot(0, spec.get("yaw", 0.0) + math.degrees(ang), 0) @ pre
     mv, mf, mc, mn = _merge(parts)
     pv = mv @ R.T
     pn = mn @ R.T
@@ -239,7 +242,8 @@ def frame(builder: str, ph: float, cols: int, levels: Optional[Tuple[float, ...]
     # şövalye/kaya için kısa-bölgede çim payı: görüntüyü hafif yukarı kaydır
     cy -= spec.get("bottom_pad", 0.0) * ext_y
     pv = pv.astype(np.float32)
-    rgba = _raster(pv, mf, mc, pn.astype(np.float32), W, H, scale, cy, spec["light"], spec["fill"])
+    rgba = _raster(pv, mf, mc, pn.astype(np.float32), W, H, scale, cy, spec["light"], spec["fill"], spec.get("spec_k", 0.22),
+                   spec.get("spec_pow", 28.0), spec.get("rim_k", 0.32), spec.get("diff_k", 0.9))
     ch, co, lv = _cells(rgba, cols, rows, ss, levels, _RAMP, gamma=spec.get("gamma", 0.95))
     ov = None
     if spec.get("overlay") == "grass":
@@ -252,5 +256,6 @@ def frame(builder: str, ph: float, cols: int, levels: Optional[Tuple[float, ...]
     if keep_rgba:
         return ch, co, lv, rgba
     return ch, co, lv
+
 
 

@@ -577,6 +577,9 @@ def _knight(s: Scene, ph: float, *, helmet_on: bool, steel, cloth, seat: str):
     return seat_y
 
 
+_GRASS_RAMP = ".:;+*%#$@"  # common.SMOOTH_RAMP ile aynı (yumuşak gölge rampası)
+
+
 def _grass_overlay(ph: float, row_from: float = 0.72, density: float = 0.55, flowers: float = 0.06, seed: int = 7,
                    palette=((70, 150, 60), (110, 175, 70), (160, 190, 80)), flower_col=(220, 40, 50)):
     """Hücre uzayında rüzgârlı çimen + kır çiçekleri (yalnızca alt bölge değişir → ucuz)."""
@@ -599,8 +602,12 @@ def _grass_overlay(ph: float, row_from: float = 0.72, density: float = 0.55, flo
                 lean = bend * (k / max(h, 1)) ** 1.5
                 cc = c + int(round(lean * 1.4))
                 if 0 <= cc < cols and (chars[r, cc] == 32 or k < 2):
-                    chars[r, cc] = ord("|" if abs(lean) < 0.33 else ("/" if lean > 0 else "\\"))
-                    colors[r, cc] = col
+                    # yumuşak gölge stili: yönlü çizgi yok; dipte yoğun ($ @), uçta seyrek (. :) karakterler + yüksekliğe göre ton
+                    t = k / max(h - 1, 1)
+                    idx = int(round((1.0 - t) ** 0.85 * (len(_GRASS_RAMP) - 1)))
+                    chars[r, cc] = ord(_GRASS_RAMP[max(0, min(len(_GRASS_RAMP) - 1, idx))])
+                    shade = 0.55 + 0.45 * (1.0 - t) ** 0.7
+                    colors[r, cc] = tuple(int(x * shade) for x in col)
             if rs.random() < flowers and h > 2:
                 cc = c + int(round(bend * 1.3))
                 r = rows - h
